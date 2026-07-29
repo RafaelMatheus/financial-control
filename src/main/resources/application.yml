@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: financial-control
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/financial_control}
+    username: ${DB_USER:financial}
+    password: ${DB_PASSWORD:financial}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.rafaelmatheus.financialcontrol: INFO
