@@ -1,0 +1,31 @@
+# Sample workflow to access AWS resources when workflow is tied to branch
+# The workflow creates a static website using Amazon S3
+# Esse fluxo de trabalho usa ações que não são certificadas pelo GitHub.
+# São fornecidas por terceiros e regidas por
+# termos de serviço, política de privacidade e suporte separados
+# online.
+name: AWS example workflow
+on:
+  push
+env:
+  BUCKET_NAME : "BUCKET-NAME"
+  AWS_REGION : "AWS-REGION"
+# permission can be added at job level or workflow level
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+jobs:
+  S3PackageUpload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v6
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
+        with:
+          role-session-name: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      # Upload a file to AWS s3
+      - name: Copy index.html to s3
+        run: |
+          aws s3 cp ./index.html s3://${{ env.BUCKET_NAME }}/
