@@ -7,9 +7,6 @@
 name: AWS example workflow
 on:
   push
-env:
-  BUCKET_NAME : "BUCKET-NAME"
-  AWS_REGION : "AWS-REGION"
 # permission can be added at job level or workflow level
 permissions:
   id-token: write   # This is required for requesting the JWT
@@ -25,7 +22,4 @@ jobs:
         with:
           role-session-name: arn:aws:iam::594116288641:role/github-actions
           aws-region: east-1
-      # Upload a file to AWS s3
-      - name: Copy index.html to s3
-        run: |
-          aws s3 cp ./index.html s3://${{ env.BUCKET_NAME }}/
+  
