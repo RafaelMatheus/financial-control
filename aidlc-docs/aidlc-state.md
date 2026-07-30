@@ -4,8 +4,8 @@
 - **Project Name**: financial-control
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
-- **Current Phase**: INCEPTION
-- **Current Stage**: Units Generation — concluída (aguardando aprovação). **Fim da fase de Inception.**
+- **Current Phase**: CONSTRUCTION
+- **Current Stage**: CONSTRUCTION — U5 Infraestrutura · Infrastructure Design (planejamento)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -48,14 +48,34 @@ RF-16, RF-24).
 - [x] User Stories — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
 - [x] Workflow Planning — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
 - [x] Application Design — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
-- [x] Units Generation — ARTEFATOS GERADOS (2026-07-30T16:11:59Z), aguardando aprovação
+- [x] Units Generation — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
+
+✅ **FASE DE INCEPTION ENCERRADA** — 7 stages executadas, nenhuma pulada.
 
 ### CONSTRUCTION PHASE
-- [ ] Functional Design — **EXECUTE** (por unidade)
-- [ ] NFR Requirements — **EXECUTE** (primeira unidade apenas)
-- [ ] NFR Design — **EXECUTE** (por unidade)
-- [ ] Infrastructure Design — **EXECUTE** (unidade de infraestrutura apenas)
-- [ ] Code Generation — **EXECUTE** (sempre, por unidade)
+
+**Ordem de execução das unidades**: U5 → U1 → U2 → U3 → U4
+
+#### U5 — Infraestrutura (EM ANDAMENTO)
+- [ ] Functional Design — **SKIP** (sem lógica de negócio nem modelo de dados)
+- [ ] NFR Requirements — **ADIADA para U1** (resolve D-02, D-05 e D-06 — decisões de stack da aplicação)
+- [ ] NFR Design — **SKIP** (consequência da anterior)
+- [ ] Infrastructure Design — **IN PROGRESS**
+- [ ] Code Generation — PENDING
+
+#### U1 — Fundação
+- [ ] Functional Design · NFR Requirements · NFR Design · Code Generation
+
+#### U2 — Lançamentos
+- [ ] Functional Design · NFR Design · Code Generation
+
+#### U3 — Crédito
+- [ ] Functional Design · NFR Design · Code Generation
+
+#### U4 — Planejamento
+- [ ] Functional Design · NFR Design · Code Generation
+
+#### Fechamento
 - [ ] Build and Test — **EXECUTE** (sempre, ao final)
 
 ### OPERATIONS PHASE
@@ -66,7 +86,7 @@ RF-16, RF-24).
 - [x] Parte 2 — Geração
 - **Artifacts Location**: `aidlc-docs/inception/application-design/`
   - `unit-of-work.md` · `unit-of-work-dependency.md` · `unit-of-work-story-map.md`
-- **Aprovação do usuário**: PENDENTE
+- **Aprovação do usuário**: ✅ APROVADO em 2026-07-30T16:11:59Z
 
 ### Decomposição definitiva — 5 unidades
 

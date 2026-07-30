@@ -428,3 +428,20 @@ Complete audit trail of all user inputs and AI responses.
 **Context**: INCEPTION PHASE - Units Generation - Part 2 (Steps 12-15)
 
 ---
+
+## Units Generation — Approval Gate (APROVADO) — FIM DA INCEPTION
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: "Units Generation concluída — última stage da Inception. Como deseja prosseguir?" (opções: Aprovar e iniciar Construction / Aprovar mas começar por U1 / Adiar J-02 e paralelizar / Solicitar mudanças)
+**User Input**: "Aprovar e iniciar Construction"
+**AI Response**: "Units Generation aprovada. **Fase de INCEPTION encerrada** — 7 stages executadas, nenhuma pulada: Workspace Detection, Reverse Engineering, Requirements Analysis (8 revisões), User Stories, Workflow Planning, Application Design e Units Generation. Iniciando a fase de CONSTRUCTION pela unidade U5 (Infraestrutura), conforme a sequência recomendada — o pipeline pronto faz as unidades seguintes nascerem com CI rodando os testes."
+**Context**: INCEPTION PHASE - Units Generation - APROVADO / Transição para CONSTRUCTION
+
+---
+
+## CONSTRUCTION — U5 Infraestrutura: avaliação de stages
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: N/A (avaliação condicional das stages per-unit)
+**AI Response**: "Avaliadas as stages condicionais para a unidade U5. **Functional Design: SKIP** — a unidade não tem lógica de negócio nem modelo de dados; são módulos Terraform, Dockerfile e workflows. **NFR Requirements: ADIADA para U1** — resolve D-02 (mecanismo de autenticação), D-05 (framework de PBT) e D-06 (ferramenta de OpenAPI), todas decisões de stack da aplicação, sem relevância para a infraestrutura. Executá-la aqui produziria decisões sobre código que ainda não existe. **NFR Design: SKIP** — consequência da anterior. **Infrastructure Design: EXECUTE** — é a stage central desta unidade; resolve D-11 (dimensionamento da EC2, AMI, região, rede), completa D-12 (mecanismo de deploy) e detalha as mitigações de R-05. **Code Generation: EXECUTE** (sempre). Ajuste registrado em relação ao execution-plan.md, que previa NFR Requirements na 'primeira unidade' — como U5 passou a ser a primeira executada, a stage foi realocada para a primeira unidade de domínio."
+**Context**: CONSTRUCTION PHASE - U5 - Avaliação condicional
+
+---
