@@ -94,17 +94,20 @@ C) Ambos
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: X — **Fora deste ciclo.** Resposta do usuário: *"nao precisamos nos preocupar neste
+[Answer]: X — **Fora deste ciclo**, na primeira rodada: *"nao precisamos nos preocupar neste
 momnento com backup"*.
 
-**Consequências registradas**:
-- **RF-54** sai do escopo desta unidade
-- **Risco R-01** (severidade Alta) permanece **aberto e sem mitigação**. PostgreSQL na instância,
-  sem backup gerenciado nem rotina própria — perda da instância ou corrupção do volume implica
-  perda total dos dados
-- **RF-50** (volume EBS separado do volume raiz) **permanece no escopo** e é implementado. É a
-  única proteção ativa: os dados sobrevivem à substituição da instância, mas não à perda do volume
-- **Gatilho para retomar**: primeiro deploy com dados reais que não se queira perder
+**REVISADO na revisão 9** — o usuário migrou o banco para RDS gerenciado. A pergunta perdeu o
+objeto: o backup passa a ser nativo do serviço.
+
+| Item | Situação final |
+|---|---|
+| RF-54 | ✅ **Atendido nativamente** — backup automático, 7 dias de retenção |
+| Point-in-time recovery | ✅ Nativo do RDS |
+| Snapshot final ao destruir | ✅ `skip_final_snapshot = false` |
+| **Risco R-01** | ✅ **RESOLVIDO** |
+| RF-50 (volume EBS) | ❌ Removido — sem objeto com armazenamento gerenciado |
+| D-36 (backup fora do escopo) | ❌ Sem objeto |
 
 ---
 

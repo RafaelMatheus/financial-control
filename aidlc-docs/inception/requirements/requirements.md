@@ -48,8 +48,9 @@ O front-end, por outro lado, foi **removido** do escopo deste repositório.
 | 4 | **Contas a pagar** (RF-55 a RF-67) e **Investimentos** (RF-68 a RF-77); fatura de cartão unificada à visão de vencimentos | Pedido do usuário durante a revisão |
 | 5 | **Contrato de API** como entregável explícito (RF-78 a RF-80): OpenAPI 3.1 YAML, gerado após a Application Design | Pedido do usuário: documento de endpoints para construir o front |
 | 6 | **CI/CD e provisionamento** (RF-81 a RF-93): GitHub Actions com OIDC, ECR, deploy por SSM e bootstrap manual documentado | Pergunta do usuário sobre o momento do provisionamento, que revelou a lacuna da fase de Operations do AI-DLC |
-| 8 | **Rateio removido** (D-27): RF-13, RF-14 e RF-15 eliminados. O grupo passa a servir apenas para **visibilidade** — cada lançamento tem um dono e o valor é integralmente dele. RF-97 adicionado (dois totais distintos) | Esclarecimento do usuário durante a Application Design |
 | 7 | **Casos de borda resolvidos** (E-03, E-10, E-12, E-13) com retropropagação para RF-09, RF-25 e três requisitos novos (RF-94 a RF-96). Fecha D-13 e resolve parcialmente D-04 | Decisões tomadas no planejamento das User Stories |
+| 8 | **Rateio removido** (D-27): RF-13, RF-14 e RF-15 eliminados. O grupo passa a servir apenas para **visibilidade** — cada lançamento tem um dono e o valor é integralmente dele. RF-97 adicionado (dois totais distintos) | Esclarecimento do usuário durante a Application Design |
+| 9 | **Banco migrado para RDS gerenciado** (D-37 a D-39): RF-47 revisado, RF-50 removido, RF-54 atendido nativamente. **Risco R-01 resolvido.** Rede ganha duas subnets privadas | Mudança de arquitetura solicitada pelo usuário durante a Construction |
 
 ---
 
@@ -72,8 +73,8 @@ O front-end, por outro lado, foi **removido** do escopo deste repositório.
 - **Objetivos de investimento** com aportes, meta, prazo alvo e saldo atualizável manualmente
 - Schema de banco versionado via Flyway
 - Testes automatizados (exemplo + property-based parcial)
-- **Infraestrutura como código (Terraform)** para deploy em **AWS EC2**, no diretório
-  `infra/terraform/` deste mesmo repositório
+- **Infraestrutura como código (Terraform)** para deploy em **AWS EC2** com **RDS PostgreSQL
+  gerenciado**, no diretório `infra/terraform/` deste mesmo repositório
 - **Pipeline CI/CD em GitHub Actions** — build e teste da aplicação, `terraform plan` em PR,
   `terraform apply` no merge, build e push da imagem para ECR, e deploy na EC2 via SSM
 
@@ -95,7 +96,7 @@ O front-end, por outro lado, foi **removido** do escopo deste repositório.
 | **Rateio / divisão de valores entre membros** | Decisão D-27 (revisão 8). O grupo serve para **visibilidade**, não para dividir dinheiro. Cada lançamento tem um dono e o valor é integralmente dele |
 | **Acerto de contas entre membros ("quem deve a quem")** | Consequência direta da ausência de rateio — não há saldo entre pessoas a consolidar |
 | **Baseline de resiliência (HA, DR, RTO/RPO)** | Extensão desligada (Question 15). A arquitetura alvo é instância única — ver risco R-04 |
-| **RDS ou qualquer banco gerenciado** | Decisão D-10 — PostgreSQL roda na própria instância EC2 |
+| ~~**RDS ou banco gerenciado**~~ | ~~Decisão D-10.~~ **Revertido na revisão 9**: adotado RDS PostgreSQL gerenciado (D-37) |
 | **Kubernetes, ECS, Fargate ou autoscaling** | Deploy alvo é uma instância EC2 única |
 | **Execução do `terraform apply` pelo fluxo AI-DLC** | O método entrega o código; a aplicação da infra roda no GitHub Actions (RF-85). O bootstrap inicial é manual, com runbook (RF-92) |
 | **Acesso SSH à instância** | Substituído por SSM Run Command; porta 22 fechada (RF-90) |
@@ -290,14 +291,14 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 |---|---|---|
 | RF-45 | M | A infraestrutura de execução deve ser descrita como código em **Terraform**, versionada em `infra/terraform/` **neste mesmo repositório**. |
 | RF-46 | M | A infraestrutura deve provisionar a aplicação em uma instância **AWS EC2**. |
-| RF-47 | M | O **PostgreSQL deve rodar na própria instância EC2** (container Docker), não em serviço gerenciado. |
+| RF-47 | M | O PostgreSQL deve rodar em **serviço gerenciado (Amazon RDS)**, em subnet privada, com backup automático e point-in-time recovery. *Revisado na revisão 9 — antes previa container na própria EC2.* |
 | RF-48 | M | A aplicação deve ser empacotada em imagem Docker (hoje não existe `Dockerfile` no repositório). |
 | RF-49 | M | O Terraform deve provisionar os recursos de rede e acesso necessários: VPC/subnet, security group e chave/role de acesso à instância. |
-| RF-50 | M | Os dados do PostgreSQL devem residir em **volume EBS separado** do volume raiz da instância, para sobreviver à substituição da instância. |
+| ~~RF-50~~ | — | ~~Volume EBS separado para os dados do PostgreSQL.~~ **REMOVIDO na revisão 9** — com RDS gerenciado, o armazenamento é responsabilidade do serviço. |
 | RF-51 | M | O estado do Terraform deve ser **remoto** (backend S3), com lock, e nunca versionado no repositório. |
 | RF-52 | M | A configuração deve ser parametrizada por ambiente (ex.: `dev`, `prod`), sem duplicação de módulos. |
 | RF-53 | M | Credenciais de banco e demais segredos devem ser injetados por variável de ambiente ou parameter store — **nunca** hardcoded no Terraform nem versionados. |
-| RF-54 | S | Deve existir rotina de **backup do PostgreSQL** (dump periódico para S3, ou snapshot do volume EBS) com procedimento de restauração documentado. |
+| RF-54 | M | O banco deve ter **backup automático com retenção configurável e point-in-time recovery**. *Atendido nativamente pelo RDS a partir da revisão 9 — antes exigia rotina própria e estava fora do escopo por D-36.* |
 
 ### 3.14 CI/CD e Provisionamento
 
@@ -343,8 +344,8 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 | RNF-13 | Reprodutibilidade da infra | Toda a infraestrutura deve ser recriável a partir do Terraform versionado, sem passos manuais no console AWS. |
 | RNF-14 | Isolamento de CI | Com app e IaC no mesmo repositório, o pipeline deve usar **filtro de path** — `terraform plan` não deve rodar em mudanças que tocam apenas código Kotlin, e vice-versa (RF-83, RF-84). |
 | RNF-15 | Segredos | `*.tfstate`, `*.tfvars` com valores sensíveis e arquivos `.env` não podem ser versionados. O `.gitignore` deve ser estendido para cobri-los. |
-| RNF-16 | Superfície de exposição | O security group deve expor apenas as portas necessárias. A porta do PostgreSQL (5432) **não** deve ser acessível pela internet — apenas localmente na instância. A **porta 22 (SSH) permanece fechada**, já que o acesso administrativo se dá por SSM (RF-88, RF-90). |
-| RNF-17 | Durabilidade dos dados | Como o PostgreSQL roda no próprio EC2 (sem backup gerenciado), a persistência depende de volume EBS separado (RF-50) e de rotina de backup própria (RF-54). Ver risco R-01. |
+| RNF-16 | Superfície de exposição | O security group da aplicação expõe apenas 443 e 80. A **porta 22 permanece fechada** (acesso por SSM). O banco tem security group próprio: **5432 apenas a partir do security group da aplicação**, sem CIDR, e fica em subnet privada sem acesso público. |
+| RNF-17 | Durabilidade dos dados | Garantida pelo RDS: armazenamento gerenciado, backup automático com 7 dias de retenção e point-in-time recovery (D-37). *Revisado na revisão 9 — antes dependia de volume EBS e rotina própria.* |
 
 ---
 
@@ -490,7 +491,10 @@ aportam ao longo dos meses e os dois enxergam o total acumulado e o progresso.
 | D-26 | **Bootstrap manual e único** (`infra/terraform/bootstrap/`) para resolver o ovo-e-galinha do state remoto e da role OIDC | ✅ Decidido. Entregue com runbook passo a passo (RF-92) |
 | D-08 | **Terraform no mesmo repositório**, em `infra/terraform/` | ✅ Decidido. Critério: um único serviço consome a infra, um único mantenedor, infra pequena. App e IaC mudam no mesmo PR, sem sincronização entre repositórios. Repo separado passaria a valer com múltiplos serviços na mesma infra ou separação real de permissões de deploy |
 | D-09 | **IaC dentro deste ciclo AI-DLC** — a stage Infrastructure Design será executada | ✅ Decidido |
-| D-10 | **PostgreSQL na própria instância EC2** (container Docker), não em RDS | ✅ Decidido. Menor custo e menor complexidade; em contrapartida, backup e recuperação passam a ser responsabilidade própria — ver risco R-01 |
+| ~~D-10~~ | ~~PostgreSQL na própria instância EC2~~ | ❌ **REVERTIDA na revisão 9** por D-37 |
+| D-37 | **Amazon RDS PostgreSQL gerenciado** (`db.t4g.micro`, single-AZ, subnet privada) em vez de container na EC2 | ✅ Decidido (revisão 9). Escolhido RDS comum em vez de Aurora: mesmos benefícios de gerenciamento — backup automático, point-in-time recovery, patching — por cerca de um quarto do preço. A arquitetura de instância única não usa réplicas nem failover rápido, que são o diferencial do Aurora. **Resolve o risco R-01** |
+| D-38 | **Duas subnets privadas** em AZs distintas para o banco, sem NAT Gateway | ✅ Decidido. O RDS exige subnet group com duas AZs mesmo em deploy single-AZ; o banco não precisa de saída para a internet |
+| D-39 | **Database e usuário dedicados** (`financial_control` / `financial_app`); master apenas para administração | ✅ Decidido. O usuário da aplicação é criado por SQL, uma vez — o Terraform não alcança o banco em subnet privada |
 | D-11 | Dimensionamento da instância EC2, AMI, região e detalhes de rede | ⏳ Adiado para **Infrastructure Design** |
 | D-12 | Mecanismo de deploy da aplicação no EC2 (user-data, systemd + docker compose, ou pipeline) | ⏳ Adiado para **Infrastructure Design** |
 
@@ -518,7 +522,7 @@ financial-control/
 
 | ID | Risco | Severidade | Mitigação acordada |
 |---|---|---|---|
-| R-01 | **PostgreSQL no EC2 sem backup gerenciado**: são dados financeiros pessoais de múltiplos usuários. Sem RDS, não há snapshot automático, patching gerenciado nem restauração point-in-time. Perda da instância ou corrupção do volume implica perda dos dados. | **Alta** | Decisão consciente do usuário (D-10), motivada por custo e simplicidade. Mitigada por RF-50 (volume EBS separado do volume raiz) e RF-54 (rotina de backup com procedimento de restauração documentado). **RF-54 deve ser tratado como obrigatório na prática, apesar da prioridade "S"** — a Infrastructure Design deve detalhar a rotina antes de qualquer deploy com dados reais. |
+| ~~R-01~~ | ~~PostgreSQL no EC2 sem backup gerenciado.~~ ✅ **RESOLVIDO na revisão 9** pela adoção do RDS (D-37): backup automático com retenção de 7 dias, point-in-time recovery e patching gerenciado. | ~~Alta~~ | Decisão consciente do usuário (D-10), motivada por custo e simplicidade. Mitigada por RF-50 (volume EBS separado do volume raiz) e RF-54 (rotina de backup com procedimento de restauração documentado). **RF-54 deve ser tratado como obrigatório na prática, apesar da prioridade "S"** — a Infrastructure Design deve detalhar a rotina antes de qualquer deploy com dados reais. |
 | R-02 | **Extensão Security desligada com deploy em cloud pública**: o sistema deixa de ter o checklist bloqueante de hardening justamente ao ganhar exposição à internet. | **Média** | Autenticação e isolamento permanecem como requisitos funcionais (RF-01 a RF-05). RNF-16 restringe a superfície do security group. Registrado para reavaliação: a extensão pode ser reativada a qualquer momento antes da Construction. |
 | R-03 | **App e IaC no mesmo repositório sem filtro de CI**: mudanças de código Kotlin disparando `terraform plan` (ou o contrário) geram ruído e risco de apply indevido. | **Baixa** | RNF-14 exige filtro de path no pipeline. |
 | R-04 | **Instância única sem redundância**: qualquer falha da EC2 derruba aplicação e banco simultaneamente. | **Baixa** | Aceito. Coerente com RNF-12 (uso doméstico, sem requisito de disponibilidade) e com o opt-out da extensão de resiliência. |

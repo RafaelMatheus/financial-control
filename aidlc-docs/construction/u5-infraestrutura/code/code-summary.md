@@ -3,7 +3,10 @@
 **Stage**: CONSTRUCTION - Code Generation - Part 2
 **Timestamp**: 2026-07-30T16:11:59Z
 
-**38 arquivos** — 36 criados, 2 modificados. **Nenhum código de aplicação**: `src/` não foi tocado.
+**39 arquivos** — 37 criados, 2 modificados. **Nenhum código de aplicação**: `src/` não foi tocado.
+
+> **Revisão 9 aplicada**: o banco migrou de container na EC2 para **RDS PostgreSQL gerenciado**.
+> O módulo `storage` (volume EBS) foi removido e substituído pelo módulo `database`. Ver §Migração.
 
 ---
 
@@ -24,7 +27,7 @@
 |---|---|---|
 | `network` | 3 | VPC `10.0.0.0/16`, subnet pública, IGW, route table |
 | `security` | 4 | Security group (443/80) + IAM role da instância |
-| `storage` | 3 | Volume EBS gp3 separado, com `prevent_destroy` |
+| `database` | 3 | RDS PostgreSQL 16, subnet group, parameter group com `force_ssl` |
 | `compute` | 4 | EC2 `t3.small`, Elastic IP, `user-data.sh` |
 
 ### Terraform — raiz e ambientes
@@ -34,6 +37,28 @@
 ### Docker e nginx
 `Dockerfile` · `.dockerignore` · `docker-compose.prod.yml` ·
 `infra/nginx/nginx.conf` · `infra/nginx/init-letsencrypt.sh`
+
+---
+
+## Migração para RDS (revisão 9)
+
+| Antes | Depois |
+|---|---|
+| Módulo `storage` — volume EBS gp3 + attachment | ❌ **Removido** |
+| — | ✅ Módulo `database` — RDS, subnet group, parameter group |
+| `network`: 1 subnet pública | ✅ 1 pública + **2 privadas** em AZs distintas |
+| `security`: 1 SG | ✅ 2 SGs — app e database |
+| `compute`: user-data formata e monta volume | ✅ Sem volume; instala `psql` |
+| `docker-compose.prod.yml`: 4 serviços | ✅ 3 — sem o container `postgres` |
+| `parameters.tf`: 2 parâmetros | ✅ 5 — master, app e URL JDBC |
+
+**Risco R-01 resolvido**: backup automático com 7 dias de retenção, point-in-time recovery,
+patching gerenciado e snapshot final ao destruir.
+
+**`rds.force_ssl = 1`** no parameter group: TLS deixa de ser opcional. A URL JDBC gerada já traz
+`sslmode=require`.
+
+**Custo**: ~US$ 35/mês (era ~US$ 22). Os ~US$ 13 do RDS compram o que R-01 exigia.
 
 ### Workflows
 `ci-app.yml` · `terraform-plan.yml` · `terraform-apply.yml` · `deploy-app.yml`
@@ -106,16 +131,21 @@ prática usual. Fica como sugestão, não bloqueio — o pipeline funciona sem e
 
 ## Cobertura
 
-**RF-45 a RF-53** ✅ · **RF-54** ❌ fora do escopo (D-36) · **RF-81 a RF-93** ✅ ·
-**RNF-13 a RNF-16** ✅ · **RNF-17** ⚠️ parcial (só RF-50)
+**RF-45 a RF-49, RF-51 a RF-53** ✅ · **RF-50** removido (sem objeto com RDS) ·
+**RF-54** ✅ **atendido nativamente** pelo backup do RDS · **RF-81 a RF-93** ✅ ·
+**RNF-13 a RNF-17** ✅ — RNF-17 deixa de ser parcial
 
 ---
 
 ## Próximos passos — seus
 
+0. **Confirmar a conta**: `aws sts get-caller-identity` deve responder **594116288641**
+   — a CLI local estava apontando para `490490484770`
 1. Rodar o bootstrap: `cd infra/terraform/bootstrap && terraform init && terraform apply`
-2. Registrar `AWS_ROLE_ARN`, `AWS_REGION` e `ECR_REPOSITORY` como **variables** do repositório
-3. Substituir `REPLACE_ME` em `envs/*/terraform.tfvars` e `envs/*/backend.hcl`
-4. Abrir um PR tocando `infra/**` para validar o OIDC **antes** de criar recursos cobrados
+2. Registrar as 3 **variables** do repositório (valores já conhecidos, ver README)
+3. Abrir um PR tocando `infra/**` para validar o OIDC **antes** de criar recursos cobrados
+4. Após o apply, criar o usuário da aplicação no banco — Passo 5b do runbook
+
+Os `REPLACE_ME` já foram substituídos pelos valores da conta 594116288641.
 
 Passo a passo completo em `../infrastructure-design/deployment-architecture.md` §6.

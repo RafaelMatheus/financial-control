@@ -50,7 +50,7 @@ on:
 
 | Arquivo | Gatilho | O que faz | Requisito |
 |---|---|---|---|
-| `ci-app.yml` | PR em `src/**` | `./gradlew build` com Testcontainers | RF-83 |
+| `ci-app.yml` | PR em `src/**` | `gradle build` com Testcontainers | RF-83 |
 | `terraform-plan.yml` | PR em `infra/**` | `plan` + comentário no PR | RF-84 |
 | `terraform-apply.yml` | push em `main`, `infra/**` | `apply -auto-approve` | RF-85 |
 | `deploy-app.yml` | push em `main`, `src/**` | Build, push para ECR, deploy por SSM | RF-86 a RF-88 |
@@ -113,18 +113,16 @@ services:
   app:
     image: ${ECR_REPOSITORY}:${IMAGE_TAG}
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/financial_control
+      DB_URL: ${DB_URL}            # do Parameter Store, aponta para o RDS
       DB_USER: ${DB_USER}          # do Parameter Store
       DB_PASSWORD: ${DB_PASSWORD}  # do Parameter Store
-    depends_on: [postgres]
 
-  postgres:
-    image: postgres:16-alpine
-    volumes:
-      - /mnt/data/postgres:/var/lib/postgresql/data   # volume EBS separado
 ```
 
-**Portas publicadas**: apenas 80 e 443 pelo nginx. `app` e `postgres` só na rede interna.
+O **PostgreSQL não está no compose** — é RDS gerenciado, em subnet privada. A `DB_URL` vem do
+Parameter Store já com `sslmode=require`.
+
+**Portas publicadas**: apenas 80 e 443, pelo nginx.
 
 ---
 
@@ -134,16 +132,12 @@ services:
 
 ```
 1. instala docker e docker compose
-2. formata o volume EBS se ainda nao formatado
-   (verificacao idempotente — nunca reformata volume com dados)
-3. monta em /mnt/data, com entrada no /etc/fstab
-4. le credenciais do Parameter Store
-5. escreve o .env
-6. docker compose up -d
+2. instala o cliente psql (usado uma vez, para criar o usuario da aplicacao)
+3. le DB_URL, DB_USER e DB_PASSWORD do Parameter Store
+4. escreve o .env com permissao 600
 ```
 
-> O passo 2 é o mais delicado: precisa distinguir volume novo de volume já com dados. A verificação
-> é por `blkid` — se houver filesystem, apenas monta.
+Sem volume a montar ou formatar — o armazenamento é responsabilidade do RDS.
 
 ---
 
@@ -193,8 +187,10 @@ Abra um PR que toque `infra/**` e confirme que o `terraform plan` autentica e ro
 
 ### Passo 4 — Primeiro apply
 
-Merge em `main`. Provisiona VPC, subnet, IGW, security group, EC2, Elastic IP, volume EBS e IAM
-role da instância.
+Merge em `main`. Provisiona VPC, subnets pública e privadas, IGW, os dois security groups, EC2,
+Elastic IP, **instância RDS** e IAM role da instância.
+
+> O RDS leva de 5 a 10 minutos para ficar disponível — é o recurso mais lento do apply.
 
 > ⚠️ **Sem gate de aprovação** (D-25). Leia o `plan` do PR antes de mergear, especialmente se
 > houver `destroy` ou `replace`.
@@ -207,6 +203,39 @@ role da instância.
 
 Sem domínio, a API responde por HTTP no IP elástico. Aceitável em `dev`, não em `prod`.
 
+### Passo 5b — Criar o usuário da aplicação no banco
+
+O Terraform cria o database `financial_control` e o usuário **master** `financial_admin`, mas não
+cria o usuário da aplicação: o banco está em subnet privada, inalcançável de onde o Terraform roda.
+
+Conecte-se à instância e execute uma vez:
+
+```bash
+aws ssm start-session --target <instance-id>
+
+# na instancia
+REGION=us-east-1
+PREFIX=/financial-control-prod
+get() { aws ssm get-parameter --region $REGION --name "$1" --with-decryption --query Parameter.Value --output text; }
+
+DB_HOST=$(get $PREFIX/db/url | sed -E 's|jdbc:postgresql://([^:]+):.*|\1|')
+ADMIN_USER=$(get $PREFIX/db/master-username)
+ADMIN_PASS=$(get $PREFIX/db/master-password)
+APP_USER=$(get $PREFIX/db/user)
+APP_PASS=$(get $PREFIX/db/password)
+
+PGPASSWORD="$ADMIN_PASS" psql "host=$DB_HOST user=$ADMIN_USER dbname=financial_control sslmode=require" <<SQL
+CREATE ROLE $APP_USER WITH LOGIN PASSWORD '$APP_PASS';
+GRANT CONNECT ON DATABASE financial_control TO $APP_USER;
+GRANT USAGE, CREATE ON SCHEMA public TO $APP_USER;
+SQL
+```
+
+`CREATE` no schema é necessário porque o **Flyway** cria as tabelas na primeira execução.
+
+> Passo único. Depois disso, a aplicação conecta com `financial_app`, e o master fica só para
+> administração.
+
 ### Passo 6 — Primeiro deploy
 
 Merge em `main` tocando `src/**`. O workflow constrói a imagem, publica no ECR e atualiza a
@@ -216,9 +245,9 @@ instância via SSM.
 
 - [ ] `GET https://<dominio>/actuator/health` responde `{"status":"UP"}`
 - [ ] Porta 22 **fechada**: `nmap -p 22 <ip>` retorna filtered/closed
-- [ ] Porta 5432 **não acessível** de fora
-- [ ] `docker compose ps` na instância (via SSM Session Manager) mostra os 3 containers de pé
-- [ ] Volume montado: `df -h /mnt/data`
+- [ ] Banco **não acessível** de fora da VPC: `nc -zv <db-endpoint> 5432` da sua máquina deve falhar
+- [ ] `docker compose ps` na instância mostra nginx, certbot e app de pé
+- [ ] Conexão TLS obrigatória: conectar sem `sslmode=require` deve ser recusado
 - [ ] Migrations Flyway aplicadas — app sobe com `ddl-auto: validate` passando
 
 ### Acesso administrativo
@@ -239,11 +268,12 @@ cd infra/terraform
 terraform destroy
 ```
 
-> ⚠️ Recursos com `prevent_destroy` — volume EBS, Elastic IP, ECR — **bloqueiam o destroy**. Para
-> removê-los é preciso retirar o `prevent_destroy` num commit separado. É intencional.
+> ⚠️ Recursos com `prevent_destroy` — instância RDS, Elastic IP, ECR — **bloqueiam o destroy**.
+> Para removê-los é preciso retirar o `prevent_destroy` num commit separado. É intencional.
 >
-> ⚠️ **O volume EBS carrega os dados do PostgreSQL e não há backup** (risco R-01, decisão do
-> usuário). Destruí-lo é irreversível.
+> Com `skip_final_snapshot = false`, destruir o banco tira um **snapshot final** antes de remover.
+> Combinado com os backups automáticos de 7 dias, há caminho de recuperação — diferente do cenário
+> anterior, em que R-01 estava aberto.
 
 ```bash
 # derruba o bootstrap — por ultimo, e so ao abandonar o projeto
@@ -258,13 +288,16 @@ terraform destroy
 | Item | Mensal |
 |---|---|
 | EC2 `t3.small` on-demand | ~US$ 15 |
-| EBS gp3 20 GB | ~US$ 1,60 |
+| EBS raiz 20 GB | ~US$ 1,60 |
+| **RDS `db.t4g.micro` + 20 GB gp3** | **~US$ 13** |
 | IPv4 público | ~US$ 3,60 |
 | ECR (poucas imagens) | < US$ 1 |
 | S3 (state) + Parameter Store | < US$ 1 |
-| **Total** | **~US$ 22/mês** |
+| **Total** | **~US$ 35/mês** |
 
-Sem NAT Gateway (~US$ 32 economizados), sem ALB (~US$ 18), sem RDS (~US$ 15+).
+Sem NAT Gateway (~US$ 32 economizados) e sem ALB (~US$ 18). O RDS acrescenta ~US$ 13 e, em troca,
+resolve o risco R-01 — backup automático, PITR e patching gerenciado. Aurora custaria ~US$ 43–60
+no lugar dos US$ 13.
 Valores aproximados — confirme na calculadora da AWS.
 
 ---
@@ -287,3 +320,17 @@ SSM Session Manager.
 | `domain_name` | Sem ele, não há certificado TLS — a API responde por HTTP no IP elástico | Antes do deploy em `prod` com dados reais |
 
 Nenhum outro insumo externo é necessário. O provisionamento funciona sem o domínio.
+
+## 11. Conta AWS
+
+Confirmada: **594116288641** (`rmpcastr`). Os valores em `envs/*/terraform.tfvars` e
+`envs/*/backend.hcl` já estão preenchidos com ela.
+
+> ⚠️ A AWS CLI local estava configurada para outra conta (`490490484770`, `user/mt-clix`). Antes de
+> qualquer `apply`, confirme:
+>
+> ```bash
+> aws sts get-caller-identity   # deve responder 594116288641
+> ```
+>
+> Use um profile nomeado (`AWS_PROFILE=pessoal`) ou o CloudShell aberto na conta correta.

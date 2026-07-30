@@ -66,9 +66,11 @@ variável de ambiente. Veja `.env.example`.
 
 ## Infraestrutura e deploy
 
-A aplicação roda numa instância **AWS EC2** (`t3.small`, `us-east-1`), com PostgreSQL em container
-na mesma máquina e volume EBS separado para os dados. Toda a infraestrutura é descrita em
-**Terraform**, em `infra/terraform/`, e provisionada pelo **GitHub Actions**.
+A aplicação roda numa instância **AWS EC2** (`t3.small`, `us-east-1`) e o banco é **RDS PostgreSQL
+gerenciado** em subnet privada. Toda a infraestrutura é descrita em **Terraform**, em
+`infra/terraform/`, e provisionada pelo **GitHub Actions**.
+
+Custo estimado: **~US$ 35/mês**.
 
 ### Pipeline
 
@@ -80,6 +82,18 @@ na mesma máquina e volume EBS separado para os dados. Toda a infraestrutura é 
 | `deploy-app.yml` | merge em `main`, `src/**` | Build da imagem, push para ECR e deploy via SSM |
 
 Autenticação na AWS por **OIDC** — nenhuma credencial de longa duração no repositório.
+
+### Variáveis do repositório
+
+Em *Settings → Secrets and variables → Actions → **Variables*** (não Secrets):
+
+| Name | Value |
+|---|---|
+| `AWS_REGION` | `us-east-1` |
+| `AWS_ROLE_ARN` | `arn:aws:iam::594116288641:role/financial-control-github-actions` |
+| `ECR_REPOSITORY` | `594116288641.dkr.ecr.us-east-1.amazonaws.com/financial-control` |
+
+**Nenhum secret.** O OIDC dispensa access key.
 
 ### Antes do primeiro uso
 
@@ -102,11 +116,14 @@ aws ssm start-session --target <instance-id>
 
 Sem SSH — a porta 22 fica fechada.
 
-### ⚠️ Sem backup
+### Banco de dados
 
-Não há rotina de backup do PostgreSQL (decisão registrada em D-36). A única proteção é o volume EBS
-separado da instância, que sobrevive à recriação da EC2 — **mas não a perda ou corrupção do próprio
-volume**. Antes de guardar dados que você não queira perder, implemente RF-54.
+**RDS PostgreSQL 16** (`db.t4g.micro`), em subnet privada, sem acesso público. Backup automático
+com 7 dias de retenção, point-in-time recovery e patching gerenciado. TLS obrigatório
+(`rds.force_ssl = 1`).
+
+Acesso alcançável apenas de dentro da VPC. Para inspecionar dados da sua máquina, use túnel SSM
+pela EC2.
 
 ## AI-DLC
 

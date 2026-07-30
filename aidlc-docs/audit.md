@@ -470,3 +470,28 @@ Complete audit trail of all user inputs and AI responses.
 **Context**: CONSTRUCTION PHASE - U5 - Code Generation (Steps 10-13)
 
 ---
+
+## CONSTRUCTION — U5: migração do banco para RDS gerenciado (revisão 9)
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "modifiquei um pouco a ideia, o banco to usando um rds aurora postgres agora"; seguido do snippet Java com o endpoint `database-1-instance-1.c78iiceiwjmn.us-east-2.rds.amazonaws.com`
+**AI Response**: "Mudança de arquitetura identificada. Primeira consequência registrada: o risco R-01 (banco sem backup gerenciado, severidade Alta, que permanecia aberto) deixa de existir — RDS traz backup automático, PITR e patching. Detectados dois conflitos a partir do snippet: (1) o banco está em us-east-2 mas a infraestrutura foi planejada para us-east-1, e cruzar regiões traria latência por query e custo de transferência; (2) o cluster foi criado fora do Terraform, então escrever o recurso no código faria o apply criar um cluster novo ao lado. Também observado que o snippet usa o usuário master `postgres` e o database default, e que `sslmode=require` já estava correto. Apresentada comparação de custo entre Aurora (~US$ 43-60/mês) e RDS PostgreSQL comum (~US$ 13/mês), com a observação factual de que a arquitetura de instância única não usa réplicas nem failover rápido, que são o diferencial do Aurora."
+**Context**: CONSTRUCTION PHASE - U5 - Mudança de arquitetura do banco
+
+---
+
+## CONSTRUCTION — U5: decisões da migração
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: 5 perguntas via AskUserQuestion em duas rodadas — conflito de região, gestão pelo Terraform, database e usuário, motor e dimensionamento, e posição na rede.
+**User Input**: "Conflito de região"="Recriar o banco em us-east-1"; "O banco existente entra no Terraform?"="Terraform cria e gerencia o banco"; "Database e usuário da aplicação?"="Dedicados (Recomendado)"; "Motor e dimensionamento"="RDS PostgreSQL comum"; "Onde o banco fica na rede?"="Subnet privada (Recomendado)"
+**AI Response**: "Registradas como D-37 (RDS PostgreSQL gerenciado, db.t4g.micro, single-AZ — reverte D-10), D-38 (duas subnets privadas em AZs distintas, sem NAT) e D-39 (database `financial_control` e usuário `financial_app` dedicados; master apenas para administração). Requirements revisão 9: RF-47 revisado, RF-50 removido, RF-54 passa de fora-do-escopo para atendido nativamente, RNF-16 e RNF-17 revisados, risco R-01 marcado como RESOLVIDO, D-10 marcada como revertida. Código: módulo `storage` removido, módulo `database` criado, `network` ganha duas subnets privadas, `security` ganha o security group do banco com origem por security group e não por CIDR, `compute` deixa de montar volume e passa a instalar o cliente psql, docker-compose perde o container postgres, e `parameters.tf` passa de 2 para 5 parâmetros. Identificada uma limitação e documentada: o Terraform não consegue criar o usuário da aplicação porque o banco fica em subnet privada, inalcançável de onde ele roda — adicionado o Passo 5b ao runbook com o SQL a executar uma vez via SSM."
+**Context**: CONSTRUCTION PHASE - U5 - Revisão 9
+
+---
+
+## CONSTRUCTION — U5: conta AWS e variáveis do repositório
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "quais variáveis de ambiente eu preciso colocar para o githubactions dar certo?"; "5941-1628-8641 / Nome da conta rmpcastr"; "brew install awscli"; "Em qual conta a infraestrutura vai rodar?"="594116288641 (rmpcastr)"
+**AI Response**: "Levantadas as variáveis por inspeção dos arquivos, em três níveis: 3 variables do repositório GitHub (AWS_REGION, AWS_ROLE_ARN, ECR_REPOSITORY, nenhum secret — o OIDC dispensa access key), 8 variáveis no .env da instância geradas automaticamente pelo user-data a partir do Parameter Store, e 4 na aplicação já com default no application.yml. AWS CLI instalada via Homebrew. **ACHADO IMPORTANTE**: a CLI local estava autenticada na conta 490490484770 (user/mt-clix), diferente da 594116288641 informada pelo usuário — exatamente o cenário que o Passo 1 do runbook manda verificar. Sinalizado que um apply nesse estado criaria todos os recursos na conta errada, e oferecidas as saídas: profile nomeado ou CloudShell. Conta confirmada pelo usuário como 594116288641. Substituídos todos os REPLACE_ME em envs/dev e envs/prod pelos valores determinísticos da conta, e adicionada a Seção 11 ao deployment-architecture com o alerta de verificação de conta."
+**Context**: CONSTRUCTION PHASE - U5 - Configuração de conta e variáveis
+
+---

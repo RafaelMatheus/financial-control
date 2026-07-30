@@ -16,15 +16,33 @@ variable "project_name" {
 }
 
 variable "instance_type" {
-  description = "Tipo da instancia EC2"
+  description = "Tipo da instancia EC2 da aplicacao"
   type        = string
   default     = "t3.small"
 }
 
-variable "ebs_size_gb" {
-  description = "Tamanho do volume de dados"
+variable "db_instance_class" {
+  description = "Classe da instancia RDS"
+  type        = string
+  default     = "db.t4g.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "Disco inicial do banco em GB"
   type        = number
   default     = 20
+}
+
+variable "db_multi_az" {
+  description = "Alta disponibilidade do banco — dobra o custo"
+  type        = bool
+  default     = false
+}
+
+variable "db_backup_retention_days" {
+  description = "Retencao dos backups automaticos"
+  type        = number
+  default     = 7
 }
 
 variable "domain_name" {

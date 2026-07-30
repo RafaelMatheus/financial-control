@@ -725,6 +725,70 @@ U2. Adiar J-02 tornaria **U3 e U4 paralelizáveis**, encurtando o caminho críti
 > unidades. Faz sentido — jornadas existem justamente para cruzar fronteiras, e cruzar fronteiras é
 > o que cria acoplamento.
 
+### 3.24 A mudança de arquitetura que fechou um risco
+
+**Episódio**: já com o código de infraestrutura gerado e no GitHub, o usuário informou que passaria
+a usar banco gerenciado: *"modifiquei um pouco a ideia, o banco to usando um rds aurora postgres
+agora"*.
+
+**Primeira consequência, e a mais relevante**: o **risco R-01 deixou de existir**. Era o único de
+severidade Alta que permanecia aberto — PostgreSQL em container na EC2, sem backup gerenciado, com
+o usuário tendo decidido explicitamente adiar a rotina de backup (D-36). O RDS traz backup
+automático, point-in-time recovery e patching como propriedades do serviço.
+
+> Um risco que atravessou várias stages sendo repetidamente registrado e mitigado parcialmente
+> desapareceu por uma decisão de arquitetura tomada por outro motivo. Vale registrar que a
+> mitigação estrutural — trocar o componente — foi mais eficaz que as mitigações incrementais que
+> vinham sendo acumuladas (volume EBS separado, `prevent_destroy`, runbook de restauração).
+
+**Dois conflitos detectados no snippet que o usuário enviou** — um trecho Java com a URL JDBC real:
+
+| Conflito | Consequência se ignorado |
+|---|---|
+| Banco em `us-east-2`, infra planejada para `us-east-1` | Latência por query e custo de transferência entre regiões |
+| Cluster criado fora do Terraform | O `apply` criaria um cluster **novo ao lado**, sem tocar no existente |
+
+Nenhum dos dois estava explícito no pedido. Ambos vieram de ler o endpoint com atenção.
+
+**Aurora vs. RDS comum**: apresentada a diferença de custo — Aurora ~US$ 43–60/mês contra ~US$ 13 do
+RDS `db.t4g.micro` — com a observação de que a arquitetura de instância única **não usa** réplicas
+nem failover rápido, que são o diferencial do Aurora. O usuário optou pelo RDS comum.
+
+> O usuário havia escolhido `us-east-1` sobre São Paulo para economizar US$ 11/mês. Adotar Aurora
+> teria acrescentado US$ 30–47 — quatro vezes a economia perseguida na decisão anterior. Apontar a
+> incoerência de ordem de grandeza entre duas decisões de custo é barato e mudou o resultado.
+
+**Limitação encontrada na implementação**: o Terraform **não consegue criar o usuário da aplicação**.
+O banco fica em subnet privada, e o Terraform roda no GitHub Actions, fora da VPC. Criar uma role
+PostgreSQL exige conexão SQL ao banco.
+
+Saída adotada: documentar como passo único do runbook (Passo 5b), executado da EC2 via SSM, com o
+SQL pronto. Alternativas descartadas: usar o master na aplicação (contraria D-39 e o princípio de
+menor privilégio) e provider PostgreSQL no Terraform (exigiria expor o banco ou rodar o Terraform
+dentro da VPC).
+
+> Fronteira real de IaC: **Terraform provisiona infraestrutura, não estado interno de aplicação**.
+> Usuários e permissões dentro do banco são estado do banco, não da AWS. A tentação de automatizar
+> tudo esbarra em o Terraform não ter — nem dever ter — rota de rede até o recurso que provisionou.
+
+### 3.25 A conta errada
+
+**Episódio**: ao instalar a AWS CLI e verificar a autenticação, `aws sts get-caller-identity`
+respondeu com a conta **490490484770** (`user/mt-clix`) — diferente da **594116288641** (`rmpcastr`)
+que o usuário havia informado.
+
+**O que teria acontecido**: `terraform apply` criaria bucket de state, OIDC provider, IAM role, VPC,
+EC2 e RDS na conta errada — aparentemente de trabalho ou cliente. Recursos cobrados, em conta
+alheia, e o pipeline apontando para ARNs inexistentes na conta pretendida.
+
+**Por que foi detectado**: o Passo 1 do runbook exige `aws sts get-caller-identity` **antes** de
+qualquer apply, e o comando foi executado como parte da verificação de instalação.
+
+> A salvaguarda mais barata do runbook — um comando de uma linha, escrito quase como formalidade —
+> pegou o erro mais caro possível na primeira vez que foi executada. Vale registrar que ela existia
+> porque o runbook foi escrito antes de haver o que executar; se tivesse sido documentado depois,
+> provavelmente descreveria o caminho feliz.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -766,9 +830,9 @@ U2. Adiar J-02 tornaria **U3 e U4 paralelizáveis**, encurtando o caminho críti
 | Cenários de usuário | 10 |
 | Casos de borda e erro | 16 |
 | Premissas registradas | 11 |
-| Decisões técnicas | 33 (28 fechadas, 5 adiadas) |
-| Riscos registrados | 5 |
-| Revisões do documento de requisitos | 8 |
+| Decisões técnicas | 39 (34 fechadas, 5 adiadas); 2 revertidas (D-10, D-36) |
+| Riscos registrados | 5 (R-01 **resolvido** na rev. 9) |
+| Revisões do documento de requisitos | 9 |
 
 ### 4.3 Evolução do escopo
 
@@ -832,6 +896,24 @@ dados concretas lado a lado, em vez de descrições em prosa.
 PostgreSQL no EC2 em vez de RDS foi escolha consciente do usuário. O método não bloqueou — registrou
 R-01 com severidade, mitigação acordada e a ressalva de que RF-54 é obrigatório na prática apesar
 da prioridade "S".
+
+**O-27 — Mitigação estrutural supera mitigação incremental.** O risco R-01 acumulou mitigações
+parciais ao longo de várias stages — volume EBS separado, `prevent_destroy`, runbook de restauração
+— e foi eliminado por uma troca de componente decidida por outro motivo. Riscos que persistem
+apesar de mitigações sucessivas podem ser sinal de que o problema está na escolha do componente,
+não na sua configuração.
+
+**O-28 — IaC tem fronteira no estado interno do recurso provisionado.** O Terraform cria o banco
+mas não consegue criar uma role dentro dele: o recurso fica em subnet privada e o Terraform roda
+fora da VPC. Provisionar infraestrutura e configurar o que roda dentro dela são problemas distintos,
+e a automação completa esbarra em o provisionador não ter — nem dever ter — rota de rede até o
+recurso.
+
+**O-29 — Salvaguardas triviais pegam os erros mais caros.** `aws sts get-caller-identity` foi
+escrito no runbook quase como formalidade, antes de existir o que executar. Na primeira execução
+real, detectou que a CLI apontava para outra conta — evitando provisionar toda a infraestrutura no
+lugar errado. Runbooks escritos antes da execução tendem a incluir verificações que os escritos
+depois omitem, por já conhecerem o caminho feliz.
 
 **O-25 — Decomposição por capacidade de entrega custa coordenação, e o custo precisa ser
 explicitado.** Dividir o componente `gasto` entre duas unidades só é vantajoso porque veio

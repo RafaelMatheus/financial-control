@@ -1,5 +1,7 @@
 # Composicao de producao, executada na instancia EC2.
-# O deploy roda: docker compose -f docker-compose.prod.yml pull && up -d
+# Deploy: docker compose -f docker-compose.prod.yml pull && up -d
+#
+# O PostgreSQL nao esta aqui — e RDS gerenciado, em subnet privada.
 
 services:
   nginx:
@@ -28,31 +30,12 @@ services:
     image: ${ECR_REPOSITORY}:${IMAGE_TAG}
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/financial_control
+      # URL vinda do Parameter Store, ja com sslmode=require (rds.force_ssl = 1)
+      DB_URL: ${DB_URL}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       SERVER_PORT: 8080
-    depends_on:
-      postgres:
-        condition: service_healthy
     # Sem "ports": so acessivel pela rede interna, via nginx.
-
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: financial_control
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      # Volume EBS separado (RF-50). ATENCAO: nao ha backup — decisao D-36.
-      - /mnt/data/postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d financial_control"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    # Sem "ports": 5432 nunca exposta fora da rede do compose (RNF-16).
 
 volumes:
   certbot-conf:

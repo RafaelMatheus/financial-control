@@ -1,6 +1,10 @@
-# VPC propria, subnet publica, sem NAT Gateway (D-34).
-# A protecao vem do security group, nao do isolamento de rede — NAT custaria
-# ~US$ 32/mes, mais que a propria instancia.
+# VPC propria (D-34), sem NAT Gateway.
+#
+# Subnet publica: EC2 com a aplicacao e o nginx.
+# Subnets privadas: banco RDS. Precisam de DUAS AZs — exigencia do
+# db_subnet_group, mesmo em deploy single-AZ.
+#
+# Sem NAT: o banco nao precisa de saida para a internet, e a EC2 sai pelo IGW.
 
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
@@ -20,9 +24,10 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# ------------------------------------------------------------ publica
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.subnet_cidr
+  cidr_block              = var.public_subnet_cidr
   availability_zone       = data.aws_availability_zones.available.names[0]
   map_public_ip_on_launch = true
 
@@ -43,4 +48,30 @@ resource "aws_route_table" "public" {
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
+}
+
+# ------------------------------------------------------------ privadas
+# Duas AZs: o db_subnet_group exige, ainda que o banco seja single-AZ.
+resource "aws_subnet" "private" {
+  count = 2
+
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_subnet_cidrs[count.index]
+  availability_zone = data.aws_availability_zones.available.names[count.index]
+
+  tags = { Name = "${var.project_name}-subnet-private-${count.index + 1}" }
+}
+
+# Route table sem rota default: sem saida para a internet, sem NAT.
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  tags = { Name = "${var.project_name}-rt-private" }
+}
+
+resource "aws_route_table_association" "private" {
+  count = 2
+
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
 }

@@ -71,13 +71,15 @@ removendo a dependência do wrapper: `Dockerfile` usa a imagem oficial do Gradle
 instala o Gradle 8.14.2 explicitamente.
 
 **Decisões de U5**: D-11 (`us-east-1` · `t3.small`), D-12 (deploy por SSM sobre docker compose),
-D-34 (VPC própria, subnet pública, sem NAT), D-35 (nginx + Let's Encrypt), D-36 (backup fora do
-ciclo). Custo estimado ~US$ 22/mês.
+D-34 (VPC própria, sem NAT), D-35 (nginx + Let's Encrypt), **D-37 (RDS PostgreSQL gerenciado)**,
+D-38 (2 subnets privadas), D-39 (database e usuário dedicados). Custo estimado ~US$ 35/mês.
 
-⚠️ **Risco R-01 permanece ABERTO e sem mitigação** — backup excluído por decisão do usuário
-(*"nao precisamos nos preocupar neste momnento com backup"*). RF-54 fora do escopo. A única proteção
-ativa é RF-50 (volume EBS separado), que cobre substituição da instância mas **não** perda ou
-corrupção do volume. Gatilho para retomar: primeiro deploy com dados reais.
+✅ **Risco R-01 RESOLVIDO** na revisão 9. A migração para RDS gerenciado traz backup automático com
+7 dias de retenção, point-in-time recovery, patching gerenciado e snapshot final ao destruir. D-36
+(backup fora do escopo) e RF-50 (volume EBS) ficaram sem objeto. **RF-54 atendido nativamente.**
+
+**Conta AWS**: 594116288641 (`rmpcastr`). Valores já preenchidos em `envs/*`. ⚠️ A CLI local estava
+configurada para `490490484770` — confirmar com `aws sts get-caller-identity` antes de qualquer apply.
 
 **Insumo pendente**: `domain_name` — sem ele não há TLS; a API responde por HTTP no IP elástico.
 

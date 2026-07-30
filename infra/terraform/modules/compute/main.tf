@@ -1,6 +1,5 @@
-# EC2 t3.small em us-east-1 (D-11).
-# 2 GB de RAM: JVM (~512 MB) + PostgreSQL (~256 MB) + nginx + SO cabem com folga.
-# t3.micro foi descartado no design pelo risco real de OOM.
+# EC2 t3.small (D-11), apenas com a aplicacao e o nginx.
+# O PostgreSQL saiu daqui — agora e RDS gerenciado, em subnet privada.
 
 data "aws_ami" "amazon_linux" {
   most_recent = true
@@ -31,8 +30,8 @@ resource "aws_instance" "app" {
   tags = { Name = var.project_name }
 
   lifecycle {
-    # A AMI mais recente muda com o tempo; ignorar evita recriar a instancia
-    # a cada apply so porque a Amazon publicou uma imagem nova.
+    # A AMI mais recente muda quando a Amazon publica uma imagem nova; sem isto
+    # todo apply recriaria a instancia.
     ignore_changes = [ami]
   }
 }
@@ -42,7 +41,6 @@ locals {
     project_name   = var.project_name
     aws_region     = var.aws_region
     ecr_repository = var.ecr_repository
-    device_name    = var.device_name
     domain_name    = var.domain_name
     enable_tls     = var.enable_tls
   })

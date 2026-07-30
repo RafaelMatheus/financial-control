@@ -28,12 +28,6 @@ variable "ecr_repository" {
   type = string
 }
 
-variable "device_name" {
-  description = "Device do volume de dados"
-  type        = string
-  default     = "/dev/xvdf"
-}
-
 variable "domain_name" {
   description = "Dominio da API. Vazio desabilita o TLS."
   type        = string
