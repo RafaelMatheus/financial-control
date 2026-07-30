@@ -45,6 +45,7 @@ O front-end, por outro lado, foi **removido** do escopo deste repositório.
 | 2 | Infraestrutura: deploy em AWS EC2, Terraform no mesmo repo, PostgreSQL na instância (RF-45 a RF-54, RNF-13 a RNF-17, riscos R-01 a R-04) | Pergunta do usuário sobre onde colocar o Terraform |
 | 3 | "Casa" generalizada para **"Grupo"**; **RF-12 removido** (compartilhamento avulso) — modelo único de compartilhamento | Mudança solicitada no gate de aprovação |
 | 4 | **Contas a pagar** (RF-55 a RF-67) e **Investimentos** (RF-68 a RF-77); fatura de cartão unificada à visão de vencimentos | Pedido do usuário durante a revisão |
+| 5 | **Contrato de API** como entregável explícito (RF-78 a RF-80): OpenAPI 3.1 YAML, gerado após a Application Design | Pedido do usuário: documento de endpoints para construir o front |
 
 ---
 
@@ -245,7 +246,24 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 | RF-76 | M | O **aporte deve ser contabilizado como gasto** no balanço do mês (RF-41), como qualquer outra saída de dinheiro. |
 | RF-77 | S | O sistema deve apresentar a posição consolidada de todos os objetivos: total aportado, saldo atual e rendimento agregado. |
 
-### 3.12 Infraestrutura e Deploy
+### 3.12 Contrato de API (entregável para o front-end)
+
+> **Contexto**: o front-end web é implementado em **outro repositório** (Question 3). O contrato da
+> API é a única interface entre os dois — precisa ser explícito, versionado e consumível por
+> ferramenta.
+
+| ID | Prioridade | Requisito |
+|---|---|---|
+| RF-78 | M | O projeto deve publicar uma especificação **OpenAPI 3.1 em YAML** cobrindo todos os endpoints, schemas de request/response, códigos de status e formatos de erro. |
+| RF-79 | M | A especificação deve ser **versionada no repositório** e mantida em sincronia com a implementação. |
+| RF-80 | S | A especificação deve ser suficiente para gerar um cliente TypeScript por ferramenta (ex.: `openapi-generator`), sem edição manual. |
+
+> **Momento de entrega**: por decisão do usuário, a especificação será gerada **após a Application
+> Design** — quando entidades, serviços e fronteiras de componente estiverem definidos —, e não a
+> partir dos requisitos. Evita que o front seja construído sobre um contrato provisório sujeito a
+> retrabalho. Ver decisão D-06.
+
+### 3.13 Infraestrutura e Deploy
 
 | ID | Prioridade | Requisito |
 |---|---|---|
@@ -273,7 +291,7 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 | RNF-05 | Isolamento de dados | Toda consulta deve ser escopada ao usuário autenticado e às suas visibilidades. Não deve existir endpoint que retorne dados sem esse filtro. |
 | RNF-06 | Testabilidade | Testes de integração devem rodar contra PostgreSQL real via Testcontainers (padrão já estabelecido no repositório). |
 | RNF-07 | Property-based testing | Aplicar PBT em modo **Parcial** (regras PBT-02, PBT-03, PBT-07, PBT-08, PBT-09). Framework: **Kotest Property Testing** (Kotlin — PBT-09). Alvos naturais: divisão de parcelas (RF-31/RF-32) e rateio de gastos (RF-15). |
-| RNF-08 | Contrato de API | A API é consumida por um front-end web **em outro repositório**. O contrato precisa ser estável, versionado e documentado (OpenAPI). |
+| RNF-08 | Contrato de API | A API é consumida por um front-end web **em outro repositório**. O contrato deve ser publicado como especificação **OpenAPI 3.1 em YAML**, versionada, servindo de fonte única para o desenvolvimento do front (permite Swagger UI e geração de cliente TypeScript). Entregável definido em RF-78. |
 | RNF-09 | Tratamento de erros | Respostas de erro devem seguir formato consistente, com código e mensagem acionáveis. |
 | RNF-10 | Validação de entrada | Toda entrada da API deve ser validada (`spring-boot-starter-validation` já está no classpath, hoje sem uso). |
 | RNF-11 | Manutenibilidade | Separação clara de camadas (API / aplicação / domínio / persistência), a ser definida na Application Design. |
@@ -409,7 +427,7 @@ aportam ao longo dos meses e os dois enxergam o total acumulado e o progresso.
 | D-03 | Estrutura de pacotes e separação de camadas | ⏳ Adiado para **Application Design** |
 | D-04 | Regra de fronteira do fechamento de fatura (compra no exato dia do fechamento; fechamento dia 29–31 em meses curtos) | ⏳ Adiado para **Functional Design** |
 | D-05 | Framework PBT: **Kotest Property Testing** (recomendação PBT-09 para Kotlin) | ✅ Pré-decidido; confirmar em NFR Requirements |
-| D-06 | Documentação de API: springdoc-openapi | ⏳ Adiado para **NFR Requirements** — necessário por RNF-08 |
+| D-06 | **Contrato de API em OpenAPI 3.1 (YAML)**, entregue **após a Application Design** (RF-78 a RF-80) | ✅ Decidido pelo usuário. Justificativa: o front-end vive em outro repositório e seria construído sobre um contrato provisório se gerado a partir dos requisitos. Esperar o modelo de domínio estabilizar evita retrabalho no front. Formato YAML permite Swagger UI e geração de cliente TypeScript. A ferramenta de geração no backend (springdoc-openapi ou spec escrita à mão) segue adiada para **NFR Requirements** |
 | D-07 | ~~Modelagem de "participante" de um gasto compartilhado (membro do grupo vs. usuário avulso).~~ **Resolvido** pela remoção de RF-12: existe apenas um tipo de participante — **membro do grupo**. A cota de rateio referencia um membro, não um usuário arbitrário. | ✅ Resolvido |
 | D-13 | Visibilidade do histórico para membro que entra em um grupo já existente (ver E-10) | ⏳ Adiado para **Functional Design** |
 | D-14 | **Fatura de cartão unificada com conta a pagar**: a fatura fechada gera automaticamente uma conta a pagar (RF-59), em vez de viver num módulo separado | ✅ Decidido. Uma única visão de vencimentos reunindo fatura, PIX, boleto e fatura de serviço |
@@ -502,6 +520,7 @@ O ciclo será considerado bem-sucedido quando:
 | RNF-03, RNF-06 | Práticas já estabelecidas no repositório (engenharia reversa) |
 | RF-55 a RF-67 | Rodada de esclarecimento sobre contas a pagar — pedido do usuário: *"cada conta pode ter um vencimento especifico para ela"*, detalhado como *"conta de cartao de credito, pix que tenho para fazer, boleto, fatura (energia eletrica, gás, viagem)"* e *"a fatura da conta deve passar a ser um vencimento geral"* |
 | RF-68 a RF-77 | Mesmo pedido — *"eu quero poder adicionar valores relacionados a investimentos... Exemplo: investimento de viagem e investimento de geral"* |
+| RF-78 a RF-80 | Pedido do usuário: *"vou precisar de um documento também com endpoints para montar o front"* — formalizado como especificação OpenAPI 3.1, entregue após a Application Design |
 | RF-45 a RF-54 | Rodada de esclarecimento sobre infraestrutura (deploy em AWS EC2, Terraform no mesmo repo, PostgreSQL na instância) |
 | RNF-13 a RNF-17 | Mesma rodada — decorrências não-funcionais das decisões D-08, D-09 e D-10 |
 | R-01 a R-04 | Análise de risco das decisões de infraestrutura |

@@ -73,10 +73,10 @@ RF-16, RF-24).
 - [x] Requirements Analysis — Artefatos gerados em 2026-07-30T16:11:59Z
 - **Artifacts Location**: `aidlc-docs/inception/requirements/`
   - `requirement-verification-questions.md` (17 perguntas respondidas + análise de contradições + revisões pós-gate)
-  - `requirements.md` — **revisão 4**: 76 RF ativos (RF-01 a RF-77, RF-12 removido), 17 RNF,
+  - `requirements.md` — **revisão 5**: 79 RF ativos (RF-01 a RF-80, RF-12 removido), 17 RNF,
     10 cenários, 16 casos de borda, 11 premissas, 20 decisões, 4 riscos
 - **Depth**: Comprehensive
-- **Aprovação do usuário**: PENDENTE (revisão 4)
+- **Aprovação do usuário**: PENDENTE (revisão 5)
 
 ### Histórico de revisões dos requisitos
 | Rev. | RF ativos | Mudança |
@@ -85,6 +85,7 @@ RF-16, RF-24).
 | 2 | 54 | Infraestrutura: AWS EC2 + Terraform no mesmo repo + PostgreSQL na instância |
 | 3 | 53 | "Casa" generalizada para "Grupo"; RF-12 (compartilhamento avulso) removido |
 | 4 | 76 | Contas a pagar (RF-55 a RF-67) e Investimentos (RF-68 a RF-77) |
+| 5 | 79 | Contrato de API como entregável: OpenAPI 3.1 YAML após a Application Design (RF-78 a RF-80) |
 
 ### Documento de registro de pesquisa
 `aidlc-docs/research-log.md` — registro cronológico e analítico do processo (decisões, alternativas
@@ -127,7 +128,7 @@ separado do volume raiz (RF-50) e rotina de backup com procedimento de restaura�
 | D-02 | Mecanismo de autenticação (JWT / sessão / OAuth2-OIDC) | NFR Requirements |
 | D-03 | Estrutura de pacotes e separação de camadas | Application Design |
 | D-04 | Regra de fronteira do fechamento de fatura | Functional Design |
-| D-06 | springdoc-openapi para documentação de API | NFR Requirements |
+| D-06 | ~~springdoc-openapi~~ **Decidido**: contrato OpenAPI 3.1 YAML entregue após a Application Design. Só a ferramenta de geração no backend segue em aberto | NFR Requirements |
 | D-07 | Modelagem de participante de gasto compartilhado | Application Design |
 | D-11 | Dimensionamento da EC2, AMI, região e detalhes de rede | Infrastructure Design |
 | D-12 | Mecanismo de deploy da aplicação no EC2 | Infrastructure Design |

@@ -102,7 +102,7 @@ delegadas ao BOM.
 **Volume de esclarecimento**: 17 perguntas em 4 blocos, mais 1 rodada de resolução de contradição,
 mais 2 rodadas posteriores de revisão. Ver Seção 4 para a análise quantitativa.
 
-**Resultado consolidado (revisão 4)**: 76 requisitos funcionais ativos (RF-01 a RF-77, com RF-12
+**Resultado consolidado (revisão 5)**: 79 requisitos funcionais ativos (RF-01 a RF-80, com RF-12
 removido), 17 requisitos não-funcionais, 10 cenários de usuário, 16 casos de borda, 11 premissas,
 20 decisões técnicas e 4 riscos.
 
@@ -300,6 +300,38 @@ balanço do mês.
 > pessoal (o dinheiro de fato saiu do disponível), mas define a semântica do indicador — e foi
 > registrada explicitamente para não ser reinterpretada adiante.
 
+### 3.11 Contrato de API como entregável explícito
+
+**Pedido**: *"vou precisar de um documento também com endpoints para montar o front"*.
+
+**Contexto**: o front-end vive em outro repositório (decisão da Question 3), o que torna o contrato
+da API a única interface entre os dois times/repositórios — já registrado como RNF-08 desde a
+revisão 1, mas sem entregável nomeado.
+
+**Tensão identificada**: o contrato definitivo é produto da **Application Design**, stage que ainda
+não rodou. Gerar agora, a partir dos requisitos, produziria um contrato provisório sobre o qual o
+front começaria a ser construído — com retrabalho quando o modelo de domínio estabilizasse.
+
+**Alternativas apresentadas**: (a) preliminar agora, atualizado depois; (b) esperar a Application
+Design e entregar estável; (c) as duas versões, com diff entre elas.
+
+**Decisão (D-06)**: opção (b) — **após a Application Design**, em **OpenAPI 3.1 YAML**.
+Formalizado como RF-78 a RF-80.
+
+> Episódio que expõe uma tensão estrutural do método: as stages do AI-DLC produzem artefatos em
+> ordem de dependência lógica, mas o consumidor externo (aqui, o desenvolvedor do front) tem sua
+> própria cronologia e pode precisar de um artefato antes de a stage que o produz ter rodado. O
+> método não oferece um mecanismo de "entregável antecipado provisório" — a escolha é binária entre
+> bloquear o consumidor ou produzir fora de ordem. Neste caso o usuário optou por bloquear, o que
+> preserva a integridade da sequência; num contexto com dois times trabalhando em paralelo, a
+> pressão pela alternativa (a) seria maior.
+>
+> Vale registrar também que o pedido tornou explícito um entregável que estava implícito: RNF-08
+> mencionava "documentado (OpenAPI)" desde a primeira revisão, mas sem versão, formato, momento de
+> entrega ou critério de suficiência. Requisitos não-funcionais formulados como qualidade desejada
+> ("precisa ser documentado") tendem a não gerar entregável verificável até que alguém peça o
+> artefato concreto.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -319,14 +351,14 @@ balanço do mês.
 
 | Métrica | Valor |
 |---|---|
-| Requisitos funcionais ativos | 76 (RF-01 a RF-77, RF-12 removido) |
+| Requisitos funcionais ativos | 79 (RF-01 a RF-80, RF-12 removido) |
 | Requisitos não-funcionais | 17 |
 | Cenários de usuário | 10 |
 | Casos de borda e erro | 16 |
 | Premissas registradas | 11 |
-| Decisões técnicas | 20 (13 fechadas, 7 adiadas) |
+| Decisões técnicas | 20 (14 fechadas, 6 adiadas) |
 | Riscos registrados | 4 |
-| Revisões do documento de requisitos | 4 |
+| Revisões do documento de requisitos | 5 |
 
 ### 4.3 Evolução do escopo
 
@@ -336,6 +368,7 @@ balanço do mês.
 | 2 | 54 | Infraestrutura (AWS EC2 + Terraform) |
 | 3 | 53 | Generalização Casa→Grupo; **RF-12 removido** |
 | 4 | 76 | Contas a pagar + Investimentos |
+| 5 | 79 | Contrato de API como entregável (OpenAPI 3.1) |
 
 ---
 
@@ -396,13 +429,13 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: INCEPTION
-**Stage**: Requirements Analysis — aguardando aprovação (revisão 4)
+**Stage**: Requirements Analysis — aguardando aprovação (revisão 5)
 **Próxima stage prevista**: User Stories
 
 **Stages concluídas**: Workspace Detection, Reverse Engineering (aprovada), Requirements Analysis
-(4 revisões, gate pendente).
+(5 revisões, gate pendente).
 
 **Decisões ainda em aberto** (adiadas para stages posteriores): mecanismo de autenticação (D-02),
-estrutura de pacotes (D-03), regra de fronteira do fechamento (D-04), springdoc-openapi (D-06),
+estrutura de pacotes (D-03), regra de fronteira do fechamento (D-04),
 visibilidade de histórico em grupo (D-13), mecanismo de recorrência (D-19), mecanismo de fechamento
 de fatura (D-20), dimensionamento da EC2 (D-11), mecanismo de deploy (D-12).

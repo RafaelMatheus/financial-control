@@ -216,3 +216,20 @@ Complete audit trail of all user inputs and AI responses.
 **Context**: Cross-cutting — instrução de documentação contínua
 
 ---
+
+## Requirements Analysis — Contrato de API (revisão 5)
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "vou precisar de um documento também com endpoints para montar o front"
+**AI Response**: "Identificada tensão: o contrato definitivo é produto da Application Design, stage ainda não executada. Gerar agora a partir dos requisitos produziria contrato provisório, com retrabalho no front quando o modelo de domínio estabilizasse. Apresentadas 3 alternativas de momento (preliminar agora / após Application Design / ambas com diff) e 3 de formato (Markdown / OpenAPI 3.1 YAML / ambos)."
+**Context**: INCEPTION PHASE - Requirements Analysis - Pedido de entregável de contrato de API
+
+---
+
+## Requirements Analysis — Decisão do contrato de API
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: 2 perguntas via AskUserQuestion — Quando gerar o documento de endpoints? / Em que formato?
+**User Input**: "Quando gerar o documento de endpoints?"="Após a Application Design"; "Em que formato?"="OpenAPI 3.1 (YAML)"
+**AI Response**: "Registrado como D-06 (fechado) e RF-78 a RF-80 em nova Seção 3.12 'Contrato de API'; Infraestrutura renumerada para 3.13. RNF-08 detalhado com formato, versionamento e finalidade. Rastreabilidade e histórico de revisões atualizados. Adicionada Seção 3.11 ao research-log.md com a análise do episódio — inclusive a observação de que RNF-08 mencionava OpenAPI desde a revisão 1 sem gerar entregável verificável, até que o usuário pedisse o artefato concreto. Total revisão 5: 79 RF ativos."
+**Context**: INCEPTION PHASE - Requirements Analysis - Revisão 5
+
+---
