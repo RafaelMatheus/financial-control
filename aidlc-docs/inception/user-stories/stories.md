@@ -3,7 +3,11 @@
 **Stage**: INCEPTION - User Stories - Part 2
 **Timestamp**: 2026-07-30T16:11:59Z
 **Persona**: Usuário (única — ver `personas.md`)
-**Fonte**: `requirements.md` revisão 7 (67 requisitos de domínio)
+**Fonte**: `requirements.md` revisão 8 (68 requisitos de domínio ativos)
+
+> **Revisão 8 — rateio removido.** O compartilhamento passou a ser apenas de visibilidade. H-10,
+> H-11 e H-12 foram removidas; H-07, H-08, H-13, H-14, H-16, H-17, H-49, H-58, J-01 e J-03 foram
+> revisadas. Ver decisões D-27 e D-28.
 
 ---
 
@@ -152,20 +156,22 @@ efetivamente divide as despesas.
 
 ```gherkin
 Dado que o grupo "Apartamento 42" existe desde janeiro
-E possui gastos lançados de janeiro a julho
+E possui lançamentos de janeiro a julho
 Quando entro no grupo em agosto
-Então enxergo todos os gastos do grupo, inclusive os de janeiro a julho
+Então enxergo todo o histórico do grupo, inclusive os de janeiro a julho
+E cada lançamento identifica seu dono
 
-Dado que enxergo um gasto de grupo lançado antes da minha entrada
-Quando consulto minha cota nesse gasto
-Então não possuo cota — o rateio envolve apenas quem era membro à época
-E o gasto aparece nos totais do grupo, mas não nos meus valores pessoais
+Dado que enxergo um lançamento do grupo anterior à minha entrada
+Quando consulto meu total pessoal
+Então esse lançamento não entra nele — pertence a outro dono
+E ele aparece normalmente no total do grupo
 ```
 
 **Requisitos**: RF-09 · **Resolve**: E-10, D-13
 
-> **Consequência de modelagem**: visibilidade e rateio são **desacoplados**. As consultas de "total
-> do grupo" e "minha cota" produzem resultados diferentes para um membro recém-adicionado.
+> **Simplificado na revisão 8**: sem rateio, não há cota a atribuir retroativamente. O lançamento
+> antigo simplesmente pertence ao dono que o registrou, e a entrada do novo membro não muda nada
+> no passado.
 
 ---
 
@@ -176,113 +182,62 @@ apagar o passado.
 ```gherkin
 Dado que sou membro de um grupo com gastos compartilhados lançados
 Quando saio do grupo
-Então deixo de enxergar novos gastos do grupo
-E os gastos que lancei permanecem registrados com minha autoria
-E minhas cotas em gastos anteriores permanecem inalteradas
+Então deixo de enxergar novos lançamentos do grupo
+E os lançamentos de que sou dono permanecem registrados e inalterados
+E o total do grupo continua incluindo os lançamentos que registrei
 ```
 
 **Requisitos**: RF-10 · **Cobre**: E-05
 
 ---
 
-# ÉPICO E3 — Compartilhamento e Rateio
+# ÉPICO E3 — Compartilhamento e Visibilidade
 
-Cobre RF-11, RF-13 a RF-17. **A área de maior complexidade do sistema** — envolve dinheiro dividido
-entre pessoas.
+Cobre RF-11, RF-16, RF-17.
+
+> **Revisão 8 — o rateio foi removido.** O compartilhamento é **apenas de visibilidade**: cada
+> lançamento tem um **dono**, e o valor é integralmente dele. Marcar como GRUPO torna o lançamento
+> visível aos membros; não divide o valor. **Ninguém deve nada a ninguém no sistema.**
+>
+> Histórias removidas: ~~H-10~~ (divisão igual), ~~H-11~~ (divisão personalizada), ~~H-12~~
+> (integridade do rateio). Os identificadores não foram reaproveitados.
 
 ---
 
-### H-09 — Definir o escopo de um gasto `[M]` `NÚCLEO`
-**Como** usuário, **quero** marcar cada gasto como pessoal ou do grupo, **para** controlar quem o
-enxerga.
+### H-09 — Definir o escopo de um lançamento `[M]` `NÚCLEO`
+**Como** usuário, **quero** marcar cada gasto ou conta como pessoal ou do grupo, **para** controlar
+quem o enxerga.
 
 **Critérios de aceitação**
-- Permite marcar um gasto com escopo **PESSOAL** — visível apenas ao autor
-- Permite marcar um gasto com escopo **GRUPO**, indicando de qual grupo
-- Escopo GRUPO exige um grupo válido do qual o autor é membro
-- Rejeita escopo GRUPO quando o autor não pertence a nenhum grupo (E-09)
+- Permite marcar com escopo **PESSOAL** — visível apenas ao dono
+- Permite marcar com escopo **GRUPO**, indicando de qual grupo
+- Escopo GRUPO exige um grupo válido do qual o dono é membro
+- Rejeita escopo GRUPO quando o usuário não pertence a nenhum grupo (E-09)
+- O valor pertence integralmente ao dono, independente do escopo
 
 **Requisitos**: RF-11 · **Cobre**: E-09
 
 ---
 
-### H-10 — Dividir um gasto igualmente `[M]` `NÚCLEO`
-**Como** usuário, **quero** que um gasto de grupo seja dividido igualmente por padrão, **para** não
-precisar configurar rateio a cada lançamento.
-
-```gherkin
-Dado o grupo "Apartamento 42" com os membros Rafael e Ana
-Quando lanço um gasto de R$ 400,00 com escopo GRUPO
-E não configuro divisão
-Então a cota de Rafael é R$ 200,00
-E a cota de Ana é R$ 200,00
-
-Dado um grupo com 3 membros
-Quando lanço um gasto de R$ 100,00 com divisão igual
-Então as cotas somam exatamente R$ 100,00
-E o resíduo de centavos é atribuído de forma determinística
-```
-
-**Requisitos**: RF-13
+### ~~H-10~~ / ~~H-11~~ / ~~H-12~~ — REMOVIDAS na revisão 8
+Cobriam divisão igual, divisão personalizada e a invariante `soma(cotas) == valorTotal`. Sem
+rateio, deixaram de ter objeto. **A invariante de H-12 era um dos três alvos de property-based
+testing** — restam H-28 e H-29, ambas sobre parcelamento.
 
 ---
 
-### H-11 — Personalizar a divisão de um gasto `[M]` `NÚCLEO`
-**Como** usuário, **quero** ajustar quanto cabe a cada pessoa num gasto, **para** refletir acordos
-onde a divisão não é meio a meio.
-
-```gherkin
-Dado um gasto de R$ 400,00 no grupo com Rafael e Ana
-Quando configuro a divisão por percentual, com 70% para Rafael e 30% para Ana
-Então a cota de Rafael é R$ 280,00
-E a cota de Ana é R$ 120,00
-
-Dado um gasto de R$ 400,00 no grupo com Rafael e Ana
-Quando configuro a divisão por valor absoluto, com R$ 250,00 e R$ 150,00
-Então as cotas são exatamente esses valores
-
-Dado um gasto com divisão personalizada
-Quando altero o valor total do gasto
-Então a divisão é recalculada mantendo a proporção configurada
-```
-
-**Requisitos**: RF-14
-
----
-
-### H-12 — Garantir a integridade do rateio `[M]` `NÚCLEO` 🔬 **PBT**
-**Como** usuário, **quero** que a soma das cotas seja sempre exatamente o valor do gasto,
-**para** que nenhum centavo apareça ou desapareça na divisão.
-
-```gherkin
-Dado qualquer gasto compartilhado, com qualquer número de membros
-Quando as cotas são calculadas ou reconfiguradas
-Então a soma das cotas é exatamente igual ao valor total do gasto
-
-Dado que configuro uma divisão manual
-Quando a soma das cotas informadas difere do valor total do gasto
-Então a operação é rejeitada
-E a mensagem indica a diferença encontrada
-```
-
-**Requisitos**: RF-15 · **Cobre**: E-02
-
-> 🔬 **Invariante para property-based testing** (RNF-07, regra PBT-03): para qualquer valor e
-> qualquer número de membros, `soma(cotas) == valorTotal`. Alvo direto do Kotest Property Testing.
-
----
-
-### H-13 — Editar gasto compartilhado como qualquer membro `[M]` `NÚCLEO`
-**Como** membro de um grupo, **quero** poder corrigir um gasto do grupo mesmo sem tê-lo lançado,
+### H-13 — Editar lançamento do grupo como qualquer membro `[M]` `NÚCLEO`
+**Como** membro de um grupo, **quero** poder corrigir um lançamento do grupo mesmo sem ser o dono,
 **para** que erros sejam corrigidos por quem perceber primeiro.
 
 ```gherkin
-Dado um gasto de escopo GRUPO lançado por Rafael
-Quando Ana, membro do mesmo grupo, edita esse gasto
+Dado um gasto de escopo GRUPO cujo dono é Ana
+Quando Rafael, membro do mesmo grupo, edita esse gasto
 Então a alteração é aceita
-E a autoria original (Rafael) é preservada
+E o dono continua sendo Ana
+E o valor continua contando no total pessoal da Ana, não no do Rafael
 
-Dado um gasto de escopo GRUPO
+Dado um lançamento de escopo GRUPO
 Quando um usuário que não é membro do grupo tenta editá-lo
 Então a operação é negada
 ```
@@ -291,17 +246,24 @@ Então a operação é negada
 
 ---
 
-### H-14 — Registrar a autoria do lançamento `[M]`
-**Como** usuário, **quero** saber quem lançou cada gasto, **para** poder tirar dúvidas sobre um
-registro que não reconheço.
+### H-14 — Registrar o dono do lançamento `[M]` `NÚCLEO`
+**Como** usuário, **quero** saber de quem é cada conta do grupo, **para** entender quem pagou o quê.
 
-**Critérios de aceitação**
-- Todo gasto registra quem o lançou
-- A autoria é exibida nas consultas de gasto
-- A autoria não muda quando outro membro edita o gasto
-- A autoria **não** confere privilégio de edição ou exclusão
+```gherkin
+Dado um lançamento de escopo GRUPO
+Quando qualquer membro do grupo o consulta
+Então o dono do lançamento é exibido
+
+Dado que Rafael edita um lançamento cujo dono é Ana
+Quando a edição é concluída
+Então o dono permanece sendo Ana
+E ser dono não confere privilégio de edição — qualquer membro edita (RF-16)
+```
 
 **Requisitos**: RF-17
+
+> **Mudança na revisão 8**: o conceito passou de *autoria* (quem registrou) para **dono** (quem
+> registrou **e** a quem o valor pertence). É o eixo que separa o total pessoal do total do grupo.
 
 ---
 
@@ -327,29 +289,49 @@ gastei.
 ---
 
 ### H-16 — Consultar gastos por período `[M]` `NÚCLEO`
-**Como** usuário, **quero** consultar meus gastos de um período com filtros, **para** entender para
-onde meu dinheiro foi.
+**Como** usuário, **quero** consultar os gastos de um período com filtros, **para** entender para
+onde o dinheiro foi.
 
 **Critérios de aceitação**
 - Permite filtrar por intervalo de datas
-- Permite filtrar por categoria, por grupo e por escopo
+- Permite filtrar por categoria, grupo, escopo e **dono**
 - Retorna apenas o que enxergo, conforme H-03
-- Em gastos de grupo, apresenta o valor total e a minha cota
+- Cada lançamento identifica seu **dono**
+- Uma mesma listagem mistura gastos pessoais e de grupo
 
 **Requisitos**: RF-21
 
 ---
 
-### H-17 — Totalizar gastos consultados `[S]`
-**Como** usuário, **quero** ver o total dos gastos consultados, **para** avaliar o período sem
-somar manualmente.
+### H-17 — Totalizar: total pessoal e total do grupo `[M]` `NÚCLEO`
+**Como** usuário, **quero** ver separadamente quanto **eu** gastei e quanto **a casa** gastou,
+**para** não confundir meu dinheiro com o do grupo.
 
-**Critérios de aceitação**
-- Apresenta o total geral do período consultado
-- Apresenta o total por categoria
-- Em gastos de grupo, totaliza pela **minha cota**, não pelo valor cheio
+```gherkin
+Dado o grupo "Apartamento 42" com Rafael e Ana
+E em agosto: uma conta de R$ 400 cujo dono é Ana (escopo GRUPO),
+             uma conta de R$ 300 cujo dono é Rafael (escopo GRUPO),
+             e um gasto pessoal de R$ 89 do Rafael
+Quando Rafael consulta os totais de agosto
+Então seu total pessoal é R$ 389,00 — apenas os lançamentos de que é dono
+E o total do grupo é R$ 700,00 — todos os lançamentos de escopo GRUPO
+E os dois totais nunca são somados entre si
 
-**Requisitos**: RF-22
+Dado a mesma situação
+Quando Ana consulta os totais de agosto
+Então seu total pessoal é R$ 400,00
+E o total do grupo é R$ 700,00 — o mesmo valor que Rafael vê
+```
+
+**Critérios adicionais**
+- Apresenta o total por categoria, em ambas as perspectivas
+- O total pessoal **nunca** inclui lançamentos de outro dono
+
+**Requisitos**: RF-22, RF-97
+
+> **A regra mais fácil de implementar errado do sistema.** Somar o valor cheio dos lançamentos de
+> grupo no total pessoal produziria um número que inclui dinheiro de outra pessoa. Item de
+> verificação obrigatória.
 
 ---
 
@@ -938,8 +920,8 @@ energia siga as mesmas regras dos gastos.
 
 **Critérios de aceitação**
 - Permite marcar uma conta com escopo **PESSOAL** ou **GRUPO**
-- Contas de escopo GRUPO seguem as mesmas regras de visibilidade e rateio dos gastos
-  (H-09 a H-13)
+- Contas de escopo GRUPO seguem as mesmas regras de visibilidade dos gastos (H-09, H-13, H-14)
+- O valor pertence integralmente ao dono da conta — sem divisão entre membros
 - Qualquer membro do grupo pode editar ou excluir uma conta de grupo
 
 **Requisitos**: RF-65
@@ -1092,9 +1074,10 @@ juntos.
 ```gherkin
 Dado um objetivo "Reforma" pertencente ao grupo "Apartamento 42"
 Quando qualquer membro do grupo registra um aporte
-Então o aporte é somado ao total do objetivo
+Então o aporte é somado ao saldo do objetivo
 E todos os membros enxergam o saldo e o progresso atualizados
-E cada aporte registra quem o fez
+E cada aporte registra seu dono
+E o total aportado por cada membro é consultável separadamente
 ```
 
 **Requisitos**: RF-75 · **Cobre**: E-16 (membro que sai do grupo tem o histórico de aportes
@@ -1138,33 +1121,31 @@ capturar as costuras entre épicos — é onde os vazios de especificação cost
 
 ---
 
-### J-01 — Compra parcelada em cartão de grupo, com rateio `[M]` `NÚCLEO`
-**Áreas**: Cartões + Parcelamento + Grupo + Rateio
+### J-01 — Compra parcelada em cartão do grupo `[M]` `NÚCLEO`
+**Áreas**: Cartões + Parcelamento + Grupo
 
-**Como** membro de um grupo, **quero** lançar uma compra parcelada num cartão do grupo e dividi-la
-entre os membros, **para** que cada um saiba quanto lhe cabe em cada mês.
+**Como** membro de um grupo, **quero** lançar uma compra parcelada num cartão do grupo, **para**
+que todos vejam o compromisso assumido nos próximos meses.
 
 ```gherkin
 Dado o grupo "Apartamento 42" com Rafael e Ana
 E um cartão "Conta Casa" pertencente a esse grupo, fechamento dia 28
 Quando Rafael lança em 30/07 uma compra de 10 parcelas de R$ 120,00
 E marca o escopo como GRUPO
-E configura a divisão em 70% para si e 30% para Ana
 Então o valor total é R$ 1.200,00
 E são geradas 10 parcelas, começando na fatura de setembro
-E a cota de Rafael em cada parcela é R$ 84,00
-E a cota de Ana em cada parcela é R$ 36,00
-E a soma das cotas de cada parcela é exatamente o valor da parcela
-E Ana enxerga a compra e suas cotas nas faturas futuras
+E o dono da compra é Rafael
+E Ana enxerga a compra e todas as parcelas nas faturas futuras
+E as R$ 120,00 de cada parcela contam no total pessoal do Rafael, não no da Ana
 E qualquer um dos dois pode corrigir a compra por inteiro
 ```
 
-**Requisitos**: RF-11, RF-14, RF-15, RF-24, RF-25, RF-29, RF-30, RF-32
+**Requisitos**: RF-11, RF-16, RF-17, RF-24, RF-25, RF-29, RF-30, RF-32, RF-97
 
-> **Costura exposta por esta jornada**: o rateio precisa incidir **sobre cada parcela**, não apenas
-> sobre o total da compra — do contrário Ana não saberia quanto lhe cabe em cada mês. A invariante
-> de H-12 passa a valer em dois níveis: soma das cotas por parcela, e soma das parcelas por compra.
-> Ponto de atenção para a Application Design.
+> **Revisão 8**: esta jornada originalmente cruzava 4 áreas e expunha a questão J-01 — se o rateio
+> incidia sobre a parcela ou sobre a compra. **Com a remoção do rateio, a questão deixou de
+> existir**: não há cota a ancorar em lugar nenhum. A jornada permanece porque ainda cruza três
+> áreas e valida a interação entre ciclo de fatura, parcelamento e visibilidade de grupo.
 
 ---
 
@@ -1202,30 +1183,36 @@ E as categorias estouradas estão sinalizadas
 ---
 
 ### J-03 — Entrar num grupo e começar a compartilhar `[S]`
-**Áreas**: Grupo + Rateio + Gastos + Cartões
+**Áreas**: Grupo + Gastos + Cartões + Contas a Pagar
 
 **Como** pessoa recém-adicionada a um grupo, **quero** entender o que já existe e começar a
-participar, **para** me integrar às despesas comuns.
+participar, **para** acompanhar as despesas da casa.
 
 ```gherkin
-Dado o grupo "Apartamento 42", ativo desde janeiro, com gastos e um cartão próprio
+Dado o grupo "Apartamento 42", ativo desde janeiro, com lançamentos e um cartão próprio
 Quando sou adicionado ao grupo em agosto
-Então enxergo todo o histórico de gastos do grupo, de janeiro em diante
-E não possuo cota nos gastos anteriores à minha entrada
+Então enxergo todo o histórico de lançamentos do grupo, de janeiro em diante
+E cada lançamento identifica seu dono
+E nenhum lançamento anterior entra no meu total pessoal
 E passo a enxergar a fatura do cartão do grupo
 
 Quando lanço um gasto de escopo GRUPO
-Então a divisão igual passa a considerar todos os membros atuais, inclusive eu
+Então eu sou o dono dele
+E ele entra no meu total pessoal e no total do grupo
+E os demais membros passam a enxergá-lo
 
-Quando consulto meus totais pessoais
-Então eles refletem apenas minhas cotas, a partir da minha entrada
+Quando consulto os totais de agosto
+Então meu total pessoal soma apenas os lançamentos de que sou dono
+E o total do grupo soma todos os lançamentos de escopo GRUPO, de qualquer dono
+E os dois números são apresentados separadamente
 ```
 
-**Requisitos**: RF-08, RF-09, RF-11, RF-13, RF-24
+**Requisitos**: RF-08, RF-09, RF-11, RF-17, RF-24, RF-97
 
-> **Costura exposta**: as consultas de "total do grupo" e "meus totais" divergem para um membro
-> recém-adicionado. A API precisa deixar essa diferença explícita, e o front precisa comunicá-la —
-> caso contrário o usuário verá dois números diferentes sem entender o motivo.
+> **Costura exposta**: "total do grupo" e "total pessoal" são grandezas diferentes e **nunca devem
+> ser somadas**. A API precisa expor as duas de forma inequívoca, e o front comunicá-las — caso
+> contrário o usuário verá dois números sem entender por que divergem. Endereçado por RF-97 e
+> pela decisão D-28.
 
 ---
 
@@ -1248,16 +1235,17 @@ API (RF-78 a RF-80) e CI/CD (RF-81 a RF-93) não são cobertos por histórias, c
 | RF-09 | H-07, J-03 |
 | RF-10 | H-08 |
 | RF-11 | H-09, J-01, J-03 |
-| RF-13 | H-10, J-03 |
-| RF-14 | H-11, J-01 |
-| RF-15 | H-12, J-01 |
-| RF-16 | H-13 |
-| RF-17 | H-14 |
+| ~~RF-13~~ | ~~H-10~~ — removidos na rev. 8 |
+| ~~RF-14~~ | ~~H-11~~ — removidos na rev. 8 |
+| ~~RF-15~~ | ~~H-12~~ — removidos na rev. 8 |
+| RF-16 | H-13, J-01 |
+| RF-17 | H-14, J-01, J-03 |
 | RF-18 | H-15 |
 | RF-19 | H-15 |
 | RF-20 | H-15 |
 | RF-21 | H-16 |
 | RF-22 | H-17 |
+| RF-97 | H-17, J-01, J-03 |
 | RF-23 | H-18 |
 | RF-24 | H-19, J-01, J-03 |
 | RF-25 | H-20, J-01 |
@@ -1307,14 +1295,15 @@ API (RF-78 a RF-80) e CI/CD (RF-81 a RF-93) não são cobertos por histórias, c
 | RF-95 | H-24, H-44 |
 | RF-96 | H-25 |
 
-**Cobertura**: 70/70 requisitos de domínio (67 originais + RF-94 a RF-96). ✅ Sem lacunas.
+**Cobertura**: 68/68 requisitos de domínio ativos (após a remoção de RF-13, RF-14 e RF-15 na
+revisão 8, e a adição de RF-97). ✅ Sem lacunas.
 
 ## Cobertura dos casos de borda
 
 | Caso | História |
 |---|---|
 | E-01 (resíduo de centavos) | H-28 |
-| E-02 (soma das cotas divergente) | H-12 |
+| ~~E-02~~ (soma das cotas divergente) | Removido na rev. 8 — não há rateio |
 | E-03 (dia exato do fechamento) | H-20 |
 | E-04 (fechamento dia 29–31) | ⏳ Em aberto — D-04, Functional Design |
 | E-05 (membro sai com gastos abertos) | H-08 |
@@ -1339,22 +1328,22 @@ API (RF-78 a RF-80) e CI/CD (RF-81 a RF-93) não são cobertos por histórias, c
 | | |
 |---|---|
 | Épicos | 11 |
-| Histórias | 60 (H-01 a H-60) |
+| Histórias | 57 ativas (H-01 a H-60; H-10, H-11 e H-12 removidas na rev. 8) |
 | Jornadas transversais | 3 (J-01 a J-03) |
-| **Total** | **63** |
+| **Total** | **60 ativas** |
 
 ## Por prioridade
 
 | Prioridade | Quantidade |
 |---|---|
-| `[M]` Must | 48 |
-| `[S]` Should | 14 |
+| `[M]` Must | 46 |
+| `[S]` Should | 13 |
 | `[C]` Could | 1 |
 
 ## Núcleo mínimo utilizável
 
-**30 histórias** marcadas como `NÚCLEO` — o primeiro corte que entrega um sistema usável:
-identidade, grupos, compartilhamento com rateio, gastos, cartões com ciclo de fatura,
+**28 histórias** marcadas como `NÚCLEO` — o primeiro corte que entrega um sistema usável:
+identidade, grupos, compartilhamento por visibilidade, gastos, cartões com ciclo de fatura,
 parcelamento, categorias e contas a pagar.
 
 **Fora do núcleo**: receitas (E8), orçamento (E9), investimentos (E11) e as histórias `[S]`/`[C]`
@@ -1366,12 +1355,13 @@ Alvos diretos do Kotest Property Testing (RNF-07, regra PBT-03):
 
 | História | Invariante |
 |---|---|
-| H-12 | `soma(cotas) == valorTotal` — para qualquer valor e número de membros |
 | H-28 | `soma(parcelas) == valorTotal` — para qualquer valor e número de parcelas |
 | H-29 | A igualdade se mantém após qualquer sequência de criação e edição |
+| ~~H-12~~ | ~~`soma(cotas) == valorTotal`~~ — **removida na revisão 8** com o fim do rateio |
 
-J-01 revela que essas invariantes se compõem: numa compra parcelada e rateada, a soma das cotas
-deve fechar **por parcela**, e a soma das parcelas deve fechar **por compra**.
+**Impacto da revisão 8 no property-based testing**: dos três alvos originais, restam dois. Ambos
+sobre parcelamento, que passa a ser a **única** área do sistema com aritmética monetária de
+divisão.
 
 ## Pontos em aberto levantados pelas histórias
 
@@ -1382,8 +1372,12 @@ deve fechar **por parcela**, e a soma das parcelas deve fechar **por compra**.
 | 3 | Mecanismo de geração de ocorrências recorrentes (H-47) | D-19 — Functional Design |
 | 4 | Mecanismo de fechamento automático da fatura (H-45) | D-20 — Functional Design |
 | 5 | **O "realizado" do orçamento conta pela data da compra ou pela competência da fatura?** (J-02) | 🆕 Novo — Functional Design |
-| 6 | **Rateio incide sobre cada parcela, não só sobre o total** (J-01) | 🆕 Novo — Application Design |
-| 7 | **API deve distinguir "total do grupo" de "minhas cotas"** (J-03) | 🆕 Novo — Application Design |
+| ~~6~~ | ~~Rateio incide sobre cada parcela~~ (J-01) | ✅ **Extinto** na rev. 8 — não há rateio |
+| 7 | **API deve distinguir "total do grupo" de "total pessoal"** (J-03) | ✅ **Resolvido** na rev. 8 por RF-97 e D-28 |
 
 > Os itens 5, 6 e 7 **não existiam antes desta stage** — foram descobertos ao escrever as jornadas
 > transversais. É a justificativa prática de por que o formato híbrido foi escolhido.
+>
+> **Atualização da revisão 8**: o item 6 foi **extinto** pela remoção do rateio, e o item 7 foi
+> **resolvido** virando requisito (RF-97) e decisão (D-28). Resta apenas o item 5, sobre a base de
+> cálculo do "realizado" do orçamento, que segue para a Functional Design.

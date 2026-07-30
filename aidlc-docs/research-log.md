@@ -541,6 +541,60 @@ Design na unidade de infraestrutura. As demais unidades herdam as decisões.
 > uma stage per-unit é, neste projeto, de escopo global — a adaptação teve de ser feita e
 > justificada no plano.
 
+### 3.18 A simplificação que veio tarde — remoção do rateio
+
+**Episódio**: já dentro da Application Design, com requisitos aprovados na revisão 7 e 63 histórias
+escritas, o usuário esclareceu: *"Não vamos compartilhar contas do nível de dividir gastos, só
+dividir as contas de uma casa. Exemplo: mora eu e minha esposa, conta x o owner é minha esposa,
+conta y o owner sou eu, mas todos dois conseguem ver suas contas de uma casa caso sejam membros do
+mesmo grupo"*.
+
+**Constatação**: o sistema não precisa de **rateio**. O grupo serve para **visibilidade** — os
+membros enxergam as contas uns dos outros —, não para dividir valores. Cada lançamento tem um dono
+e o valor é integralmente dele.
+
+**Origem do mal-entendido**: rastreável a uma resposta na primeira rodada de esclarecimento. A
+pergunta *"Quando um gasto é compartilhado, o valor precisa ser dividido entre as pessoas?"*
+oferecia três opções, incluindo **"Sem divisão — só visibilidade"**. O usuário escolheu **"Divisão
+configurável por gasto"**. Sete revisões depois, corrigiu.
+
+> Vale registrar que a opção correta **estava na mesa desde o início** e foi rejeitada. Não foi
+> falta de pergunta, nem opção ausente. A hipótese mais provável é que "compartilhar gastos numa
+> casa" evoque naturalmente o modelo de aplicativos de divisão de despesas, e a pergunta tenha sido
+> lida através dessa expectativa — pelo usuário e pelo modelo — antes de o domínio real ficar claro
+> na cabeça de ambos.
+
+**Custo da correção**: 3 requisitos removidos (RF-13, RF-14, RF-15), 3 histórias removidas (H-10,
+H-11, H-12), 1 caso de borda extinto (E-02), 2 jornadas reescritas, 10 histórias revisadas,
+1 entidade eliminada do modelo (`Cota`), e **1 dos 3 alvos de property-based testing desapareceu**.
+
+**Benefício da correção**: eliminou a área de maior complexidade do sistema. O rateio configurável
+por percentual ou valor absoluto, com resíduo de centavos a distribuir e invariante a manter,
+era — segundo o próprio documento de requisitos — *"a área de maior complexidade do sistema"*.
+
+**O que a correção custou vs. o que teria custado depois**:
+
+| Momento | Impacto da mudança |
+|---|---|
+| Onde ocorreu (Application Design) | Reescrita de documentos: ~2 horas de artefato |
+| Se ocorresse na Functional Design | Idem + redesenho do modelo de dados |
+| Se ocorresse na Code Generation | Idem + código escrito e descartado + migrations |
+| Se ocorresse pós-deploy | Idem + migração de dados + tabela `cota` órfã em produção |
+
+> Este é o argumento empírico central a favor de fases de especificação antes da implementação. A
+> mudança foi barata **porque nada tinha sido construído**. O AI-DLC não evitou o erro — ele o
+> tornou reversível.
+>
+> Também vale notar o que **tornou a correção segura**: a rastreabilidade. Com a matriz
+> requisito ↔ história e as referências cruzadas entre artefatos, foi possível localizar
+> mecanicamente tudo o que dependia do rateio. Sem isso, a remoção deixaria resíduos — uma
+> premissa aqui, um critério de aceitação ali — que só apareceriam na implementação.
+
+**Decisão adicional gerada (D-28)**: a remoção do rateio criou uma pergunta nova — se ninguém tem
+cota, o que significa "quanto eu gastei este mês" quando enxergo contas de outra pessoa? A resposta
+(**duas grandezas distintas, nunca somadas**: total pessoal por dono, total do grupo por escopo)
+virou **RF-97**, e resolveu de quebra a questão J-03, que estava aberta desde as User Stories.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -560,11 +614,11 @@ Design na unidade de infraestrutura. As demais unidades herdam as decisões.
 
 | Métrica | Valor |
 |---|---|
-| Requisitos funcionais ativos | 95 (RF-01 a RF-96, RF-12 removido) |
-| Histórias de usuário | 63 (60 de épico + 3 jornadas) |
+| Requisitos funcionais ativos | 93 (RF-01 a RF-97; RF-12, RF-13, RF-14 e RF-15 removidos) |
+| Histórias de usuário | 60 ativas (57 de épico + 3 jornadas); 3 removidas na rev. 8 |
 | Épicos | 11 |
 | Personas | 1 (com 4 contextos) |
-| Cobertura requisito ↔ história | 70/70 requisitos de domínio |
+| Cobertura requisito ↔ história | 68/68 requisitos de domínio ativos |
 | Stages condicionais avaliadas | 6 |
 | Stages condicionais a executar | 6 (nenhuma pulada) |
 | Unidades de trabalho previstas | 5 |
@@ -574,9 +628,9 @@ Design na unidade de infraestrutura. As demais unidades herdam as decisões.
 | Cenários de usuário | 10 |
 | Casos de borda e erro | 16 |
 | Premissas registradas | 11 |
-| Decisões técnicas | 26 (20 fechadas, 6 adiadas) |
+| Decisões técnicas | 28 (23 fechadas, 5 adiadas) |
 | Riscos registrados | 5 |
-| Revisões do documento de requisitos | 7 |
+| Revisões do documento de requisitos | 8 |
 
 ### 4.3 Evolução do escopo
 
@@ -589,6 +643,7 @@ Design na unidade de infraestrutura. As demais unidades herdam as decisões.
 | 5 | 79 | Contrato de API como entregável (OpenAPI 3.1) |
 | 6 | 92 | CI/CD e provisionamento (GitHub Actions, OIDC, ECR, SSM) |
 | 7 | 95 | Casos de borda resolvidos nas User Stories (RF-94 a RF-96) |
+| 8 | **93** | **Rateio removido** — RF-13 a RF-15 eliminados, RF-97 adicionado |
 
 ---
 
@@ -639,6 +694,24 @@ dados concretas lado a lado, em vez de descrições em prosa.
 PostgreSQL no EC2 em vez de RDS foi escolha consciente do usuário. O método não bloqueou — registrou
 R-01 com severidade, mitigação acordada e a ressalva de que RF-54 é obrigatório na prática apesar
 da prioridade "S".
+
+**O-19 — A opção correta pode estar na mesa e ser rejeitada.** O modelo "sem divisão, só
+visibilidade" foi oferecido explicitamente na primeira rodada de esclarecimento e recusado em favor
+de "divisão configurável". A correção veio sete revisões depois. Não foi falta de pergunta nem
+opção ausente — foi o domínio ainda não estar claro para nenhuma das partes. Sugere que a qualidade
+das opções apresentadas não garante a qualidade da escolha, e que revisões tardias de premissa
+básica devem ser esperadas, não tratadas como falha do processo.
+
+**O-20 — A rastreabilidade é o que torna a correção segura, não a documentação em si.** Remover o
+rateio exigiu localizar tudo que dependia dele: 3 requisitos, 3 histórias, 1 caso de borda,
+2 jornadas, 10 histórias dependentes, 3 premissas, 2 requisitos não-funcionais e 1 entidade do
+modelo. A matriz requisito ↔ história e as referências cruzadas permitiram fazer isso
+mecanicamente. Sem elas, a remoção deixaria resíduos que só apareceriam na implementação.
+
+**O-21 — O valor da especificação antes da implementação é medido no custo do erro tardio.** A
+remoção do rateio custou reescrita de documentos porque nada tinha sido construído. A mesma
+mudança na Code Generation teria custado código descartado e migrations; pós-deploy, migração de
+dados e uma tabela órfã em produção. O método não evitou o erro — tornou-o reversível.
 
 **O-17 — Planejar exige antecipar o resultado da stage que se está planejando.** A Workflow
 Planning precisa da decomposição em unidades para estimar esforço e ordenar o trabalho, mas a
@@ -695,11 +768,11 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: INCEPTION
-**Stage**: Workflow Planning — plano gerado, aguardando aprovação
-**Próxima stage prevista**: Application Design
+**Stage**: Application Design — plano em elaboração (revisão 8 aplicada a todos os artefatos)
+**Próxima stage prevista**: conclusão da Application Design, depois Units Generation
 
 **Stages concluídas**: Workspace Detection, Reverse Engineering (aprovada), Requirements Analysis
-(7 revisões, aprovada), User Stories (aprovada), Workflow Planning (gate pendente).
+(8 revisões), User Stories (aprovada), Workflow Planning (aprovada).
 
 **Decisões ainda em aberto** (adiadas para stages posteriores): mecanismo de autenticação (D-02),
 estrutura de pacotes (D-03), fronteira do fechamento em dia 29–31 (D-04, parcial),

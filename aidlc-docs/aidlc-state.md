@@ -5,7 +5,7 @@
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: INCEPTION
-- **Current Stage**: Workflow Planning (aguardando aprovação do plano de execução)
+- **Current Stage**: Application Design (planejamento — revisão 8 aplicada aos artefatos)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -46,8 +46,8 @@ RF-16, RF-24).
 - [x] Reverse Engineering — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
 - [x] Requirements Analysis — COMPLETED e APROVADO na revisão 6 (2026-07-30T16:11:59Z)
 - [x] User Stories — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
-- [x] Workflow Planning — PLANO GERADO (2026-07-30T16:11:59Z), aguardando aprovação
-- [ ] Application Design — **EXECUTE**
+- [x] Workflow Planning — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
+- [ ] Application Design — IN PROGRESS
 - [ ] Units Generation — **EXECUTE**
 
 ### CONSTRUCTION PHASE
@@ -74,7 +74,7 @@ RF-16, RF-24).
   U5 Infraestrutura) — decomposição definitiva sai na Units Generation
 - **Núcleo mínimo**: U1 + U2 + U3
 - **Gates de aprovação restantes**: ~20
-- **Aprovação do plano**: PENDENTE
+- **Aprovação do plano**: ✅ APROVADO em 2026-07-30T16:11:59Z
 
 ## Reverse Engineering Status
 - [x] Reverse Engineering — Artefatos gerados em 2026-07-30T16:11:59Z (commit analisado: f1d7060)
@@ -116,9 +116,9 @@ RF-16, RF-24).
   - `aidlc-docs/inception/plans/story-generation-plan.md`
   - `aidlc-docs/inception/user-stories/personas.md`
   - `aidlc-docs/inception/user-stories/stories.md`
-- **Conteúdo**: 11 épicos, 60 histórias (H-01 a H-60), 3 jornadas transversais (J-01 a J-03),
-  1 persona com 4 contextos, matriz de rastreabilidade com cobertura 70/70
-- **Núcleo mínimo**: 30 histórias marcadas
+- **Conteúdo**: 11 épicos, 57 histórias ativas, 3 jornadas transversais, 1 persona com 4 contextos,
+  rastreabilidade 68/68 (revisão 8 — H-10, H-11 e H-12 removidas)
+- **Núcleo mínimo**: 28 histórias marcadas
 - **Aprovação do usuário**: ✅ APROVADO em 2026-07-30T16:11:59Z
 
 ### Decisões fechadas pelas User Stories
@@ -130,12 +130,26 @@ RF-16, RF-24).
 Novos requisitos derivados: **RF-94** (desmarcar pagamento), **RF-95** (bloquear alteração em fatura
 paga), **RF-96** (reabrir e recalcular fatura fechada não paga). Requisitos ativos: **95**.
 
-### Pontos novos levantados pelas jornadas transversais
+### Pontos levantados pelas jornadas transversais
 | # | Questão | Destino |
 |---|---|---|
-| 1 | O "realizado" do orçamento conta pela data da compra ou pela competência da fatura? (J-02) | Functional Design |
-| 2 | Rateio incide sobre cada parcela, não só sobre o total da compra (J-01) | Application Design |
-| 3 | API deve distinguir "total do grupo" de "minhas cotas" (J-03) | Application Design |
+| 1 | O "realizado" do orçamento conta pela data da compra ou pela competência da fatura? (J-02) | ⏳ Functional Design |
+| 2 | ~~Rateio incide sobre cada parcela~~ (J-01) | ✅ **Extinto** na rev. 8 — não há rateio |
+| 3 | API distinguir "total do grupo" de "total pessoal" (J-03) | ✅ **Resolvido** na rev. 8 por RF-97 e D-28 |
+
+### Revisão 8 — Rateio removido (D-27, D-28)
+Esclarecimento do usuário durante a Application Design: *"Não vamos compartilhar contas do nível de
+dividir gastos, só dividir as contas de uma casa... conta x o owner é minha esposa, conta y o owner
+sou eu, mas todos dois conseguem ver suas contas de uma casa caso sejam membros do mesmo grupo"*.
+
+O compartilhamento passa a ser **apenas de visibilidade**. Cada lançamento tem um **dono** e o valor
+é integralmente dele. Ninguém deve nada a ninguém no sistema.
+
+**Removidos**: RF-13 (divisão igual), RF-14 (divisão configurável), RF-15 (invariante das cotas),
+histórias H-10, H-11 e H-12, caso de borda E-02, entidade `Cota` do modelo.
+**Adicionado**: RF-97 — total pessoal e total do grupo são grandezas distintas, nunca somadas.
+**Impacto no PBT**: dos três alvos de property-based testing, restam dois (H-28 e H-29, ambos de
+parcelamento). O parcelamento passa a ser a única área com aritmética monetária de divisão.
 
 ### Documento de registro de pesquisa
 `aidlc-docs/research-log.md` — registro cronológico e analítico do processo (decisões, alternativas

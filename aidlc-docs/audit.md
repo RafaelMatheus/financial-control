@@ -343,3 +343,37 @@ Complete audit trail of all user inputs and AI responses.
 **Context**: INCEPTION PHASE - Workflow Planning - Steps 1 a 8
 
 ---
+
+## Workflow Planning — Approval Gate
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: "Plano de execução (`execution-plan.md`) — aprova para seguir para Application Design?" (opções: Aprovar e continuar / Ajustar a decomposição / Pular alguma stage / Revisar o plano antes)
+**User Input**: "faz commit e push de tudo depois a gente segue aprovacaco" seguido de "commit t e push de tudo" e, após verificação do estado e nova apresentação do gate, "Aprovar e continuar"
+**AI Response**: "Commit e push confirmados; research-log.md alimentado com a stage de Workflow Planning antes de encerrar (commit 1305ce2), conforme a instrução permanente de manter o registro atualizado a cada alteração. Gate reapresentado e aprovado. Workflow Planning marcada como COMPLETED. Iniciando Application Design."
+**Context**: INCEPTION PHASE - Workflow Planning - APROVADO
+
+---
+
+## Application Design — Reforço sobre gastos pessoais e de grupo
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "importante informar que cada usuário pode ter despesas de grupo ou despesas pessoais"
+**AI Response**: "Já capturado por RF-11 (escopo PESSOAL ou GRUPO) e RF-07 (participação em grupo é opcional), coberto pela história H-09. Registrada no application-design-plan.md a consequência de design: a consulta de gastos retorna uma lista mista, e a totalização precisa definir qual valor soma."
+**Context**: INCEPTION PHASE - Application Design - Esclarecimento
+
+---
+
+## Application Design — REMOÇÃO DO RATEIO (revisão 8)
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "Naão vamos compartilhar contas do nível de dividir gastos, só divdir as contas de uma casa. Exemplo: mora eu e minha esposa, conta x o owner é minha esposa conta y o owner sou eu mas todos dois conseguem ver suas contas de uma casa caso sejam membros do mesmo grupo e as contas estejam cadastrada para aquele grupo nao inidividualmente"
+**AI Response**: "Mudança estrutural de grande porte identificada. O compartilhamento passa a ser APENAS de visibilidade — cada lançamento tem um dono e o valor é integralmente dele; ninguém deve nada a ninguém no sistema. Antes de reescrever, o entendimento foi confirmado com o usuário e três perguntas de impacto foram feitas."
+**Context**: INCEPTION PHASE - Application Design - Mudança de requisito
+
+---
+
+## Application Design — Confirmação do modelo sem rateio
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: 3 perguntas via AskUserQuestion — Confirmando: não existe divisão de valor nenhuma? / Como somar os totais do mês? / Quem pode editar ou excluir uma conta do grupo?
+**User Input**: "Confirmando: não existe divisão de valor nenhuma?"="Correto, só visibilidade"; "Como somar os totais do mês?"="Meu total = só as minhas"; "Quem pode editar ou excluir uma conta do grupo?"="Qualquer membro (como antes)"
+**AI Response**: "Registrado como D-27 (compartilhamento é apenas visibilidade) e D-28 (totais pessoal e de grupo são grandezas distintas, nunca somadas). RF-16 mantido — qualquer membro edita, apesar de haver dono claro. Artefatos reescritos: requirements.md revisão 8 (RF-13, RF-14 e RF-15 removidos sem reaproveitar os números; RF-97 adicionado; RF-11, RF-17, RF-21, RF-22, RF-65, RF-75, RF-09 revisados; E-02 removido; cenários C-01 e C-04 reescritos; premissas P-05, P-06 e P-07 revisadas; RNF-02 e RNF-07 ajustados). stories.md (épico E3 renomeado para Compartilhamento e Visibilidade; H-10, H-11 e H-12 removidas; H-07, H-08, H-13, H-14, H-16, H-17, H-49, H-58 revisadas; J-01 reescrita — deixa de cruzar 4 áreas e passa a cruzar 3; J-03 reescrita). personas.md (contexto C3 passa de 'autor' para 'dono do lançamento'). application-design-plan.md (Question 1 extinta, Question 4 reformulada). Impacto no property-based testing: dos três alvos, restam dois — a invariante soma(cotas) == valorTotal deixou de existir, e o parcelamento passa a ser a única área com aritmética monetária de divisão."
+**Context**: INCEPTION PHASE - Application Design - Revisão 8 aplicada
+
+---

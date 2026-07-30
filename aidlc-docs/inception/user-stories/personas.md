@@ -4,6 +4,9 @@
 **Timestamp**: 2026-07-30T16:11:59Z
 **Decisão de modelagem**: uma única persona (Question 2 do `story-generation-plan.md`)
 
+> **Revisão 8**: com a remoção do rateio (D-27), o contexto C3 passou de *"autor do lançamento"*
+> para **"dono do lançamento"** — quem registrou **e** a quem o valor pertence integralmente.
+
 ---
 
 ## Decisão: por que uma persona só
@@ -28,19 +31,20 @@ mesma persona ocupa conforme a situação.
 ## Persona — Usuário
 
 **Quem é**: uma pessoa que quer entender e controlar para onde vai o próprio dinheiro. Registra o
-que gasta, acompanha o que tem a pagar, e quando divide despesas com outras pessoas quer saber
-exatamente quanto cabe a cada um.
+que gasta, acompanha o que tem a pagar, e quando mora ou convive com outras pessoas quer enxergar
+as contas da casa junto com as suas, sem misturar o que é de cada um.
 
-**Contexto de vida**: usa o sistema para finanças pessoais e, quando divide custos — moradia,
-viagem, um projeto em comum — precisa que isso conviva com as finanças individuais sem se
-misturar.
+**Contexto de vida**: usa o sistema para finanças pessoais e, quando compartilha um contexto de
+custos — moradia, viagem, um projeto em comum —, precisa que as contas do grupo fiquem visíveis a
+todos sem se confundir com as individuais.
 
 ### Motivações
 
 - Saber quanto realmente gastou no mês, incluindo o que ainda vai vencer
+- Separar com clareza o que é gasto seu do que é gasto da casa
 - Não ser surpreendido por uma fatura de cartão maior que o esperado
 - Saber quanto de cada parcela ainda está comprometido nos meses seguintes
-- Dividir despesas comuns sem planilha paralela e sem discussão sobre quem pagou o quê
+- Enxergar as contas da casa junto com as do parceiro, sabendo quem pagou o quê
 - Guardar dinheiro com propósito e ver o progresso
 
 ### Frustrações que o sistema endereça
@@ -48,7 +52,7 @@ misturar.
 - Planilha manual que desatualiza e não calcula competência de fatura
 - Não saber se uma compra caiu na fatura deste mês ou do próximo
 - Perder o controle de quantas parcelas ainda faltam, espalhadas entre cartões
-- Divisão de despesas de casa feita "de cabeça", sem registro
+- Não ter visão das contas da casa como um todo, só das próprias
 - Descobrir uma conta vencida depois do vencimento
 
 ### O que pode fazer
@@ -58,7 +62,7 @@ misturar.
 | **Identidade** | Criar conta, autenticar, gerenciar o próprio perfil |
 | **Grupos** | Criar grupos, entrar, adicionar e remover membros, sair — **sem hierarquia** entre membros |
 | **Gastos** | Lançar gastos pessoais ou de grupo, com categoria e forma de pagamento |
-| **Rateio** | Definir como um gasto de grupo se divide: igual (padrão), por percentual ou por valor |
+| **Visibilidade** | Marcar lançamentos como pessoais ou do grupo; enxergar os lançamentos dos demais membros |
 | **Cartões** | Cadastrar cartões próprios ou do grupo, consultar faturas, marcar e desmarcar pagamento |
 | **Parcelamento** | Lançar compras parceladas, corrigir ou excluir por inteiro |
 | **Contas a pagar** | Registrar boletos, PIX e faturas de serviço; ver tudo que vence no período |
@@ -71,7 +75,7 @@ misturar.
 - Alterar uma fatura ou conta já marcada como **paga** — precisa antes desmarcar o pagamento
   (RF-94, RF-95)
 - Editar uma parcela isoladamente — só a compra inteira (RF-33)
-- Ter cota em gastos de grupo lançados antes de sua entrada, embora os enxergue (RF-09, E-10)
+- Reivindicar como seus os lançamentos de outro dono — o valor de um lançamento pertence integralmente a quem o cadastrou (RF-17)
 
 ---
 
@@ -86,14 +90,19 @@ PESSOAL e é visível só para ele. É o contexto padrão, e o sistema funciona 
 participação em grupo é opcional (RF-07).
 
 ### C2 — Membro de grupo
-Pertence a um ou mais grupos. Enxerga os gastos de escopo GRUPO de cada um deles — **inclusive os
-anteriores à sua entrada** (E-10) — e pode editá-los ou excluí-los como qualquer outro membro
-(RF-16). Tem cota apenas nos gastos posteriores à sua entrada.
+Pertence a um ou mais grupos. Enxerga os lançamentos de escopo GRUPO de cada um deles —
+**inclusive os anteriores à sua entrada** (E-10) — e pode editá-los ou excluí-los como qualquer
+outro membro (RF-16). **Não assume valor nenhum por isso**: cada lançamento continua pertencendo ao
+seu dono.
 
-### C3 — Autor do lançamento
-Quem registrou um gasto específico. A autoria é sempre preservada (RF-17), mas **não confere
-privilégio**: em escopo GRUPO, qualquer membro pode alterar o que ele lançou. A autoria serve para
-rastreabilidade e para responder "quem lançou isso?", não para controle de acesso.
+### C3 — Dono do lançamento
+Quem registrou um gasto ou conta, e **a quem o valor pertence integralmente**. O dono é sempre
+preservado (RF-17), mas **não confere privilégio de edição**: em escopo GRUPO, qualquer membro pode
+alterar o que ele lançou (RF-16).
+
+O dono é o eixo que separa as duas grandezas do sistema: o **total pessoal** soma apenas os
+lançamentos de que o usuário é dono; o **total do grupo** soma todos os lançamentos de escopo GRUPO,
+de qualquer dono (RF-97). **Os dois nunca se somam.**
 
 ### C4 — Proprietário do cartão
 Cadastrou um cartão em seu nome. Quando o cartão pertence a um **grupo** (RF-24), a fatura passa a
@@ -108,8 +117,8 @@ Como há uma única persona, **todas as histórias são executadas por ela**. O 
 | Contexto | Épicos onde é relevante |
 |---|---|
 | C1 — Usuário individual | Todos. É o contexto mínimo de operação |
-| C2 — Membro de grupo | E2 (Grupos), E3 (Compartilhamento e Rateio), e o escopo GRUPO em E4, E5, E10, E11 |
-| C3 — Autor do lançamento | E3 (RF-17, autoria), E4 (Gastos) |
+| C2 — Membro de grupo | E2 (Grupos), E3 (Compartilhamento e Visibilidade), e o escopo GRUPO em E4, E5, E10, E11 |
+| C3 — Dono do lançamento | E3 (RF-17), E4 (Gastos), E10 (Contas a pagar) |
 | C4 — Proprietário do cartão | E5 (Cartões), E6 (Parcelamento), E10 (fatura como conta a pagar) |
 
 ---
