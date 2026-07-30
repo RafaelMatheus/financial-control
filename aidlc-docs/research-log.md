@@ -789,6 +789,37 @@ qualquer apply, e o comando foi executado como parte da verificação de instala
 > porque o runbook foi escrito antes de haver o que executar; se tivesse sido documentado depois,
 > provavelmente descreveria o caminho feliz.
 
+### 3.26 A progressão dos erros como diagnóstico
+
+**Episódio**: o primeiro `terraform apply` real, disparado pelo GitHub Actions, falhou três vezes
+seguidas — com erros **diferentes** a cada tentativa:
+
+| # | Erro | Significado |
+|---|---|---|
+| 1 | `Input required and not supplied: aws-region` | As variables do repositório não existiam |
+| 2 | `Could not load credentials from any providers` | Variables ok; a role ainda não existia |
+| 3 | `The web identity token provided could not be validated` | Role existe; o token não valida |
+
+> Cada erro novo confirmou que a etapa anterior tinha sido resolvida. Num pipeline com autenticação
+> federada, a mensagem de erro funciona como indicador de progresso — e vale registrar isso porque
+> a reação instintiva a "falhou de novo" é assumir que nada mudou.
+
+**Causa provável do terceiro erro**: o `oidc.tf` fixava o thumbprint
+`6938fd4d98bab03faadb97b34396831e3780aea1`. É um valor real, mas **antigo** — corresponde a um
+certificado do GitHub já rotacionado, e circula amplamente em tutoriais e respostas de fórum. Foi
+reproduzido no código gerado sem verificação.
+
+Correção: ler o certificado atual via `data.tls_certificate`, mantendo os thumbprints históricos
+conhecidos na lista.
+
+> Achado metodológico desconfortável e útil: **valores constantes copiados de conhecimento
+> disponível envelhecem silenciosamente**. Um thumbprint, um ARN de policy gerenciada, um ID de
+> AMI — todos parecem estáveis, nenhum é. O código gerado ficou correto na estrutura e errado num
+> literal, e o erro só apareceu na primeira execução real contra a AWS.
+>
+> A lição prática não é "não use constantes", e sim: **onde existe um data source que descobre o
+> valor, prefira-o à constante** — mesmo que a constante esteja certa hoje.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -896,6 +927,17 @@ dados concretas lado a lado, em vez de descrições em prosa.
 PostgreSQL no EC2 em vez de RDS foi escolha consciente do usuário. O método não bloqueou — registrou
 R-01 com severidade, mitigação acordada e a ressalva de que RF-54 é obrigatório na prática apesar
 da prioridade "S".
+
+**O-30 — Constantes copiadas de conhecimento pré-existente envelhecem silenciosamente.** O
+thumbprint do OIDC provider do GitHub foi gerado com um valor real, amplamente publicado, e já
+rotacionado. A estrutura do código estava correta; o literal, não. Onde existir um data source que
+descubra o valor em tempo de execução, ele é preferível à constante — inclusive quando a constante
+está correta no momento da escrita.
+
+**O-31 — Mensagens de erro sucessivamente diferentes indicam progresso.** Três tentativas de apply
+falharam com três erros distintos, cada um confirmando a resolução do anterior. Em cadeias de
+autenticação federada, a evolução da mensagem é o principal sinal de avanço — mais informativo que
+o sucesso ou fracasso binário.
 
 **O-27 — Mitigação estrutural supera mitigação incremental.** O risco R-01 acumulou mitigações
 parciais ao longo de várias stages — volume EBS separado, `prevent_destroy`, runbook de restauração

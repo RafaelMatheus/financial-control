@@ -1,11 +1,97 @@
 # AI-DLC State Tracking
 
+---
+
+# 🔖 RETOMAR AQUI
+
+**Última sessão**: 2026-07-30 · **Commit**: `e5a5a3c`
+
+## Onde paramos
+
+Fase de **Inception concluída** (7 stages, nenhuma pulada). Fase de **Construction** iniciada pela
+unidade **U5 — Infraestrutura**:
+
+| Stage | Situação |
+|---|---|
+| Infrastructure Design | ✅ Aprovada |
+| Code Generation | ✅ Código gerado e no GitHub — **gate de aprovação ainda pendente** |
+| Bootstrap manual | 🔴 **Em andamento, bloqueado** |
+
+## 🔴 Bloqueio atual
+
+O GitHub Actions falha ao assumir a role por OIDC:
+
+```
+Error: Could not assume role with OIDC: The web identity token provided
+could not be validated.
+```
+
+**Já feito**: as 3 variables do repositório estão configuradas; a role parece existir (o Actions
+tenta assumi-la 12 vezes antes de desistir).
+
+**Correção já aplicada e commitada** (`e5a5a3c`): o `oidc.tf` fixava o thumbprint
+`6938fd4d98bab03faadb97b34396831e3780aea1` — valor antigo, muito copiado de tutoriais. Passou a ler
+o certificado atual via `data.tls_certificate`, mantendo os históricos na lista.
+
+**Ainda não verificado** — duas hipóteses em aberto:
+
+1. **Thumbprint desatualizado** — resolvido pelo commit, mas o `terraform apply` ainda não foi
+   reexecutado com a correção
+2. **Capitalização do owner no `sub`** — a trust policy exige
+   `repo:RafaelMatheus/financial-control:ref:refs/heads/main`. O `sub` do token usa a grafia exata
+   que o GitHub guarda. Se o owner for `rafaelmatheus` minúsculo ou outra variação, nunca casa
+
+## Próximos passos, na ordem
+
+**1. Diagnóstico** — CloudShell na conta 594116288641:
+
+```bash
+aws iam get-role --role-name financial-control-github-actions \
+  --query 'Role.AssumeRolePolicyDocument.Statement[0].Condition'
+```
+
+- Se responder: a role existe; comparar o `sub` com a grafia real do repositório
+- Se der `NoSuchEntity`: o apply do bootstrap não chegou a criar
+
+**2. Reaplicar o bootstrap com a correção**:
+
+```bash
+cd ~/financial-control && git pull
+cd infra/terraform/bootstrap
+terraform init -upgrade    # -upgrade: foi adicionado o provider tls
+terraform apply
+terraform output
+```
+
+**3.** Re-run all jobs na aba Actions do GitHub
+
+**4.** Com o pipeline verde, aprovar o gate de Code Generation de U5
+
+**5.** Seguir para **U1 — Fundação** (`common`, `usuario`, `grupo`)
+
+## Comando de segurança — sempre antes de qualquer apply
+
+```bash
+aws sts get-caller-identity   # tem que responder 594116288641
+```
+
+A CLI local da máquina do usuário está autenticada em **490490484770** (`user/mt-clix`), conta
+diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
+
+## Também pendente
+
+- **`domain_name`** — sem ele não há TLS; a API responderia por HTTP no IP elástico
+- **Passo 5b do runbook** — criar o usuário `financial_app` no banco, por SQL via SSM, depois que o
+  RDS existir
+
+---
+
 ## Project Information
 - **Project Name**: financial-control
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — U5 Infraestrutura · Code Generation (aguardando aprovação)
+- **Current Stage**: CONSTRUCTION — U5 Infraestrutura · **bootstrap manual em andamento** (bloqueado)
 
 ## Workspace State
 - **Existing Code**: Yes

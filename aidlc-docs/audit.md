@@ -495,3 +495,11 @@ Complete audit trail of all user inputs and AI responses.
 **Context**: CONSTRUCTION PHASE - U5 - Configuração de conta e variáveis
 
 ---
+
+## CONSTRUCTION — U5: bootstrap manual, bloqueio no OIDC
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "coonfigurei já" (variables); "Error: Could not assume role with OIDC: The web identity token provided could not be validated"; "cria o iam pelo terminal nao dá certo?"; "marca o passo em que paramos nos arquivos do dlc e commit, amanhaã eu continuo"
+**AI Response**: "Sessão encerrada com o bootstrap em andamento. Cronologia do bloqueio: (1) primeiro erro foi `Input required and not supplied: aws-region` — as variables do repositório não existiam; (2) após configurá-las, o erro passou a `Could not load credentials from any providers` — a role ainda não existia; (3) após o bootstrap, o erro passou a `The web identity token provided could not be validated` — a role existe, mas o token não valida. A progressão dos erros confirma que cada etapa avançou. Correção aplicada e commitada em e5a5a3c: o oidc.tf fixava o thumbprint 6938fd4d98bab03faadb97b34396831e3780aea1, valor antigo do certificado do GitHub amplamente copiado de tutoriais; passou a ler o certificado atual via data.tls_certificate, mantendo os thumbprints históricos na lista para sobreviver a rotações. Segunda hipótese ainda não verificada: a capitalização do owner no claim `sub` — a trust policy exige `repo:RafaelMatheus/financial-control:ref:refs/heads/main`, e o token usa a grafia exata que o GitHub guarda. Fornecida também a alternativa de criar o OIDC provider e a role diretamente pelo AWS CLI, com os comandos de `terraform import` correspondentes para não conflitar com o state. Registrado ponto de retomada no topo do aidlc-state.md com o diagnóstico, os 5 próximos passos e o comando de verificação de conta."
+**Context**: CONSTRUCTION PHASE - U5 - Bootstrap bloqueado, sessão encerrada
+
+---
