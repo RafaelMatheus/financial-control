@@ -121,6 +121,30 @@ cobertura 70/70 dos requisitos de domínio.
 
 **Três achados de valor metodológico** registrados abaixo (Seções 3.13 a 3.15).
 
+### 2.5 Workflow Planning
+
+**Resultado**: todas as stages condicionais executam; nenhuma pulada.
+
+**Risco avaliado como Médio**, não Alto — distinção deliberada. A complexidade do domínio é alta
+(10+ agregados, invariantes monetárias, regra de fronteira de fatura), mas o *impacto do erro* é
+contido: não há produção, dados de usuário, nem integração externa. Rollback é `git revert`. Os dois
+riscos de severidade Alta já registrados (R-01, banco sem backup gerenciado; R-05, apply automático
+sem gate) só se materializam **após** o primeiro deploy com dados reais — momento posterior ao
+encerramento do ciclo AI-DLC.
+
+**Decomposição prevista**: 5 unidades (Fundação, Lançamentos, Crédito, Planejamento,
+Infraestrutura), com a de infraestrutura paralelizável e núcleo mínimo nas três primeiras.
+
+**Dois desvios do método, documentados no plano**:
+
+1. **NFR Requirements e Infrastructure Design executam uma vez, não por unidade.** O AI-DLC as
+   define como stages per-unit, mas ambas resolvem decisões de *projeto* — mecanismo de
+   autenticação, dimensionamento da EC2 — que não variam entre unidades. Rodá-las cinco vezes
+   produziria repetição sem ganho.
+2. **A Units Generation foi antecipada como premissa.** O plano precisou supor uma decomposição
+   para estimar gates e ordenar o trabalho, embora a decomposição definitiva seja produto da stage
+   seguinte. Registrado explicitamente como expectativa, não como decisão.
+
 ---
 
 ## 3. Decisões e episódios relevantes
@@ -468,6 +492,55 @@ requisitos nem em nenhuma das 60 histórias de épico**:
 > foi escrever três histórias adicionais; o retorno foi uma questão de modelagem que mudaria o
 > schema depois de pronto.
 
+### 3.16 Planejar exige antecipar o que a stage seguinte decidiria
+
+**Episódio**: a Workflow Planning precisa estimar o esforço restante e ordenar o trabalho. Ambos
+dependem de saber **em quantas unidades** o sistema será dividido — mas a decomposição é produto da
+**Units Generation**, a stage seguinte.
+
+**Tensão**: sem uma hipótese de decomposição, o plano não consegue dizer quantos gates de aprovação
+restam nem qual o caminho crítico. Com uma hipótese, o plano antecipa uma decisão que não lhe cabe.
+
+**Resolução adotada**: o plano registra a decomposição em 5 unidades explicitamente como
+**expectativa**, derivada da marcação de núcleo mínimo já feita nas User Stories, e declara que a
+decomposição definitiva sai na Units Generation. A estimativa de ~20 gates é apresentada como
+função dessa premissa, não como número absoluto.
+
+> O AI-DLC coloca a Workflow Planning **antes** da Units Generation, o que é coerente do ponto de
+> vista de autoridade — o plano decide *se* a decomposição acontece. Mas cria uma dependência
+> invertida na dimensão de conteúdo: para planejar bem, é preciso saber o resultado do que se está
+> planejando. A saída foi tratar a antecipação como premissa declarada, em vez de fingir que a
+> ordem das stages elimina a dependência.
+>
+> Vale notar que a marcação de "núcleo mínimo" feita nas User Stories — que não era exigida pelo
+> método, e resultou de uma escolha de formato do usuário — foi o que tornou a antecipação
+> defensável. Sem ela, a decomposição seria arbitrária.
+
+### 3.17 Stages per-unit que não variam por unidade
+
+**Episódio**: o AI-DLC define NFR Requirements e Infrastructure Design como stages **per-unit**,
+executadas dentro do loop de Construction para cada unidade de trabalho.
+
+**Constatação**: ambas resolvem decisões que **não variam entre unidades**:
+
+- **NFR Requirements** fecha D-02 (mecanismo de autenticação), D-05 (framework de PBT) e D-06
+  (ferramenta de OpenAPI). São escolhas de stack válidas para o projeto inteiro
+- **Infrastructure Design** fecha D-11 (dimensionamento da EC2, AMI, região, rede) e D-12
+  (mecanismo de deploy). A infraestrutura é compartilhada por todas as unidades de domínio
+
+Executá-las cinco vezes produziria cinco documentos idênticos, cinco gates de aprovação redundantes,
+e o risco real de as respostas divergirem entre execuções.
+
+**Resolução**: ambas executam **uma vez** — NFR Requirements na primeira unidade, Infrastructure
+Design na unidade de infraestrutura. As demais unidades herdam as decisões.
+
+> A estrutura per-unit do método assume que cada unidade é um serviço razoavelmente autônomo, com
+> suas próprias escolhas de stack e infraestrutura — premissa razoável em arquitetura de
+> microsserviços. Num **monolito single-module**, a premissa não se sustenta: existe um único
+> classpath, um único deploy, um único banco. O método não oferece um mecanismo para declarar que
+> uma stage per-unit é, neste projeto, de escopo global — a adaptação teve de ser feita e
+> justificada no plano.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -492,6 +565,11 @@ requisitos nem em nenhuma das 60 histórias de épico**:
 | Épicos | 11 |
 | Personas | 1 (com 4 contextos) |
 | Cobertura requisito ↔ história | 70/70 requisitos de domínio |
+| Stages condicionais avaliadas | 6 |
+| Stages condicionais a executar | 6 (nenhuma pulada) |
+| Unidades de trabalho previstas | 5 |
+| Gates de aprovação restantes | ~20 |
+| Decisões ainda abertas ao fim da Inception | 14 (todas com stage-alvo designada) |
 | Requisitos não-funcionais | 17 |
 | Cenários de usuário | 10 |
 | Casos de borda e erro | 16 |
@@ -562,6 +640,18 @@ PostgreSQL no EC2 em vez de RDS foi escolha consciente do usuário. O método n�
 R-01 com severidade, mitigação acordada e a ressalva de que RF-54 é obrigatório na prática apesar
 da prioridade "S".
 
+**O-17 — Planejar exige antecipar o resultado da stage que se está planejando.** A Workflow
+Planning precisa da decomposição em unidades para estimar esforço e ordenar o trabalho, mas a
+decomposição é produto da Units Generation, que vem depois. A ordem das stages é coerente quanto à
+autoridade da decisão, mas cria dependência invertida quanto ao conteúdo. A saída foi declarar a
+antecipação como premissa explícita.
+
+**O-18 — Estruturas per-unit pressupõem autonomia entre unidades.** NFR Requirements e
+Infrastructure Design são definidas pelo método como stages por unidade — premissa razoável em
+microsserviços, insustentável num monolito single-module com um classpath, um deploy e um banco.
+O método não oferece mecanismo para declarar que uma stage per-unit tem, num dado projeto, escopo
+global; a adaptação teve de ser justificada fora do vocabulário do método.
+
 **O-14 — Convenções de domínio podem ser projetadas sobre requisitos que não as contêm.** A
 hierarquia administrador/membro é tão comum em sistemas com grupos que foi assumida durante a
 análise de personas, apesar de RF-16 e RF-08 dizerem explicitamente o contrário. Só a verificação
@@ -605,11 +695,11 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: INCEPTION
-**Stage**: User Stories — Parte 2 concluída, aguardando aprovação
-**Próxima stage prevista**: Workflow Planning
+**Stage**: Workflow Planning — plano gerado, aguardando aprovação
+**Próxima stage prevista**: Application Design
 
 **Stages concluídas**: Workspace Detection, Reverse Engineering (aprovada), Requirements Analysis
-(7 revisões, aprovada), User Stories (gate pendente).
+(7 revisões, aprovada), User Stories (aprovada), Workflow Planning (gate pendente).
 
 **Decisões ainda em aberto** (adiadas para stages posteriores): mecanismo de autenticação (D-02),
 estrutura de pacotes (D-03), fronteira do fechamento em dia 29–31 (D-04, parcial),
