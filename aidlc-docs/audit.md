@@ -445,3 +445,12 @@ Complete audit trail of all user inputs and AI responses.
 **Context**: CONSTRUCTION PHASE - U5 - Avaliação condicional
 
 ---
+
+## CONSTRUCTION — U5: Infrastructure Design
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: 4 perguntas via AskUserQuestion, em duas rodadas — região e dimensionamento, topologia de rede, exposição na internet e backup. A primeira rodada foi interrompida pelo usuário com a pergunta "qual regiao é mais barato".
+**User Input**: "qual regiao é mais barato"; depois "Com essa comparação, qual região e tipo de instância? (D-11)"="us-east-1 · t3.small (Recomendado)"; "Topologia de rede?"="VPC própria, subnet pública (Recomendado)"; "Como a aplicação fica acessível na internet?"="Nginx + Let's Encrypt (Recomendado)"; "Backup do PostgreSQL"="nao precisamos nos preocupar neste momnento com backup"
+**AI Response**: "Fornecida comparação de custos entre us-east-1 e sa-east-1 (~US$ 20 vs ~US$ 31/mês), com os trade-offs de latência (~120ms vs ~15ms) e localidade dos dados, e a ressalva de que os valores são aproximados e devem ser confirmados na calculadora da AWS. Decisões registradas: D-11 (us-east-1, t3.small — t3.micro descartado pelo risco de OOM com JVM e PostgreSQL na mesma máquina), D-34 (VPC própria com subnet pública — NAT Gateway custaria ~US$ 32/mês, mais que a instância), D-35 (nginx + Let's Encrypt — ALB custaria ~US$ 18/mês), D-12 (deploy por SSM sobre docker compose), D-36 (backup fora deste ciclo). Sobre o backup: consequência registrada uma vez e sem reiteração — RF-54 sai do escopo, risco R-01 permanece aberto e sem mitigação, RF-50 (volume EBS separado) permanece como única proteção ativa, e o gatilho para retomar é o primeiro deploy com dados reais. Gerados o plano e os dois artefatos obrigatórios: infrastructure-design.md (mapeamento componente→serviço AWS, topologia, segurança de acesso, estrutura Terraform, mitigações de R-05 e cobertura de requisitos) e deployment-architecture.md (pipeline, 4 workflows, deploy por SSM, composição na instância, boot, runbook executável em 7 passos, reversão, custo estimado e insumo pendente). Identificado 1 insumo externo pendente: domain_name."
+**Context**: CONSTRUCTION PHASE - U5 - Infrastructure Design (Steps 1 a 6)
+
+---

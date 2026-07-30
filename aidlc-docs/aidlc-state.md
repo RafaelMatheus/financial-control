@@ -5,7 +5,7 @@
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — U5 Infraestrutura · Infrastructure Design (planejamento)
+- **Current Stage**: CONSTRUCTION — U5 Infraestrutura · Infrastructure Design (aguardando aprovação)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -60,8 +60,19 @@ RF-16, RF-24).
 - [ ] Functional Design — **SKIP** (sem lógica de negócio nem modelo de dados)
 - [ ] NFR Requirements — **ADIADA para U1** (resolve D-02, D-05 e D-06 — decisões de stack da aplicação)
 - [ ] NFR Design — **SKIP** (consequência da anterior)
-- [ ] Infrastructure Design — **IN PROGRESS**
+- [x] Infrastructure Design — ARTEFATOS GERADOS (2026-07-30T16:11:59Z), aguardando aprovação
 - [ ] Code Generation — PENDING
+
+**Decisões de U5**: D-11 (`us-east-1` · `t3.small`), D-12 (deploy por SSM sobre docker compose),
+D-34 (VPC própria, subnet pública, sem NAT), D-35 (nginx + Let's Encrypt), D-36 (backup fora do
+ciclo). Custo estimado ~US$ 22/mês.
+
+⚠️ **Risco R-01 permanece ABERTO e sem mitigação** — backup excluído por decisão do usuário
+(*"nao precisamos nos preocupar neste momnento com backup"*). RF-54 fora do escopo. A única proteção
+ativa é RF-50 (volume EBS separado), que cobre substituição da instância mas **não** perda ou
+corrupção do volume. Gatilho para retomar: primeiro deploy com dados reais.
+
+**Insumo pendente**: `domain_name` — sem ele não há TLS; a API responde por HTTP no IP elástico.
 
 #### U1 — Fundação
 - [ ] Functional Design · NFR Requirements · NFR Design · Code Generation
