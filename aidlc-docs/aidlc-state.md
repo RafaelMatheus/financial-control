@@ -5,7 +5,7 @@
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: INCEPTION
-- **Current Stage**: Application Design (artefatos gerados, aguardando aprovação)
+- **Current Stage**: Units Generation — concluída (aguardando aprovação). **Fim da fase de Inception.**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -47,8 +47,8 @@ RF-16, RF-24).
 - [x] Requirements Analysis — COMPLETED e APROVADO na revisão 6 (2026-07-30T16:11:59Z)
 - [x] User Stories — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
 - [x] Workflow Planning — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
-- [x] Application Design — ARTEFATOS GERADOS (2026-07-30T16:11:59Z), aguardando aprovação
-- [ ] Units Generation — **EXECUTE**
+- [x] Application Design — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
+- [x] Units Generation — ARTEFATOS GERADOS (2026-07-30T16:11:59Z), aguardando aprovação
 
 ### CONSTRUCTION PHASE
 - [ ] Functional Design — **EXECUTE** (por unidade)
@@ -61,6 +61,36 @@ RF-16, RF-24).
 ### OPERATIONS PHASE
 - [ ] Operations — PLACEHOLDER
 
+## Units Generation Status
+- [x] Parte 1 — Planejamento (5 questões respondidas; 3 defaults adotados e comunicados)
+- [x] Parte 2 — Geração
+- **Artifacts Location**: `aidlc-docs/inception/application-design/`
+  - `unit-of-work.md` · `unit-of-work-dependency.md` · `unit-of-work-story-map.md`
+- **Aprovação do usuário**: PENDENTE
+
+### Decomposição definitiva — 5 unidades
+
+| Unidade | Componentes | Histórias | Depende de |
+|---|---|---|---|
+| **U1 — Fundação** | `common`, `usuario`, `grupo` | 8 | — |
+| **U2 — Lançamentos** | `categoria`, `gasto` (à vista) | 9 | U1 |
+| **U3 — Crédito** | `cartao`, `fatura`, `conta`, `compra`, `gasto` (cartão) | 25 + 2 jornadas | U1, U2 |
+| **U4 — Planejamento** | `receita`, `orcamento`, `investimento` | 15 + 1 jornada | U1, U2, U3 (só J-02) |
+| **U5 — Infraestrutura** | Terraform, Dockerfile, GitHub Actions | 0 | — (**paralelizável**) |
+
+**Cobertura**: 57 histórias + 3 jornadas = 60, todas atribuídas. Nenhuma duplicada, nenhuma órfã.
+
+**Caminho crítico**: U1 → U2 → U3. **Sequência recomendada**: U5 primeiro (CI verde desde o
+início), depois U1 → U2 → U3 → U4.
+
+### Divergência resolvida
+O componente `gasto` depende de `cartao` e `fatura`, contradizendo a ordem U2-antes-de-U3 do plano.
+**Resolução**: dividir `gasto` — à vista em U2, integração com cartão em U3. A entidade nasce em U2
+já com `cartaoId` e `competencia` **nuláveis**, evitando `ALTER TABLE` em U3.
+
+### Escopo do ciclo
+**Todas as 5 unidades** entram neste ciclo AI-DLC.
+
 ## Application Design Status
 - [x] Artefatos gerados em 2026-07-30T16:11:59Z
 - **Artifacts Location**: `aidlc-docs/inception/application-design/`
@@ -70,7 +100,7 @@ RF-16, RF-24).
   - `component-dependency.md` — matriz, grafo, fluxos e ordem de implementação
   - `openapi.yaml` — **OpenAPI 3.1 validado**: 31 paths, 51 operações, 39 schemas
   - `application-design.md` — consolidação
-- **Aprovação do usuário**: PENDENTE
+- **Aprovação do usuário**: ✅ APROVADO em 2026-07-30T16:11:59Z
 
 ### Decisões fechadas
 | ID | Decisão |

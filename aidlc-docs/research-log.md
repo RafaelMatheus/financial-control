@@ -157,6 +157,16 @@ dono + dois totais na API (D-30), fatura persistida (D-31), UUID (D-32).
 duas camadas (J-03 → RF-97 + D-30), e uma **extinta** antes de ser respondida (J-01, pela remoção
 do rateio na revisão 8).
 
+### 2.7 Units Generation
+
+**Resultado**: 5 unidades — Fundação, Lançamentos, Crédito, Planejamento e Infraestrutura. As 60
+histórias atribuídas, nenhuma órfã nem duplicada. Caminho crítico U1 → U2 → U3.
+
+**Decisão central**: resolver a divergência entre a ordem do plano de execução e o grafo de
+dependências, **dividindo o componente `gasto`** — à vista em U2, integração com cartão em U3.
+
+**Fim da fase de Inception.** Sete stages executadas, nenhuma pulada.
+
 ---
 
 ## 3. Decisões e episódios relevantes
@@ -667,6 +677,54 @@ aberto, ou o inverso.
 > É o mesmo mecanismo de O-16 (questões vivem nas costuras), aplicado agora entre *decisões* e não
 > entre *áreas funcionais*.
 
+### 3.22 Dividir um componente para preservar a capacidade de entrega
+
+**Episódio**: a Application Design revelou que `gasto` depende de `cartao` e `fatura`, contradizendo
+a ordem U2-antes-de-U3 do plano de execução (Seção 3.20). A Units Generation precisou escolher entre
+três saídas: dividir o componente, inverter a ordem das unidades, ou fundi-las.
+
+**Escolha**: **dividir `gasto`** — gasto à vista em U2, integração com cartão em U3.
+
+**Critério que decidiu**: o usuário optou por fronteira de unidade definida por **capacidade de
+negócio**, não por dependência técnica. Inverter a ordem (opção B) produziria uma unidade de crédito
+que termina com cartões cadastrados e **nenhum lançamento para consolidar** — tecnicamente limpa,
+mas sem nada demonstrável ao fim.
+
+**Custo assumido**: um componente tocado em duas unidades exige coordenação explícita. Três acordos
+foram registrados para evitar retrabalho:
+
+1. A entidade `Gasto` nasce em U2 **já com** as colunas `cartaoId` e `competencia` nuláveis —
+   nenhuma migration de `ALTER TABLE` em U3
+2. O endpoint aceita `cartaoId` opcional desde U2, mas **rejeita** o campo até U3 existir
+3. Ao concluir U3, os testes de U2 devem passar **sem modificação** — vira teste de regressão de
+   fronteira
+
+> O acordo (1) é o que torna a divisão barata. Sem ele, U3 exigiria alterar uma tabela já criada e
+> em uso — e o custo de dividir o componente passaria a superar o de inverter a ordem. **A decisão
+> de decomposição só é boa porque veio acompanhada do acordo de schema.**
+>
+> Registra-se também que a divisão foi possível porque a dependência é **parcial**: um gasto à vista
+> não precisa de cartão. Se toda operação do componente dependesse de `cartao`, a única saída seria
+> inverter ou fundir.
+
+### 3.23 A dependência que quase não existe
+
+**Constatação ao montar o grafo de unidades**: **U4 (Planejamento) depende de U3 (Crédito) por causa
+de uma única história** — a jornada **J-02 (fechar o mês)**, que cruza vencimentos, faturas, gastos
+e orçamento.
+
+Todas as outras 15 histórias de U4 — receitas, orçamento, investimentos — dependem apenas de U1 e
+U2. Adiar J-02 tornaria **U3 e U4 paralelizáveis**, encurtando o caminho crítico do projeto.
+
+> Achado de valor prático que só aparece ao cruzar o mapa de histórias com o grafo de dependências.
+> A dependência U4 → U3 parece estrutural quando se olha só os componentes; ao olhar história a
+> história, revela-se uma amarra pontual.
+>
+> Vale notar de onde veio a amarra: **das jornadas transversais**. Foram elas que expuseram questões
+> de modelagem na Seção 3.15, e agora são elas que criam as únicas dependências não óbvias entre
+> unidades. Faz sentido — jornadas existem justamente para cruzar fronteiras, e cruzar fronteiras é
+> o que cria acoplamento.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -695,6 +753,10 @@ aberto, ou o inverso.
 | Entidades / agregados | 15 / 12 |
 | Contrato OpenAPI | 31 paths, 51 operações, 39 schemas |
 | Alvos de property-based testing | 2 (eram 3 antes da rev. 8) |
+| Unidades de trabalho | 5 |
+| Histórias atribuídas a unidades | 60/60 (nenhuma órfã, nenhuma duplicada) |
+| Componentes divididos entre unidades | 1 (`gasto`) |
+| Stages da Inception executadas | 7 de 7 (nenhuma pulada) |
 | Stages condicionais avaliadas | 6 |
 | Stages condicionais a executar | 6 (nenhuma pulada) |
 | Unidades de trabalho previstas | 5 |
@@ -770,6 +832,17 @@ dados concretas lado a lado, em vez de descrições em prosa.
 PostgreSQL no EC2 em vez de RDS foi escolha consciente do usuário. O método não bloqueou — registrou
 R-01 com severidade, mitigação acordada e a ressalva de que RF-54 é obrigatório na prática apesar
 da prioridade "S".
+
+**O-25 — Decomposição por capacidade de entrega custa coordenação, e o custo precisa ser
+explicitado.** Dividir o componente `gasto` entre duas unidades só é vantajoso porque veio
+acompanhado de um acordo de schema — a entidade nasce com as colunas do futuro, nuláveis. Sem esse
+acordo, a divisão exigiria `ALTER TABLE` numa tabela em uso, e o custo superaria o da alternativa.
+A decisão de fronteira e o acordo de coordenação são inseparáveis.
+
+**O-26 — Dependências entre unidades podem ser criadas por uma única história.** U4 depende de U3
+apenas pela jornada J-02; as outras 15 histórias dependem só de U1 e U2. A dependência parece
+estrutural no nível de componentes e se revela pontual no nível de histórias — e são justamente as
+jornadas transversais, que existem para cruzar fronteiras, que criam o acoplamento não óbvio.
 
 **O-22 — Em tarefas longas, o relato do trabalho pode substituir o trabalho.** O modelo afirmou
 estar aguardando respostas a perguntas que não havia feito, apesar de a instrução de usar o tool
@@ -860,11 +933,12 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: INCEPTION
-**Stage**: Application Design — artefatos gerados, aguardando aprovação
-**Próxima stage prevista**: Units Generation
+**Stage**: Units Generation — concluída, aguardando aprovação. **Fim da fase de Inception.**
+**Próxima fase**: CONSTRUCTION — loop por unidade (Functional Design, NFR, Code Generation)
 
 **Stages concluídas**: Workspace Detection, Reverse Engineering (aprovada), Requirements Analysis
-(8 revisões), User Stories (aprovada), Workflow Planning (aprovada), Application Design (gate pendente).
+(8 revisões), User Stories (aprovada), Workflow Planning (aprovada), Application Design (aprovada),
+Units Generation (gate pendente).
 
 **Decisões ainda em aberto** (adiadas para stages posteriores): mecanismo de autenticação (D-02),
 estrutura de pacotes (D-03), fronteira do fechamento em dia 29–31 (D-04, parcial),

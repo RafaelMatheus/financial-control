@@ -402,3 +402,29 @@ Complete audit trail of all user inputs and AI responses.
 **Context**: INCEPTION PHASE - Application Design - Step 10
 
 ---
+
+## Application Design — Approval Gate (APROVADO)
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: "Application Design concluída. Como deseja prosseguir?" (opções: Aprovar e continuar / Solicitar mudanças / Resolver D-33 agora / Revisar o OpenAPI antes)
+**User Input**: "Aprovar e continuar"
+**AI Response**: "Application Design aprovada. D-33 (Fatura.status persistido ou derivado) segue para a Functional Design, conforme registrado. Stage marcada como COMPLETED. Iniciando Units Generation — Parte 1 (Planejamento), última stage da fase de Inception."
+**Context**: INCEPTION PHASE - Application Design - APROVADO
+
+---
+
+## Units Generation — Parte 1: Plano e questões
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: 2 perguntas via AskUserQuestion (após uma rodada de 4 perguntas ter sido interrompida pelo usuário e reapresentada de forma enxuta) — resolução da divergência entre a ordem do plano e o grafo de dependências, e escopo de entrega do ciclo.
+**User Input**: "O plano previa Lançamentos antes de Crédito, mas o grafo mostra que `gasto` depende de `cartao` e `fatura`. Como resolver?"="Dividir `gasto` em duas etapas (Recomendado)"; "Todas as unidades entram neste ciclo, ou só parte?"="Todas"
+**AI Response**: "Divergência resolvida: o componente `gasto` é dividido — à vista em U2, integração com cartão em U3. Escopo: todas as 5 unidades neste ciclo. Três defaults adotados sem pergunta e comunicados ao usuário no momento da adoção, por decorrerem logicamente das duas respostas: critério de fronteira por capacidade de negócio (Question 2), infraestrutura como unidade própria paralelizável conforme o execution-plan (Question 3), e 5 unidades no total (Question 5). Plano registrado em unit-of-work-plan.md."
+**Context**: INCEPTION PHASE - Units Generation - Part 1
+
+---
+
+## Units Generation — Parte 2: Geração
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "finaliza e faz commit e push"
+**AI Response**: "Gerados os 3 artefatos obrigatórios em `aidlc-docs/inception/application-design/`. unit-of-work.md: 5 unidades com propósito, componentes, entidades, responsabilidades e critérios de conclusão verificáveis; seção dedicada ao componente `gasto` dividido entre U2 e U3, com os acordos de coordenação; estratégia de organização de código (obrigatória para greenfield) com estrutura de diretórios, uma migration por unidade e convenções. unit-of-work-dependency.md: matriz, grafo Mermaid com alternativa textual, caminho crítico U1→U2→U3, 5 pontos de coordenação (2 marcados como críticos), estratégia de teste com checkpoints de integração, estratégia de rollback e sequência recomendada. unit-of-work-story-map.md: as 60 histórias atribuídas — U1 com 8, U2 com 9, U3 com 25 + 2 jornadas, U4 com 15 + 1 jornada, U5 com nenhuma; verificação de cobertura confirmando nenhuma órfã e nenhuma duplicada. Todos os checkboxes do plano marcados [x]. Achado registrado: U4 depende de U3 apenas por causa da jornada J-02 — adiá-la tornaria U3 e U4 paralelizáveis."
+**Context**: INCEPTION PHASE - Units Generation - Part 2 (Steps 12-15)
+
+---
