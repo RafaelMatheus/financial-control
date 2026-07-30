@@ -46,6 +46,7 @@ O front-end, por outro lado, foi **removido** do escopo deste repositório.
 | 3 | "Casa" generalizada para **"Grupo"**; **RF-12 removido** (compartilhamento avulso) — modelo único de compartilhamento | Mudança solicitada no gate de aprovação |
 | 4 | **Contas a pagar** (RF-55 a RF-67) e **Investimentos** (RF-68 a RF-77); fatura de cartão unificada à visão de vencimentos | Pedido do usuário durante a revisão |
 | 5 | **Contrato de API** como entregável explícito (RF-78 a RF-80): OpenAPI 3.1 YAML, gerado após a Application Design | Pedido do usuário: documento de endpoints para construir o front |
+| 6 | **CI/CD e provisionamento** (RF-81 a RF-93): GitHub Actions com OIDC, ECR, deploy por SSM e bootstrap manual documentado | Pergunta do usuário sobre o momento do provisionamento, que revelou a lacuna da fase de Operations do AI-DLC |
 
 ---
 
@@ -70,6 +71,8 @@ O front-end, por outro lado, foi **removido** do escopo deste repositório.
 - Testes automatizados (exemplo + property-based parcial)
 - **Infraestrutura como código (Terraform)** para deploy em **AWS EC2**, no diretório
   `infra/terraform/` deste mesmo repositório
+- **Pipeline CI/CD em GitHub Actions** — build e teste da aplicação, `terraform plan` em PR,
+  `terraform apply` no merge, build e push da imagem para ECR, e deploy na EC2 via SSM
 
 ### 2.2 Fora do escopo
 
@@ -90,6 +93,8 @@ O front-end, por outro lado, foi **removido** do escopo deste repositório.
 | **Baseline de resiliência (HA, DR, RTO/RPO)** | Extensão desligada (Question 15). A arquitetura alvo é instância única — ver risco R-04 |
 | **RDS ou qualquer banco gerenciado** | Decisão D-10 — PostgreSQL roda na própria instância EC2 |
 | **Kubernetes, ECS, Fargate ou autoscaling** | Deploy alvo é uma instância EC2 única |
+| **Execução do `terraform apply` pelo fluxo AI-DLC** | O método entrega o código; a aplicação da infra roda no GitHub Actions (RF-85). O bootstrap inicial é manual, com runbook (RF-92) |
+| **Acesso SSH à instância** | Substituído por SSM Run Command; porta 22 fechada (RF-90) |
 | **Checklist bloqueante de hardening de segurança** | Extensão desligada (Question 14) — **mas autenticação e isolamento permanecem como requisitos funcionais** (Question 17) |
 
 ---
@@ -278,6 +283,29 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 | RF-53 | M | Credenciais de banco e demais segredos devem ser injetados por variável de ambiente ou parameter store — **nunca** hardcoded no Terraform nem versionados. |
 | RF-54 | S | Deve existir rotina de **backup do PostgreSQL** (dump periódico para S3, ou snapshot do volume EBS) com procedimento de restauração documentado. |
 
+### 3.14 CI/CD e Provisionamento
+
+> **Contexto**: o AI-DLC entrega o Terraform escrito, mas **não provisiona** — a fase de Operations
+> do método é um placeholder vazio (*"The AI-DLC workflow currently ends after the Build and Test
+> phase in CONSTRUCTION"*). A lacuna é fechada por **GitHub Actions**: o `terraform apply` roda no
+> CI a partir do merge em `main`, não da máquina de ninguém.
+
+| ID | Prioridade | Requisito |
+|---|---|---|
+| RF-81 | M | O projeto deve usar **GitHub Actions** como plataforma de CI/CD, com workflows versionados em `.github/workflows/`. |
+| RF-82 | M | O Actions deve autenticar na AWS por **OIDC** (`AssumeRoleWithWebIdentity`), com token de curta duração. **Nenhuma credencial AWS de longa duração** pode existir nos GitHub Secrets. |
+| RF-83 | M | Deve existir workflow de **CI da aplicação** — build Gradle e execução dos testes (incluindo Testcontainers) — disparado em PR que toca `src/**` ou arquivos de build. |
+| RF-84 | M | Deve existir workflow de **`terraform plan`** disparado em PR que toca `infra/**`, publicando o diff de forma visível no PR. |
+| RF-85 | M | Deve existir workflow de **`terraform apply`**, disparado automaticamente no merge para `main`, sem gate de aprovação manual (decisão do usuário — ver risco R-05). |
+| RF-86 | M | Deve existir workflow que constrói a **imagem Docker** da aplicação e faz push para o **Amazon ECR**, na mesma conta AWS. |
+| RF-87 | M | A imagem deve ser versionada por **tag imutável derivada do commit SHA**, permitindo rollback determinístico para qualquer versão anterior. |
+| RF-88 | M | O deploy na EC2 deve ocorrer via **AWS Systems Manager Run Command** (`ssm send-command`), executando o pull da imagem e o restart do serviço. |
+| RF-89 | M | A instância deve puxar a imagem do ECR pela sua **IAM role**, sem nenhuma credencial de registry armazenada na máquina. |
+| RF-90 | M | A **porta 22 (SSH) deve permanecer fechada** no security group. Não pode existir chave SSH privada nos GitHub Secrets nem no repositório. |
+| RF-91 | M | Deve existir um módulo **`infra/terraform/bootstrap/`** separado, com state local, criando os recursos que o próprio CI precisa para funcionar: bucket S3 do state, mecanismo de lock, provider OIDC do GitHub, IAM role assumida pelo Actions e repositório ECR. |
+| RF-92 | M | O bootstrap deve ser aplicado **uma única vez, manualmente**, e o projeto deve entregar um **runbook** com o passo a passo (pré-requisitos, comandos na ordem, o que conferir e como reverter). |
+| RF-93 | S | A trust policy da role OIDC deve restringir o acesso ao **repositório e à branch** específicos (`repo:RafaelMatheus/financial-control:ref:refs/heads/main`), não a qualquer repositório da organização. |
+
 ---
 
 ## 4. Requisitos Não-Funcionais
@@ -297,9 +325,9 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 | RNF-11 | Manutenibilidade | Separação clara de camadas (API / aplicação / domínio / persistência), a ser definida na Application Design. |
 | RNF-12 | Escala | Uso pessoal/doméstico: dezenas de usuários, milhares de lançamentos. **Não** há requisito de alta escala, alta disponibilidade ou baixa latência agressiva. |
 | RNF-13 | Reprodutibilidade da infra | Toda a infraestrutura deve ser recriável a partir do Terraform versionado, sem passos manuais no console AWS. |
-| RNF-14 | Isolamento de CI | Com app e IaC no mesmo repositório, o pipeline deve usar **filtro de path** — `terraform plan` não deve rodar em mudanças que tocam apenas código Kotlin, e vice-versa. |
+| RNF-14 | Isolamento de CI | Com app e IaC no mesmo repositório, o pipeline deve usar **filtro de path** — `terraform plan` não deve rodar em mudanças que tocam apenas código Kotlin, e vice-versa (RF-83, RF-84). |
 | RNF-15 | Segredos | `*.tfstate`, `*.tfvars` com valores sensíveis e arquivos `.env` não podem ser versionados. O `.gitignore` deve ser estendido para cobri-los. |
-| RNF-16 | Superfície de exposição | O security group deve expor apenas as portas necessárias. A porta do PostgreSQL (5432) **não** deve ser acessível pela internet — apenas localmente na instância. |
+| RNF-16 | Superfície de exposição | O security group deve expor apenas as portas necessárias. A porta do PostgreSQL (5432) **não** deve ser acessível pela internet — apenas localmente na instância. A **porta 22 (SSH) permanece fechada**, já que o acesso administrativo se dá por SSM (RF-88, RF-90). |
 | RNF-17 | Durabilidade dos dados | Como o PostgreSQL roda no próprio EC2 (sem backup gerenciado), a persistência depende de volume EBS separado (RF-50) e de rotina de backup própria (RF-54). Ver risco R-01. |
 
 ---
@@ -437,6 +465,12 @@ aportam ao longo dos meses e os dois enxergam o total acumulado e o progresso.
 | D-18 | **Aporte conta como gasto** no balanço do mês (RF-76) | ✅ Decidido pelo usuário. Consequência: o balanço mede fluxo de caixa, não variação patrimonial — investir reduz o saldo do mês |
 | D-19 | Mecanismo de geração das ocorrências de contas recorrentes (job agendado, geração sob demanda na consulta, ou híbrido) | ⏳ Adiado para **Functional Design** |
 | D-20 | Momento e mecanismo do fechamento automático da fatura (RF-59) — job agendado ou cálculo derivado na leitura | ⏳ Adiado para **Functional Design** |
+| D-21 | **GitHub Actions** como plataforma de CI/CD, fechando a lacuna de provisionamento do AI-DLC | ✅ Decidido. A fase de Operations do método é placeholder; sem CI, o `terraform apply` ficaria manual e não rastreável |
+| D-22 | **OIDC** para autenticação do Actions na AWS, em vez de access keys em Secrets | ✅ Decidido. Elimina credencial de longa duração do repositório; trust policy restrita a repo e branch (RF-93) |
+| D-23 | **Amazon ECR** como registry da imagem, em vez de GHCR | ✅ Decidido. A EC2 puxa por IAM role, sem token de registry armazenado na instância — coerente com a escolha de OIDC e SSM |
+| D-24 | **SSM Run Command** como mecanismo de deploy, em vez de SSH | ✅ Decidido. Mantém a porta 22 fechada e dispensa chave privada nos Secrets. Resolve parcialmente D-12 |
+| D-25 | **`terraform apply` automático no merge**, sem gate de aprovação manual | ✅ Decidido pelo usuário, ciente da alternativa (GitHub Environment com reviewer). Ver risco R-05 |
+| D-26 | **Bootstrap manual e único** (`infra/terraform/bootstrap/`) para resolver o ovo-e-galinha do state remoto e da role OIDC | ✅ Decidido. Entregue com runbook passo a passo (RF-92) |
 | D-08 | **Terraform no mesmo repositório**, em `infra/terraform/` | ✅ Decidido. Critério: um único serviço consome a infra, um único mantenedor, infra pequena. App e IaC mudam no mesmo PR, sem sincronização entre repositórios. Repo separado passaria a valer com múltiplos serviços na mesma infra ou separação real de permissões de deploy |
 | D-09 | **IaC dentro deste ciclo AI-DLC** — a stage Infrastructure Design será executada | ✅ Decidido |
 | D-10 | **PostgreSQL na própria instância EC2** (container Docker), não em RDS | ✅ Decidido. Menor custo e menor complexidade; em contrapartida, backup e recuperação passam a ser responsabilidade própria — ver risco R-01 |
@@ -471,6 +505,7 @@ financial-control/
 | R-02 | **Extensão Security desligada com deploy em cloud pública**: o sistema deixa de ter o checklist bloqueante de hardening justamente ao ganhar exposição à internet. | **Média** | Autenticação e isolamento permanecem como requisitos funcionais (RF-01 a RF-05). RNF-16 restringe a superfície do security group. Registrado para reavaliação: a extensão pode ser reativada a qualquer momento antes da Construction. |
 | R-03 | **App e IaC no mesmo repositório sem filtro de CI**: mudanças de código Kotlin disparando `terraform plan` (ou o contrário) geram ruído e risco de apply indevido. | **Baixa** | RNF-14 exige filtro de path no pipeline. |
 | R-04 | **Instância única sem redundância**: qualquer falha da EC2 derruba aplicação e banco simultaneamente. | **Baixa** | Aceito. Coerente com RNF-12 (uso doméstico, sem requisito de disponibilidade) e com o opt-out da extensão de resiliência. |
+| R-05 | **`terraform apply` automático no merge, sem aprovação manual**: um PR que remova ou altere recursos chega em produção sem ponto de parada. O caso mais grave é a substituição ou destruição do volume EBS do PostgreSQL (RF-50) — combinado com R-01 (sem backup gerenciado), significaria **perda dos dados financeiros**. | **Alta** | Decisão consciente do usuário (D-25), ciente da alternativa com GitHub Environment. Mitigações a detalhar na Infrastructure Design: `prevent_destroy` no volume EBS e demais recursos com estado, `terraform plan` obrigatório e visível no PR (RF-84), e a rotina de backup de RF-54 tratada como pré-requisito de qualquer merge que toque `infra/**`. |
 
 ---
 
@@ -498,6 +533,12 @@ O ciclo será considerado bem-sucedido quando:
 11. Uma conta recorrente gerar as ocorrências de cada mês com valor ajustável no pagamento
 12. Um objetivo de investimento acumular aportes, aceitar atualização manual de saldo, exibir
     rendimento implícito e progresso contra a meta, e funcionar também no escopo de grupo
+13. Um PR que toque `src/**` disparar build e testes, e um que toque `infra/**` disparar
+    `terraform plan` com o diff visível — sem que um dispare o workflow do outro
+14. O merge em `main` aplicar a infraestrutura, construir e publicar a imagem no ECR, e atualizar a
+    instância EC2 via SSM, sem nenhuma credencial de longa duração envolvida
+15. O runbook de bootstrap ser suficiente para, partindo de uma conta AWS vazia, deixar o pipeline
+    operacional
 
 ---
 
@@ -520,6 +561,7 @@ O ciclo será considerado bem-sucedido quando:
 | RNF-03, RNF-06 | Práticas já estabelecidas no repositório (engenharia reversa) |
 | RF-55 a RF-67 | Rodada de esclarecimento sobre contas a pagar — pedido do usuário: *"cada conta pode ter um vencimento especifico para ela"*, detalhado como *"conta de cartao de credito, pix que tenho para fazer, boleto, fatura (energia eletrica, gás, viagem)"* e *"a fatura da conta deve passar a ser um vencimento geral"* |
 | RF-68 a RF-77 | Mesmo pedido — *"eu quero poder adicionar valores relacionados a investimentos... Exemplo: investimento de viagem e investimento de geral"* |
+| RF-81 a RF-93 | Pedido do usuário: *"preciso que no plaejamento seja incluido também o github actions com tudo já pronto... Tem como provisionar a infrsaestrutura já com github actions?"* — surgido da pergunta sobre em que momento a infra seria provisionada |
 | RF-78 a RF-80 | Pedido do usuário: *"vou precisar de um documento também com endpoints para montar o front"* — formalizado como especificação OpenAPI 3.1, entregue após a Application Design |
 | RF-45 a RF-54 | Rodada de esclarecimento sobre infraestrutura (deploy em AWS EC2, Terraform no mesmo repo, PostgreSQL na instância) |
 | RNF-13 a RNF-17 | Mesma rodada — decorrências não-funcionais das decisões D-08, D-09 e D-10 |

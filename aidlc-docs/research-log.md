@@ -102,9 +102,9 @@ delegadas ao BOM.
 **Volume de esclarecimento**: 17 perguntas em 4 blocos, mais 1 rodada de resolução de contradição,
 mais 2 rodadas posteriores de revisão. Ver Seção 4 para a análise quantitativa.
 
-**Resultado consolidado (revisão 5)**: 79 requisitos funcionais ativos (RF-01 a RF-80, com RF-12
+**Resultado consolidado (revisão 6)**: 92 requisitos funcionais ativos (RF-01 a RF-93, com RF-12
 removido), 17 requisitos não-funcionais, 10 cenários de usuário, 16 casos de borda, 11 premissas,
-20 decisões técnicas e 4 riscos.
+26 decisões técnicas e 5 riscos.
 
 ---
 
@@ -332,6 +332,63 @@ Formalizado como RF-78 a RF-80.
 > ("precisa ser documentado") tendem a não gerar entregável verificável até que alguém peça o
 > artefato concreto.
 
+### 3.12 A lacuna de provisionamento do AI-DLC
+
+**Pergunta do usuário**: *"o provisionamento da infra vai acontecer em qual momento?"*
+
+**Verificação nas regras do método**:
+
+| Stage | Fase | O que produz |
+|---|---|---|
+| Infrastructure Design | Construction (condicional) | Apenas documentos de design (`infrastructure-design.md`, `deployment-architecture.md`) — mapeia componentes lógicos para serviços de nuvem. Não gera IaC |
+| Code Generation | Construction (sempre) | Código, incluindo "Deployment Artifacts Generation" — é aqui que o Terraform sai escrito |
+| Build and Test | Construction (sempre) | Compila e testa. Encerra com *"Ready to proceed to Operations phase for deployment planning"* |
+| Operations | Operations | **Placeholder vazio** |
+
+O arquivo `operations/operations.md` é explícito: *"The AI-DLC workflow currently ends after the
+Build and Test phase in CONSTRUCTION"*, e lista "deployment planning and execution" como escopo
+futuro.
+
+**Constatação**: o método **entrega o código da infraestrutura, mas não a infraestrutura**. O
+`terraform apply` está fora do fluxo. Isso não fica evidente pela leitura do `CLAUDE.md` — a fase
+de Operations aparece no diagrama de três fases como se fosse uma etapa do processo, e só ao abrir
+o arquivo de regras se descobre que é um placeholder sem conteúdo.
+
+O risco prático é de expectativa: o usuário havia decidido em D-09 que "a IaC entra neste ciclo", o
+que razoavelmente sugere infraestrutura no ar ao final. Entra o *código* da infraestrutura.
+
+**Resolução escolhida pelo usuário**: fechar a lacuna com **GitHub Actions** (D-21 a D-26), em vez
+de aceitar o provisionamento manual. O `terraform apply` passa a rodar no CI a partir do merge em
+`main` — nem da sessão do agente, nem da máquina do desenvolvedor.
+
+**Decisões associadas**:
+
+| ID | Decisão | Alternativa descartada e por quê |
+|---|---|---|
+| D-22 | OIDC para autenticação na AWS | Access keys em GitHub Secrets — credencial de longa duração que, se vazar, expõe a conta inteira |
+| D-23 | Amazon ECR como registry | GHCR — gratuito, mas exigiria um token do GitHub guardado na instância, criando o segredo de longa duração que o OIDC eliminou |
+| D-24 | SSM Run Command para deploy | SSH do Actions — exigiria porta 22 aberta e chave privada nos Secrets |
+| D-25 | `apply` automático no merge | GitHub Environment com reviewer — recomendado e recusado pelo usuário; registrado como risco R-05 |
+| D-26 | Bootstrap manual e único | Sem alternativa real: é uma dependência circular, não uma preferência |
+
+**O problema do bootstrap** merece registro à parte. Existe uma dependência circular estrutural: o
+Terraform no CI precisa de um bucket S3 para o state e de uma role IAM para autenticar, mas ambos
+são infraestrutura que só o Terraform criaria. Nenhuma automação resolve isso — a solução é um
+módulo `bootstrap/` com state local, aplicado uma vez à mão, criando exatamente os recursos dos
+quais o pipeline depende.
+
+> Esta é uma fronteira genuína da automação de infraestrutura, não uma limitação do AI-DLC. Vale
+> registrar no artigo porque ilustra que "infraestrutura como código" nunca é 100% código — existe
+> sempre um degrau inicial fora do sistema, e a qualidade da documentação desse degrau (aqui, o
+> runbook de RF-92) determina se o projeto é reproduzível por outra pessoa.
+
+**Sobre o risco R-05 (`apply` automático)**: registrado com severidade Alta, e não por purismo de
+processo. A combinação específica é o que preocupa — `apply` sem gate + PostgreSQL sem backup
+gerenciado (R-01) + volume EBS gerenciado pelo mesmo Terraform significa que um `replace` no
+recurso do volume, aprovado num PR lido às pressas, destrói os dados financeiros sem ponto de
+recuperação. As mitigações acordadas (`prevent_destroy`, plan visível no PR, backup como
+pré-requisito de merge em `infra/**`) foram registradas para a Infrastructure Design.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -351,14 +408,14 @@ Formalizado como RF-78 a RF-80.
 
 | Métrica | Valor |
 |---|---|
-| Requisitos funcionais ativos | 79 (RF-01 a RF-80, RF-12 removido) |
+| Requisitos funcionais ativos | 92 (RF-01 a RF-93, RF-12 removido) |
 | Requisitos não-funcionais | 17 |
 | Cenários de usuário | 10 |
 | Casos de borda e erro | 16 |
 | Premissas registradas | 11 |
-| Decisões técnicas | 20 (14 fechadas, 6 adiadas) |
-| Riscos registrados | 4 |
-| Revisões do documento de requisitos | 5 |
+| Decisões técnicas | 26 (20 fechadas, 6 adiadas) |
+| Riscos registrados | 5 |
+| Revisões do documento de requisitos | 6 |
 
 ### 4.3 Evolução do escopo
 
@@ -369,6 +426,7 @@ Formalizado como RF-78 a RF-80.
 | 3 | 53 | Generalização Casa→Grupo; **RF-12 removido** |
 | 4 | 76 | Contas a pagar + Investimentos |
 | 5 | 79 | Contrato de API como entregável (OpenAPI 3.1) |
+| 6 | 92 | CI/CD e provisionamento (GitHub Actions, OIDC, ECR, SSM) |
 
 ---
 
@@ -420,6 +478,24 @@ PostgreSQL no EC2 em vez de RDS foi escolha consciente do usuário. O método n�
 R-01 com severidade, mitigação acordada e a ressalva de que RF-54 é obrigatório na prática apesar
 da prioridade "S".
 
+**O-11 — Fases declaradas como placeholder criam expectativa de cobertura que não existe.** A fase
+de Operations aparece no diagrama de três fases do `CLAUDE.md` como etapa do processo; só ao abrir
+`operations/operations.md` se descobre que é um placeholder vazio e que o fluxo termina em Build and
+Test. O usuário havia decidido "IaC entra neste ciclo" — o que razoavelmente sugere infraestrutura
+no ar ao final, quando entra apenas o código dela.
+
+**O-12 — Infraestrutura como código nunca é 100% código.** A dependência circular do bootstrap
+(o CI precisa de state remoto e role IAM, que são infraestrutura que só o Terraform criaria) é
+estrutural, não uma limitação de ferramenta. Existe sempre um degrau inicial manual, e a qualidade
+da documentação desse degrau determina se o projeto é reproduzível por outra pessoa.
+
+**O-13 — Uma pergunta informativa do usuário pode revelar uma lacuna do método.** *"O provisionamento
+vai acontecer em qual momento?"* não era um pedido de mudança — era uma dúvida. Respondê-la exigiu
+ler as regras do método e constatar que a resposta era "não acontece", o que gerou 13 requisitos
+novos (RF-81 a RF-93) e uma decisão de arquitetura de entrega. Sugere que perguntas de
+esclarecimento do usuário sobre o *processo* merecem o mesmo rigor de investigação que perguntas
+sobre o produto.
+
 **O-10 — Decisões de negócio definem semântica de indicador.** "Aporte conta como gasto" transforma
 o balanço em medida de fluxo de caixa e não de variação patrimonial. Registrar isso explicitamente
 evita reinterpretação em stages posteriores.
@@ -429,11 +505,11 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: INCEPTION
-**Stage**: Requirements Analysis — aguardando aprovação (revisão 5)
+**Stage**: Requirements Analysis — aguardando aprovação (revisão 6)
 **Próxima stage prevista**: User Stories
 
 **Stages concluídas**: Workspace Detection, Reverse Engineering (aprovada), Requirements Analysis
-(5 revisões, gate pendente).
+(6 revisões, gate pendente).
 
 **Decisões ainda em aberto** (adiadas para stages posteriores): mecanismo de autenticação (D-02),
 estrutura de pacotes (D-03), regra de fronteira do fechamento (D-04),

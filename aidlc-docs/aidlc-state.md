@@ -73,10 +73,11 @@ RF-16, RF-24).
 - [x] Requirements Analysis — Artefatos gerados em 2026-07-30T16:11:59Z
 - **Artifacts Location**: `aidlc-docs/inception/requirements/`
   - `requirement-verification-questions.md` (17 perguntas respondidas + análise de contradições + revisões pós-gate)
-  - `requirements.md` — **revisão 5**: 79 RF ativos (RF-01 a RF-80, RF-12 removido), 17 RNF,
-    10 cenários, 16 casos de borda, 11 premissas, 20 decisões, 4 riscos
+  - `requirements.md` — **revisão 6**: 92 RF ativos (RF-01 a RF-93, RF-12 removido), 17 RNF,
+    10 cenários, 16 casos de borda, 11 premissas, 26 decisões, 5 riscos
+  - `bootstrap-runbook.md` (esboço — versão executável sai na Infrastructure Design)
 - **Depth**: Comprehensive
-- **Aprovação do usuário**: PENDENTE (revisão 5)
+- **Aprovação do usuário**: PENDENTE (revisão 6)
 
 ### Histórico de revisões dos requisitos
 | Rev. | RF ativos | Mudança |
@@ -86,6 +87,7 @@ RF-16, RF-24).
 | 3 | 53 | "Casa" generalizada para "Grupo"; RF-12 (compartilhamento avulso) removido |
 | 4 | 76 | Contas a pagar (RF-55 a RF-67) e Investimentos (RF-68 a RF-77) |
 | 5 | 79 | Contrato de API como entregável: OpenAPI 3.1 YAML após a Application Design (RF-78 a RF-80) |
+| 6 | 92 | CI/CD e provisionamento: GitHub Actions com OIDC, ECR, deploy por SSM, bootstrap manual (RF-81 a RF-93) |
 
 ### Documento de registro de pesquisa
 `aidlc-docs/research-log.md` — registro cronológico e analítico do processo (decisões, alternativas
@@ -131,4 +133,25 @@ separado do volume raiz (RF-50) e rotina de backup com procedimento de restaura�
 | D-06 | ~~springdoc-openapi~~ **Decidido**: contrato OpenAPI 3.1 YAML entregue após a Application Design. Só a ferramenta de geração no backend segue em aberto | NFR Requirements |
 | D-07 | Modelagem de participante de gasto compartilhado | Application Design |
 | D-11 | Dimensionamento da EC2, AMI, região e detalhes de rede | Infrastructure Design |
-| D-12 | Mecanismo de deploy da aplicação no EC2 | Infrastructure Design |
+| D-12 | ~~Mecanismo de deploy da aplicação no EC2~~ **Parcialmente resolvido** por D-24 (SSM Run Command). Restam os detalhes de execução | Infrastructure Design |
+
+### Lacuna de provisionamento do método — RESOLVIDA por CI/CD
+O AI-DLC **entrega o Terraform escrito, mas não provisiona**: a fase de Operations é um placeholder
+vazio (`operations/operations.md`: *"The AI-DLC workflow currently ends after the Build and Test
+phase in CONSTRUCTION"*). Lacuna fechada com **GitHub Actions** — o `terraform apply` roda no CI a
+partir do merge em `main`.
+
+| ID | Decisão | Status |
+|---|---|---|
+| D-21 | **GitHub Actions** como plataforma de CI/CD | ✅ Decidido |
+| D-22 | Autenticação AWS por **OIDC**, sem credencial de longa duração | ✅ Decidido |
+| D-23 | **Amazon ECR** como registry da imagem | ✅ Decidido |
+| D-24 | Deploy via **SSM Run Command**; porta 22 fechada | ✅ Decidido |
+| D-25 | `terraform apply` **automático no merge**, sem gate manual | ✅ Decidido — ver risco R-05 |
+| D-26 | **Bootstrap manual e único** para o state remoto e a role OIDC | ✅ Decidido |
+
+**Risco R-05 (Alta severidade)**: `apply` automático sem aprovação, combinado com PostgreSQL sem
+backup gerenciado (R-01) e volume EBS sob o mesmo Terraform. Um `replace` no recurso do volume,
+aprovado num PR lido às pressas, destruiria os dados financeiros sem ponto de recuperação.
+Mitigações a detalhar na Infrastructure Design: `prevent_destroy` nos recursos com estado, plan
+visível no PR (RF-84) e backup (RF-54) como pré-requisito de merge em `infra/**`.

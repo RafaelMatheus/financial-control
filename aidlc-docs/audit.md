@@ -233,3 +233,53 @@ Complete audit trail of all user inputs and AI responses.
 **Context**: INCEPTION PHASE - Requirements Analysis - Revisão 5
 
 ---
+
+## Requirements Analysis — Pergunta sobre o momento do provisionamento
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "o provisionamento da infra vai acontecer em qual momento?"
+**AI Response**: "Verificadas as regras do método. Constatação: o AI-DLC entrega o Terraform escrito mas NÃO provisiona. Infrastructure Design produz apenas documentos de design; Code Generation gera o código (Deployment Artifacts Generation); Build and Test encerra o fluxo; a fase Operations é placeholder vazio — `operations/operations.md` diz literalmente 'The AI-DLC workflow currently ends after the Build and Test phase in CONSTRUCTION'. Risco de expectativa sinalizado ao usuário: ele havia decidido em D-09 que a IaC entra neste ciclo, o que sugeriria infraestrutura no ar ao final. Apresentadas 3 opções de tratamento da lacuna."
+**Context**: INCEPTION PHASE - Requirements Analysis - Detecção de lacuna do método
+
+---
+
+## Requirements Analysis — GitHub Actions para provisionamento
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: "Como você quer tratar essa lacuna — o método entrega o Terraform escrito, mas não provisiona?" (opções: manter fora do ciclo / incluir o apply no ciclo / só até o plan)
+**User Input**: "preciso que no plaejamento seja incluido também o github actions com tudo já pronto... Tem como provisionar a infrsaestrutura já com github actions?"
+**AI Response**: "Confirmado que sim, e apontado que essa é a melhor resolução da lacuna — o apply passa a rodar no CI, não da sessão do agente nem da máquina do desenvolvedor. Explicado o problema do bootstrap (dependência circular: o CI precisa de bucket S3 do state e role IAM, que são infraestrutura que só o Terraform criaria), com a solução de um módulo bootstrap/ de state local aplicado uma vez à mão. Feitas 4 perguntas: autenticação AWS, registry da imagem, mecanismo de deploy e gate de apply."
+**Context**: INCEPTION PHASE - Requirements Analysis - Revisão 6 (CI/CD)
+
+---
+
+## Requirements Analysis — Decisões de CI/CD
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "Como o GitHub Actions autentica na AWS?"="OIDC (Recomendado)"; "Onde fica a imagem Docker da aplicação?"="vamos subir o projeto com imagem?"; "Como o deploy chega na instância EC2?"="SSM Run Command (Recomendado)"; "O `terraform apply` precisa de aprovação manual?"="Não, apply automático no merge"
+**AI Response**: "Registrados D-22 (OIDC), D-24 (SSM Run Command) e D-25 (apply automático). Sobre D-25: a alternativa com GitHub Environment e reviewer foi apresentada com o risco explicitado na descrição da opção; o usuário escolheu o apply automático de forma informada — registrado como risco R-05 (Alta severidade) com mitigações acordadas, sem re-litigar. Na pergunta do registry o usuário respondeu com outra pergunta ('vamos subir o projeto com imagem?'); respondida a justificativa (RF-48 já exigia imagem; a EC2 já roda PostgreSQL em container, então o deploy inteiro vira docker compose pull && up -d) e a pergunta foi reapresentada."
+**Context**: INCEPTION PHASE - Requirements Analysis - Revisão 6 (decisões)
+
+---
+
+## Requirements Analysis — Decisão do registry
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: "Onde fica a imagem Docker da aplicação?" (reapresentada após esclarecimento)
+**User Input**: "Amazon ECR (Recomendado)"
+**AI Response**: "Registrado D-23. Justificativa: a EC2 puxa a imagem pela IAM role da instância, sem token de registry armazenado na máquina — coerente com as escolhas de OIDC e SSM, que já eliminaram credenciais de longa duração."
+**Context**: INCEPTION PHASE - Requirements Analysis - Revisão 6 (registry)
+
+---
+
+## Requirements Analysis — Instruções de bootstrap
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "nesse mmento voce pode me instruir a fazer quando subir tudo"
+**AI Response**: "Confirmado que o bootstrap manual será acompanhado de instruções passo a passo. Criado `aidlc-docs/inception/requirements/bootstrap-runbook.md` como esboço preliminar: explicação da dependência circular com diagrama ASCII, checklist de pré-requisitos, 6 passos de execução na ordem, procedimento de reversão com alerta sobre a destruição do volume EBS, e tabela dos 8 pontos que a Infrastructure Design precisa fechar. A versão executável, com região, AMI, ARNs e IDs reais, sai na stage Infrastructure Design quando D-11 estiver decidido."
+**Context**: INCEPTION PHASE - Requirements Analysis - Runbook de bootstrap
+
+---
+
+## Requirements Analysis — Artefatos da revisão 6
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: N/A (geração de artefatos)
+**AI Response**: "requirements.md revisão 6: nova Seção 3.14 CI/CD e Provisionamento (RF-81 a RF-93). Atualizados RNF-14 e RNF-16 (porta 22 fechada). Escopo atualizado (pipeline dentro; execução do apply pelo AI-DLC e acesso SSH fora). Decisões D-21 a D-26. Risco R-05 (Alta): apply automático sem gate, combinado com R-01 (sem backup gerenciado) e volume EBS sob o mesmo Terraform — um replace do volume aprovado sem leitura atenta destruiria os dados sem recuperação. Critérios de aceitação 13 a 15 e rastreabilidade atualizados. research-log.md: nova Seção 3.12 com a análise da lacuna, e observações O-11, O-12 e O-13. Total: 92 RF ativos, 26 decisões, 5 riscos."
+**Context**: INCEPTION PHASE - Requirements Analysis - Revisão 6 concluída
+
+---
