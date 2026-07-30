@@ -1,0 +1,14 @@
+.git
+.gradle
+build
+!build.gradle.kts
+.idea
+*.iml
+aidlc-docs
+.aidlc-rule-details
+infra
+.github
+.env
+*.log
+README.md
+CLAUDE.md

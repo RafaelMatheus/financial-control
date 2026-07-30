@@ -5,7 +5,7 @@
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — U5 Infraestrutura · Infrastructure Design (aguardando aprovação)
+- **Current Stage**: CONSTRUCTION — U5 Infraestrutura · Code Generation (aguardando aprovação)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -60,8 +60,15 @@ RF-16, RF-24).
 - [ ] Functional Design — **SKIP** (sem lógica de negócio nem modelo de dados)
 - [ ] NFR Requirements — **ADIADA para U1** (resolve D-02, D-05 e D-06 — decisões de stack da aplicação)
 - [ ] NFR Design — **SKIP** (consequência da anterior)
-- [x] Infrastructure Design — ARTEFATOS GERADOS (2026-07-30T16:11:59Z), aguardando aprovação
-- [ ] Code Generation — PENDING
+- [x] Infrastructure Design — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
+- [x] Code Generation — CÓDIGO GERADO (2026-07-30T16:11:59Z), aguardando aprovação
+      38 arquivos (36 criados, 2 modificados). `src/` não tocado.
+      Resumo: `aidlc-docs/construction/u5-infraestrutura/code/code-summary.md`
+
+**Achado bloqueante corrigido durante a geração**: `gradlew` e `gradle-wrapper.jar` não existem no
+repositório — débito da engenharia reversa que quebraria o CI e o build da imagem. Corrigido
+removendo a dependência do wrapper: `Dockerfile` usa a imagem oficial do Gradle; `ci-app.yml`
+instala o Gradle 8.14.2 explicitamente.
 
 **Decisões de U5**: D-11 (`us-east-1` · `t3.small`), D-12 (deploy por SSM sobre docker compose),
 D-34 (VPC própria, subnet pública, sem NAT), D-35 (nginx + Let's Encrypt), D-36 (backup fora do

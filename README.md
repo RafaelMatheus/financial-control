@@ -31,6 +31,10 @@ Gere o Gradle wrapper na primeira vez (o `.jar` do wrapper não é versionado ne
 gradle wrapper --gradle-version 8.14.2
 ```
 
+> O CI e o build da imagem **não dependem do wrapper** — instalam o Gradle 8.14.2 explicitamente.
+> O wrapper é conveniência para desenvolvimento local. Versioná-lo (`gradle/wrapper/gradle-wrapper.jar`
+> e `gradlew`) simplificaria ambos e é recomendado.
+
 Suba o banco e a aplicação:
 
 ```bash
@@ -59,6 +63,50 @@ variável de ambiente. Veja `.env.example`.
 | `DB_USER` | `financial` |
 | `DB_PASSWORD` | `financial` |
 | `SERVER_PORT` | `8080` |
+
+## Infraestrutura e deploy
+
+A aplicação roda numa instância **AWS EC2** (`t3.small`, `us-east-1`), com PostgreSQL em container
+na mesma máquina e volume EBS separado para os dados. Toda a infraestrutura é descrita em
+**Terraform**, em `infra/terraform/`, e provisionada pelo **GitHub Actions**.
+
+### Pipeline
+
+| Workflow | Gatilho | O que faz |
+|---|---|---|
+| `ci-app.yml` | PR em `src/**` | Build Gradle e testes com Testcontainers |
+| `terraform-plan.yml` | PR em `infra/**` | `plan` e publica o diff como comentário no PR |
+| `terraform-apply.yml` | merge em `main`, `infra/**` | `apply` automático |
+| `deploy-app.yml` | merge em `main`, `src/**` | Build da imagem, push para ECR e deploy via SSM |
+
+Autenticação na AWS por **OIDC** — nenhuma credencial de longa duração no repositório.
+
+### Antes do primeiro uso
+
+Existe um **bootstrap manual e único** que cria o que o próprio CI precisa para funcionar: bucket do
+state, OIDC provider, role do CI e repositório ECR.
+
+```bash
+cd infra/terraform/bootstrap
+terraform init && terraform apply
+```
+
+Passo a passo completo, com verificações e reversão:
+`aidlc-docs/construction/u5-infraestrutura/infrastructure-design/deployment-architecture.md` §6.
+
+### Acesso à instância
+
+```bash
+aws ssm start-session --target <instance-id>
+```
+
+Sem SSH — a porta 22 fica fechada.
+
+### ⚠️ Sem backup
+
+Não há rotina de backup do PostgreSQL (decisão registrada em D-36). A única proteção é o volume EBS
+separado da instância, que sobrevive à recriação da EC2 — **mas não a perda ou corrupção do próprio
+volume**. Antes de guardar dados que você não queira perder, implemente RF-54.
 
 ## AI-DLC
 

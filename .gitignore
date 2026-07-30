@@ -24,3 +24,20 @@ Thumbs.db
 
 # AI-DLC generated artifacts (remova esta linha se quiser versionar o contexto)
 # aidlc-docs/
+
+# Terraform (RNF-15)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+plan.txt
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+.terraform.lock.hcl
+
+# Valores sensiveis: os tfvars versionados nao devem conter segredos.
+*.auto.tfvars
+secrets.tfvars
