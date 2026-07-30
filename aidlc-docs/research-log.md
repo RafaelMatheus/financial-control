@@ -145,6 +145,18 @@ Infraestrutura), com a de infraestrutura paralelizável e núcleo mínimo nas tr
    para estimar gates e ordenar o trabalho, embora a decomposição definitiva seja produto da stage
    seguinte. Registrado explicitamente como expectativa, não como decisão.
 
+### 2.6 Application Design
+
+**Resultado**: 11 componentes de feature + 1 compartilhado, 15 entidades, 12 agregados, e o
+contrato OpenAPI 3.1 validado (31 paths, 51 operações, 39 schemas).
+
+**5 decisões fechadas**: estrutura por feature (D-03), mesmo modelo para escrita e leitura (D-29),
+dono + dois totais na API (D-30), fatura persistida (D-31), UUID (D-32).
+
+**Das três questões estruturais que motivavam a stage**: uma resolvida (D-03), uma resolvida em
+duas camadas (J-03 → RF-97 + D-30), e uma **extinta** antes de ser respondida (J-01, pela remoção
+do rateio na revisão 8).
+
 ---
 
 ## 3. Decisões e episódios relevantes
@@ -595,6 +607,66 @@ cota, o que significa "quanto eu gastei este mês" quando enxergo contas de outr
 (**duas grandezas distintas, nunca somadas**: total pessoal por dono, total do grupo por escopo)
 virou **RF-97**, e resolveu de quebra a questão J-03, que estava aberta desde as User Stories.
 
+### 3.19 O desvio da própria instrução
+
+**Episódio**: ao fim de uma rodada de trabalho, o modelo escreveu *"o plano da Application Design
+está atualizado e aguardando suas respostas às 5 questões de design restantes"* — **sem ter feito as
+perguntas**. O usuário respondeu: *"porque voce nao tá usando o asktool"*.
+
+**Constatação**: a instrução de usar `AskUserQuestion` em 100% dos casos estava registrada em
+memória desde o início da sessão e vinha sendo seguida por dezenas de interações. O desvio ocorreu
+num momento de alto volume de escrita de artefatos — a mensagem final descrevia o estado do trabalho
+e escorregou para uma afirmação sobre algo que não havia sido feito.
+
+> Vale registrar como padrão de falha: a instrução não foi esquecida nem contestada — foi
+> **contornada por inércia narrativa**. Ao resumir "o que ficou pendente", o modelo descreveu a
+> pendência em vez de agir sobre ela. É um modo de falha específico de tarefas longas com muitos
+> artefatos: o relato do trabalho substitui o trabalho.
+>
+> A correção veio do usuário, não de auto-verificação. Num processo com gates de aprovação, isso
+> teria travado o fluxo até alguém perceber.
+
+### 3.20 O grafo de dependências contradisse o plano de execução
+
+**Episódio**: a Workflow Planning propôs cinco unidades de trabalho com U2 (Lançamentos) antes de
+U3 (Crédito) — ordem intuitiva, já que gastos parecem mais fundamentais que cartões.
+
+**Constatação da Application Design**: o componente `gasto` **depende de** `cartao` e `fatura`. Um
+gasto pago com cartão precisa que o cartão exista e que sua competência de fatura seja calculável.
+A ordem proposta não é executável para a parte de gasto vinculada a cartão.
+
+**Resolução**: registrado como achado para a Units Generation, com duas saídas possíveis — dividir
+`gasto` em duas etapas (à vista em U2, em cartão em U3), ou antecipar `cartao` e `fatura`.
+
+> A Workflow Planning ordenou as unidades por **afinidade conceitual** (gastos são mais básicos que
+> crédito). O grafo de dependências ordena por **acoplamento real**. As duas ordens divergiram, e só
+> a construção do grafo revelou a divergência.
+>
+> Isso reforça a observação O-17: a Workflow Planning precisou antecipar uma decomposição sem ter o
+> insumo que a validaria. O insumo — o grafo de componentes — só existe duas stages depois.
+
+### 3.21 Modelar a fatura como entidade criou uma decisão nova
+
+**Episódio**: o usuário escolheu modelar a fatura como **entidade persistida** (D-31), e não como
+projeção sobre os lançamentos. Justificativa correta: a fatura carrega estado que não deriva dos
+lançamentos — momento do fechamento e situação de pagamento.
+
+**Consequência não prevista**: a fatura fechada **também** se materializa como `ContaAPagar`
+(RF-59, decisão D-14 de uma revisão anterior). Se ambas carregarem estado de pagamento, existem
+**duas fontes de verdade** que podem divergir — uma fatura marcada como paga com a conta ainda em
+aberto, ou o inverso.
+
+**Registrado como D-33**, com recomendação de **derivar**: a `ContaAPagar` carrega o pagamento e
+`Fatura.status` o projeta. A decisão fica para a Functional Design.
+
+> Padrão recorrente neste projeto: **uma decisão de modelagem tomada isoladamente colide com outra
+> tomada em stage anterior**. D-14 (unificação fatura↔conta) e D-31 (fatura persistida) são ambas
+> defensáveis sozinhas; juntas, criam duplicação de estado. Só a modelagem explícita das entidades
+> tornou a colisão visível.
+>
+> É o mesmo mecanismo de O-16 (questões vivem nas costuras), aplicado agora entre *decisões* e não
+> entre *áreas funcionais*.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -619,6 +691,10 @@ virou **RF-97**, e resolveu de quebra a questão J-03, que estava aberta desde a
 | Épicos | 11 |
 | Personas | 1 (com 4 contextos) |
 | Cobertura requisito ↔ história | 68/68 requisitos de domínio ativos |
+| Componentes de aplicação | 12 (11 features + common) |
+| Entidades / agregados | 15 / 12 |
+| Contrato OpenAPI | 31 paths, 51 operações, 39 schemas |
+| Alvos de property-based testing | 2 (eram 3 antes da rev. 8) |
 | Stages condicionais avaliadas | 6 |
 | Stages condicionais a executar | 6 (nenhuma pulada) |
 | Unidades de trabalho previstas | 5 |
@@ -628,7 +704,7 @@ virou **RF-97**, e resolveu de quebra a questão J-03, que estava aberta desde a
 | Cenários de usuário | 10 |
 | Casos de borda e erro | 16 |
 | Premissas registradas | 11 |
-| Decisões técnicas | 28 (23 fechadas, 5 adiadas) |
+| Decisões técnicas | 33 (28 fechadas, 5 adiadas) |
 | Riscos registrados | 5 |
 | Revisões do documento de requisitos | 8 |
 
@@ -694,6 +770,22 @@ dados concretas lado a lado, em vez de descrições em prosa.
 PostgreSQL no EC2 em vez de RDS foi escolha consciente do usuário. O método não bloqueou — registrou
 R-01 com severidade, mitigação acordada e a ressalva de que RF-54 é obrigatório na prática apesar
 da prioridade "S".
+
+**O-22 — Em tarefas longas, o relato do trabalho pode substituir o trabalho.** O modelo afirmou
+estar aguardando respostas a perguntas que não havia feito, apesar de a instrução de usar o tool
+estar em memória e ter sido seguida por dezenas de interações. Não foi esquecimento nem
+discordância — foi inércia narrativa ao resumir pendências. A correção veio do usuário, não de
+auto-verificação.
+
+**O-23 — Ordem por afinidade conceitual diverge de ordem por acoplamento real.** A Workflow
+Planning ordenou as unidades intuitivamente (gastos antes de cartões); o grafo de dependências
+mostrou o oposto. Só a construção explícita do grafo, duas stages depois, revelou a divergência.
+
+**O-24 — Decisões defensáveis isoladamente colidem quando combinadas.** D-14 (fatura vira conta a
+pagar) e D-31 (fatura é entidade persistida) são corretas separadamente; juntas, criam duas fontes
+de verdade sobre pagamento. É o mecanismo de O-16 aplicado entre decisões, e não entre áreas
+funcionais — e sugere que revisões de consistência entre decisões acumuladas deveriam ser um passo
+explícito do método.
 
 **O-19 — A opção correta pode estar na mesa e ser rejeitada.** O modelo "sem divisão, só
 visibilidade" foi oferecido explicitamente na primeira rodada de esclarecimento e recusado em favor
@@ -768,11 +860,11 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: INCEPTION
-**Stage**: Application Design — plano em elaboração (revisão 8 aplicada a todos os artefatos)
-**Próxima stage prevista**: conclusão da Application Design, depois Units Generation
+**Stage**: Application Design — artefatos gerados, aguardando aprovação
+**Próxima stage prevista**: Units Generation
 
 **Stages concluídas**: Workspace Detection, Reverse Engineering (aprovada), Requirements Analysis
-(8 revisões), User Stories (aprovada), Workflow Planning (aprovada).
+(8 revisões), User Stories (aprovada), Workflow Planning (aprovada), Application Design (gate pendente).
 
 **Decisões ainda em aberto** (adiadas para stages posteriores): mecanismo de autenticação (D-02),
 estrutura de pacotes (D-03), fronteira do fechamento em dia 29–31 (D-04, parcial),

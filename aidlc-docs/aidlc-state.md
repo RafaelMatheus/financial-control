@@ -5,7 +5,7 @@
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: INCEPTION
-- **Current Stage**: Application Design (planejamento — revisão 8 aplicada aos artefatos)
+- **Current Stage**: Application Design (artefatos gerados, aguardando aprovação)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -47,7 +47,7 @@ RF-16, RF-24).
 - [x] Requirements Analysis — COMPLETED e APROVADO na revisão 6 (2026-07-30T16:11:59Z)
 - [x] User Stories — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
 - [x] Workflow Planning — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
-- [ ] Application Design — IN PROGRESS
+- [x] Application Design — ARTEFATOS GERADOS (2026-07-30T16:11:59Z), aguardando aprovação
 - [ ] Units Generation — **EXECUTE**
 
 ### CONSTRUCTION PHASE
@@ -60,6 +60,38 @@ RF-16, RF-24).
 
 ### OPERATIONS PHASE
 - [ ] Operations — PLACEHOLDER
+
+## Application Design Status
+- [x] Artefatos gerados em 2026-07-30T16:11:59Z
+- **Artifacts Location**: `aidlc-docs/inception/application-design/`
+  - `components.md` — 11 componentes de feature + common, 15 entidades, 12 agregados
+  - `component-methods.md` — assinaturas por componente
+  - `services.md` — camada de serviço, orquestrações e fronteiras transacionais
+  - `component-dependency.md` — matriz, grafo, fluxos e ordem de implementação
+  - `openapi.yaml` — **OpenAPI 3.1 validado**: 31 paths, 51 operações, 39 schemas
+  - `application-design.md` — consolidação
+- **Aprovação do usuário**: PENDENTE
+
+### Decisões fechadas
+| ID | Decisão |
+|---|---|
+| D-03 | Estrutura de pacotes **por feature** |
+| D-29 | **Mesmo modelo** para escrita e leitura |
+| D-30 | Cada item traz o dono; resposta traz `totalPessoal` e `totalGrupo` |
+| D-31 | Fatura é **entidade persistida** |
+| D-32 | Identificadores **UUID** |
+
+**J-03 resolvida**; **J-01 extinta** pela revisão 8. **RF-78 a RF-80 atendidos** — o contrato
+OpenAPI está entregue e utilizável pelo front, exceto o `securityScheme`, provisório até D-02.
+
+### Achado: divergência com o plano de execução
+O grafo de dependências mostra que `gasto` depende de `cartao` e `fatura`, mas o plano previa
+U2 (Lançamentos) antes de U3 (Crédito). Sugestão para a Units Generation: dividir `gasto` em gasto
+à vista (U2) e gasto em cartão (U3), ou antecipar `cartao`/`fatura`.
+
+### Nova decisão em aberto
+**D-33** — `Fatura.status = PAGA` é persistido ou derivado da `ContaAPagar` vinculada? Surgiu ao
+modelar a fatura como entidade persistida (D-31). Recomendação: derivar. Functional Design decide.
 
 ## Execution Plan Summary
 - **Artifact**: `aidlc-docs/inception/plans/execution-plan.md`

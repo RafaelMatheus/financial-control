@@ -377,3 +377,28 @@ Complete audit trail of all user inputs and AI responses.
 **Context**: INCEPTION PHASE - Application Design - Revisão 8 aplicada
 
 ---
+
+## Application Design — Correção de processo
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "porque voce nao tá usando o asktool"
+**AI Response**: "Correção aceita. Eu havia afirmado estar aguardando as respostas das 5 questões de design sem tê-las feito via AskUserQuestion, contrariando a instrução permanente do usuário. As perguntas foram feitas imediatamente."
+**Context**: Cross-cutting — desvio da instrução de usar o ask tool
+
+---
+
+## Application Design — Decisões de design
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: 5 questões via AskUserQuestion — estrutura de pacotes, exposição dos totais na API, fatura persistida ou calculada, tipo de identificador, e modelo de leitura.
+**User Input**: "Como organizar o código? (D-03)"="Por feature (Recomendado)"; "Como a API expõe o total pessoal e o total do grupo? (RF-97)"="Dono + ambos os totais (Recomendado)"; "A fatura do cartão é registro no banco ou cálculo sobre os lançamentos?"="Persistida (Recomendado)"; "Que tipo de identificador as entidades usam?"="UUID (Recomendado)"; "As consultas agregadas... Usar o mesmo modelo da escrita ou projeções separadas?"="Mesmo modelo (Recomendado)"
+**AI Response**: "Registradas como D-03, D-29, D-30, D-31 e D-32. Respostas analisadas conforme o Step 8 da regra — todas são escolhas de letra sem ambiguidade, sem necessidade de follow-up."
+**Context**: INCEPTION PHASE - Application Design - Steps 4 a 9
+
+---
+
+## Application Design — Artefatos gerados
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: N/A (execução do plano)
+**AI Response**: "Gerados os 5 artefatos obrigatórios mais o openapi.yaml. components.md: 11 componentes de feature + common, 15 entidades, 12 agregados, com a estrutura de pacotes por feature. component-methods.md: assinaturas Kotlin por componente, com a nota de que competenciaDe e dividirEm são métodos de domínio, não de serviço, para serem testáveis sem banco. services.md: 6 orquestrações detalhadas, 6 fronteiras transacionais e 11 códigos de erro. component-dependency.md: matriz completa, grafo Mermaid com alternativa textual, 3 fluxos de dados e ordem de implementação. openapi.yaml: OpenAPI 3.1 validado — 31 paths, 51 operações, 39 schemas, zero referências quebradas. application-design.md: consolidação. Dois achados registrados: (1) divergência com o plano de execução — o grafo mostra que gasto depende de cartao e fatura, mas o plano previa U2 antes de U3; (2) nova decisão D-33 — se Fatura.status PAGA é persistido ou derivado da ContaAPagar, já que persistir nos dois lugares criaria duas fontes de verdade. J-03 resolvida por D-30; J-01 extinta pela revisão 8. RF-78 a RF-80 atendidos."
+**Context**: INCEPTION PHASE - Application Design - Step 10
+
+---

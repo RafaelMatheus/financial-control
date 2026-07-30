@@ -1,0 +1,1501 @@
+openapi: 3.1.0
+
+info:
+  title: financial-control API
+  version: 0.1.0-draft
+  description: |
+    API de controle financeiro pessoal e compartilhado.
+
+    **Status: rascunho da Application Design.** Os schemas refletem o modelo de componentes
+    definido nesta stage. Detalhes que dependem da Functional Design e da NFR Requirements estão
+    marcados no texto e podem mudar.
+
+    ## Conceitos
+
+    **Escopo** — todo lançamento é `PESSOAL` (visível só ao dono) ou `GRUPO` (visível a todos os
+    membros do grupo indicado).
+
+    **Dono** — todo lançamento pertence a um usuário, e **o valor é integralmente dele**. Escopo
+    `GRUPO` dá visibilidade, não divide o valor. Ninguém deve nada a ninguém no sistema.
+
+    **Dois totais** — as consultas retornam `totalPessoal` (soma dos lançamentos em que o
+    consultante é dono) e `totalGrupo` (soma dos lançamentos de escopo `GRUPO`). **Nunca some os
+    dois** — são grandezas distintas.
+
+    **Valores monetários** — string decimal com 2 casas (ex.: `"1200.00"`). Nunca número de ponto
+    flutuante, para preservar exatidão.
+
+    **Competência** — ano-mês no formato `YYYY-MM`. Identifica fatura e período de orçamento.
+  contact:
+    name: Rafael Matheus
+
+servers:
+  - url: http://localhost:8080
+    description: Desenvolvimento local
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Usuários
+  - name: Grupos
+  - name: Categorias
+  - name: Gastos
+  - name: Cartões
+  - name: Compras parceladas
+  - name: Faturas
+  - name: Contas a pagar
+  - name: Receitas
+  - name: Orçamento
+  - name: Investimentos
+
+paths:
+
+  # ─────────────────────────── Usuários ───────────────────────────
+  /usuarios:
+    post:
+      tags: [Usuários]
+      summary: Cadastrar usuário
+      description: RF-01. Único endpoint público.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CadastrarUsuario' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Usuario' }
+        '409': { $ref: '#/components/responses/Conflito' }
+        '422': { $ref: '#/components/responses/Validacao' }
+
+  /usuarios/me:
+    get:
+      tags: [Usuários]
+      summary: Consultar o próprio perfil
+      description: RF-05
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Usuario' }
+          description: OK
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+    patch:
+      tags: [Usuários]
+      summary: Atualizar o próprio perfil
+      description: RF-05
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AtualizarPerfil' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Usuario' }
+        '422': { $ref: '#/components/responses/Validacao' }
+
+  # ─────────────────────────── Grupos ───────────────────────────
+  /grupos:
+    get:
+      tags: [Grupos]
+      summary: Listar meus grupos
+      description: RF-07. Lista vazia é resultado válido — participar de grupo é opcional.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Grupo' }
+    post:
+      tags: [Grupos]
+      summary: Criar grupo
+      description: RF-06
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome]
+              properties:
+                nome: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Grupo' }
+        '422': { $ref: '#/components/responses/Validacao' }
+
+  /grupos/{grupoId}:
+    parameters:
+      - $ref: '#/components/parameters/GrupoId'
+    get:
+      tags: [Grupos]
+      summary: Consultar grupo com seus membros
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GrupoDetalhe' }
+        '403': { $ref: '#/components/responses/AcessoNegado' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+    patch:
+      tags: [Grupos]
+      summary: Renomear grupo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome]
+              properties:
+                nome: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Grupo' }
+
+  /grupos/{grupoId}/membros:
+    parameters:
+      - $ref: '#/components/parameters/GrupoId'
+    post:
+      tags: [Grupos]
+      summary: Adicionar membro
+      description: |
+        RF-08. **Qualquer membro pode adicionar** — não há hierarquia no grupo.
+        Rejeita usuário inexistente (E-07).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [usuarioId]
+              properties:
+                usuarioId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GrupoDetalhe' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
+  /grupos/{grupoId}/membros/{usuarioId}:
+    parameters:
+      - $ref: '#/components/parameters/GrupoId'
+      - name: usuarioId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [Grupos]
+      summary: Remover membro (ou sair, se for você mesmo)
+      description: RF-08, RF-10. O histórico de lançamentos é preservado.
+      responses:
+        '204': { description: Removido }
+        '403': { $ref: '#/components/responses/AcessoNegado' }
+
+  # ─────────────────────────── Categorias ───────────────────────────
+  /categorias:
+    get:
+      tags: [Categorias]
+      summary: Listar categorias
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Categoria' }
+    post:
+      tags: [Categorias]
+      summary: Criar categoria
+      description: RF-36
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome]
+              properties:
+                nome: { type: string, minLength: 1, maxLength: 60 }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Categoria' }
+        '409': { $ref: '#/components/responses/Conflito' }
+
+  /categorias/{categoriaId}:
+    parameters:
+      - name: categoriaId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Categorias]
+      summary: Renomear categoria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome]
+              properties:
+                nome: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Categoria' }
+    delete:
+      tags: [Categorias]
+      summary: Excluir categoria
+      description: |
+        RF-37, E-06. Bloqueia se houver lançamentos vinculados, a menos que `realocarPara`
+        seja informado.
+      parameters:
+        - name: realocarPara
+          in: query
+          schema: { type: string, format: uuid }
+          description: Categoria de destino dos lançamentos vinculados
+      responses:
+        '204': { description: Excluída }
+        '409':
+          description: Categoria em uso — código `CATEGORIA_EM_USO`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+
+  # ─────────────────────────── Gastos ───────────────────────────
+  /gastos:
+    get:
+      tags: [Gastos]
+      summary: Consultar gastos do período
+      description: |
+        RF-21, RF-22, RF-97.
+
+        Retorna uma **lista mista** de gastos pessoais e de grupo, cada um com seu **dono**.
+        A resposta traz **dois totais distintos** — ver `PaginaGastos`.
+      parameters:
+        - { name: de, in: query, required: true, schema: { type: string, format: date } }
+        - { name: ate, in: query, required: true, schema: { type: string, format: date } }
+        - { name: categoriaId, in: query, schema: { type: string, format: uuid } }
+        - { name: grupoId, in: query, schema: { type: string, format: uuid } }
+        - { name: escopo, in: query, schema: { $ref: '#/components/schemas/Escopo' } }
+        - { name: donoId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaGastos' }
+    post:
+      tags: [Gastos]
+      summary: Lançar gasto
+      description: RF-18, RF-19, RF-11
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LancarGasto' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Gasto' }
+        '409': { $ref: '#/components/responses/FaturaPaga' }
+        '422': { $ref: '#/components/responses/Validacao' }
+
+  /gastos/{gastoId}:
+    parameters:
+      - name: gastoId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Gastos]
+      summary: Editar gasto
+      description: |
+        RF-20, RF-16. Em escopo GRUPO, **qualquer membro pode editar** — o dono não muda.
+        Bloqueado se afetar fatura já paga (RF-95).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EditarGasto' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Gasto' }
+        '409': { $ref: '#/components/responses/FaturaPaga' }
+    delete:
+      tags: [Gastos]
+      summary: Excluir gasto
+      responses:
+        '204': { description: Excluído }
+        '409': { $ref: '#/components/responses/FaturaPaga' }
+
+  # ─────────────────────────── Cartões ───────────────────────────
+  /cartoes:
+    get:
+      tags: [Cartões]
+      summary: Listar cartões visíveis
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Cartao' }
+    post:
+      tags: [Cartões]
+      summary: Cadastrar cartão
+      description: RF-23, RF-24
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CadastrarCartao' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cartao' }
+        '422': { $ref: '#/components/responses/Validacao' }
+
+  /cartoes/{cartaoId}:
+    parameters:
+      - $ref: '#/components/parameters/CartaoId'
+    patch:
+      tags: [Cartões]
+      summary: Editar cartão
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CadastrarCartao' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cartao' }
+    delete:
+      tags: [Cartões]
+      summary: Excluir cartão
+      responses:
+        '204': { description: Excluído }
+
+  # ─────────────────────────── Faturas ───────────────────────────
+  /cartoes/{cartaoId}/faturas/{competencia}:
+    parameters:
+      - $ref: '#/components/parameters/CartaoId'
+      - $ref: '#/components/parameters/Competencia'
+    get:
+      tags: [Faturas]
+      summary: Consultar fatura consolidada
+      description: |
+        RF-26. Lista os lançamentos e parcelas com competência nesta fatura.
+
+        A **competência** de cada compra é determinada pelo **dia de fechamento** do cartão, com
+        corte **exclusivo**: uma compra no exato dia do fechamento vai para a fatura seguinte
+        (RF-25, RF-61, E-03).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Fatura' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
+  /cartoes/{cartaoId}/faturas:
+    parameters:
+      - $ref: '#/components/parameters/CartaoId'
+    get:
+      tags: [Faturas]
+      summary: Consultar faturas futuras
+      description: RF-28. Projeta as parcelas já comprometidas.
+      parameters:
+        - name: ate
+          in: query
+          required: true
+          schema: { type: string, pattern: '^\d{4}-\d{2}$' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Fatura' }
+
+  # ─────────────────────────── Compras parceladas ───────────────────────────
+  /compras:
+    post:
+      tags: [Compras parceladas]
+      summary: Lançar compra parcelada
+      description: |
+        RF-29, RF-30. Informe o **valor da parcela** e o **número de parcelas** — o sistema calcula
+        o total e gera as N parcelas, cada uma com sua competência.
+
+        Quando o total não divide exatamente, a **última parcela absorve o resíduo** (RF-31).
+        A soma das parcelas é sempre exatamente o total (RF-32).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LancarCompraParcelada' }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompraDetalhe' }
+        '409': { $ref: '#/components/responses/FaturaPaga' }
+        '422': { $ref: '#/components/responses/Validacao' }
+
+  /compras/{compraId}:
+    parameters:
+      - name: compraId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Compras parceladas]
+      summary: Consultar compra com suas parcelas
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompraDetalhe' }
+    put:
+      tags: [Compras parceladas]
+      summary: Editar compra por inteiro
+      description: |
+        RF-33. A edição é **sempre da compra inteira** — as parcelas anteriores são descartadas e
+        regeneradas. **Parcelas individuais não são editáveis.**
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LancarCompraParcelada' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompraDetalhe' }
+        '409': { $ref: '#/components/responses/FaturaPaga' }
+    delete:
+      tags: [Compras parceladas]
+      summary: Excluir compra e todas as suas parcelas
+      description: RF-34
+      responses:
+        '204': { description: Excluída }
+        '409': { $ref: '#/components/responses/FaturaPaga' }
+
+  # ─────────────────────────── Contas a pagar ───────────────────────────
+  /contas:
+    get:
+      tags: [Contas a pagar]
+      summary: Visão consolidada de vencimentos
+      description: |
+        RF-58. Reúne **todos os tipos** numa lista única, ordenada por data de vencimento:
+        fatura de cartão (gerada automaticamente), PIX, boleto e fatura de serviço.
+      parameters:
+        - { name: de, in: query, required: true, schema: { type: string, format: date } }
+        - { name: ate, in: query, required: true, schema: { type: string, format: date } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/StatusConta' } }
+        - { name: tipo, in: query, schema: { $ref: '#/components/schemas/TipoConta' } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaVencimentos' }
+    post:
+      tags: [Contas a pagar]
+      summary: Cadastrar conta a pagar
+      description: RF-55, RF-56, RF-65
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CadastrarConta' }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Conta' }
+
+  /contas/a-vencer:
+    get:
+      tags: [Contas a pagar]
+      summary: Contas a vencer e vencidas não pagas
+      description: RF-66
+      parameters:
+        - name: dias
+          in: query
+          schema: { type: integer, default: 30, minimum: 1 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  aVencer:
+                    type: array
+                    items: { $ref: '#/components/schemas/Conta' }
+                  vencidas:
+                    type: array
+                    items: { $ref: '#/components/schemas/Conta' }
+
+  /contas/{contaId}:
+    parameters:
+      - $ref: '#/components/parameters/ContaId'
+    patch:
+      tags: [Contas a pagar]
+      summary: Editar conta
+      description: |
+        Bloqueado se a conta estiver **PAGA** (RF-95) ou se for do tipo `FATURA_CARTAO`, cujo valor
+        deriva da consolidação da fatura (premissa P-11).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CadastrarConta' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Conta' }
+        '409':
+          description: Conta paga ou derivada — `FATURA_PAGA_NAO_ALTERAVEL` / `CONTA_DERIVADA_NAO_EDITAVEL`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+    delete:
+      tags: [Contas a pagar]
+      summary: Excluir conta
+      responses:
+        '204': { description: Excluída }
+        '409': { $ref: '#/components/responses/FaturaPaga' }
+
+  /contas/{contaId}/pagamento:
+    parameters:
+      - $ref: '#/components/parameters/ContaId'
+    put:
+      tags: [Contas a pagar]
+      summary: Marcar conta como paga
+      description: |
+        RF-57. `valorAjustado` permite corrigir o valor no momento do pagamento — necessário para
+        contas variáveis como energia e gás (RF-64).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dataPagamento]
+              properties:
+                dataPagamento: { type: string, format: date }
+                valorAjustado:
+                  $ref: '#/components/schemas/Dinheiro'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Conta' }
+    delete:
+      tags: [Contas a pagar]
+      summary: Desmarcar o pagamento
+      description: |
+        **RF-94.** Reverte a conta para `EM_ABERTO`.
+
+        É a **única via** de corrigir um lançamento que afete uma fatura já paga — como RF-95
+        bloqueia alterações em fatura paga, sem esta operação um erro ficaria preso para sempre.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Conta' }
+
+  /contas-recorrentes:
+    get:
+      tags: [Contas a pagar]
+      summary: Listar contas recorrentes
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ContaRecorrente' }
+    post:
+      tags: [Contas a pagar]
+      summary: Cadastrar conta recorrente
+      description: RF-62, RF-63. Frequência mensal no MVP (premissa P-10).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CadastrarContaRecorrente' }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContaRecorrente' }
+
+  /contas-recorrentes/{recorrenteId}:
+    parameters:
+      - name: recorrenteId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [Contas a pagar]
+      summary: Encerrar conta recorrente
+      description: RF-67. Interrompe a geração de novas ocorrências; o histórico é preservado.
+      responses:
+        '204': { description: Encerrada }
+
+  # ─────────────────────────── Receitas ───────────────────────────
+  /receitas:
+    get:
+      tags: [Receitas]
+      summary: Consultar receitas do período
+      description: RF-40. Receitas são individuais — não têm escopo de grupo (premissa P-05).
+      parameters:
+        - { name: de, in: query, required: true, schema: { type: string, format: date } }
+        - { name: ate, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  itens:
+                    type: array
+                    items: { $ref: '#/components/schemas/Receita' }
+                  total: { $ref: '#/components/schemas/Dinheiro' }
+    post:
+      tags: [Receitas]
+      summary: Lançar receita
+      description: RF-39
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LancarReceita' }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Receita' }
+
+  /receitas/{receitaId}:
+    parameters:
+      - name: receitaId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Receitas]
+      summary: Editar receita
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LancarReceita' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Receita' }
+    delete:
+      tags: [Receitas]
+      summary: Excluir receita
+      responses:
+        '204': { description: Excluída }
+
+  /balanco/{competencia}:
+    parameters:
+      - $ref: '#/components/parameters/Competencia'
+    get:
+      tags: [Receitas]
+      summary: Balanço do período
+      description: |
+        RF-41. `receitas − gastos`, onde **gastos inclui os aportes em investimento** (RF-76).
+
+        O balanço mede **fluxo de caixa**, não variação patrimonial: investir reduz o resultado do
+        mês, embora o patrimônio não diminua. Só considera lançamentos de que o consultante é dono.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Balanco' }
+
+  # ─────────────────────────── Orçamento ───────────────────────────
+  /orcamentos:
+    post:
+      tags: [Orçamento]
+      summary: Definir teto mensal por categoria
+      description: RF-42
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [categoriaId, competencia, valorTeto]
+              properties:
+                categoriaId: { type: string, format: uuid }
+                competencia: { type: string, pattern: '^\d{4}-\d{2}$' }
+                valorTeto: { $ref: '#/components/schemas/Dinheiro' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Orcamento' }
+
+  /orcamentos/{competencia}:
+    parameters:
+      - $ref: '#/components/parameters/Competencia'
+    get:
+      tags: [Orçamento]
+      summary: Acompanhar orçado × realizado
+      description: |
+        RF-43, RF-44. Compara o teto com o realizado por categoria e sinaliza estouros.
+
+        > **Ponto em aberto (J-02)**: a base de cálculo do `realizado` para gastos de cartão —
+        > data da compra ou competência da fatura — será definida na Functional Design.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AcompanhamentoOrcamento' }
+
+  # ─────────────────────────── Investimentos ───────────────────────────
+  /objetivos:
+    get:
+      tags: [Investimentos]
+      summary: Posição consolidada dos objetivos
+      description: RF-77
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PosicaoInvestimentos' }
+    post:
+      tags: [Investimentos]
+      summary: Criar objetivo
+      description: RF-68, RF-73, RF-74. Meta e prazo são **opcionais**.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CriarObjetivo' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ObjetivoDetalhe' }
+
+  /objetivos/{objetivoId}:
+    parameters:
+      - $ref: '#/components/parameters/ObjetivoId'
+    get:
+      tags: [Investimentos]
+      summary: Consultar objetivo
+      description: |
+        RF-72 a RF-74. Retorna rendimento implícito (`saldoAtual − totalAportado`), progresso
+        contra a meta e aporte mensal necessário para o prazo.
+
+        **Rendimento negativo é valor válido** (E-14) — pode indicar prejuízo ou retirada não
+        registrada, já que resgate está fora do escopo.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ObjetivoDetalhe' }
+    patch:
+      tags: [Investimentos]
+      summary: Editar objetivo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CriarObjetivo' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ObjetivoDetalhe' }
+    delete:
+      tags: [Investimentos]
+      summary: Excluir objetivo
+      responses:
+        '204': { description: Excluído }
+
+  /objetivos/{objetivoId}/aportes:
+    parameters:
+      - $ref: '#/components/parameters/ObjetivoId'
+    post:
+      tags: [Investimentos]
+      summary: Registrar aporte
+      description: |
+        RF-69, RF-70. Cada aporte registra seu dono.
+
+        **O aporte é contabilizado como gasto no balanço do mês** (RF-76).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [valor, data]
+              properties:
+                valor: { $ref: '#/components/schemas/Dinheiro' }
+                data: { type: string, format: date }
+      responses:
+        '201':
+          description: Registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ObjetivoDetalhe' }
+
+  /objetivos/{objetivoId}/saldo:
+    parameters:
+      - $ref: '#/components/parameters/ObjetivoId'
+    put:
+      tags: [Investimentos]
+      summary: Atualizar o saldo manualmente
+      description: |
+        RF-71. Permite refletir o rendimento sem que o sistema conheça ativos ou indexadores.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [saldoAtual]
+              properties:
+                saldoAtual: { $ref: '#/components/schemas/Dinheiro' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ObjetivoDetalhe' }
+
+# ═════════════════════════════ Components ═════════════════════════════
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        **Provisório.** O mecanismo de autenticação é a decisão D-02, ainda aberta — será
+        definido na stage NFR Requirements. Pode vir a ser JWT, sessão ou OAuth2/OIDC.
+
+  parameters:
+    GrupoId:
+      name: grupoId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    CartaoId:
+      name: cartaoId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ContaId:
+      name: contaId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ObjetivoId:
+      name: objetivoId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Competencia:
+      name: competencia
+      in: path
+      required: true
+      schema: { type: string, pattern: '^\d{4}-\d{2}$' }
+      example: '2026-08'
+
+  responses:
+    NaoAutenticado:
+      description: Não autenticado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    AcessoNegado:
+      description: Acesso negado — fora das regras de visibilidade (RF-04)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    NaoEncontrado:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    Conflito:
+      description: Conflito de estado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    Validacao:
+      description: Falha de validação (RNF-10)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    FaturaPaga:
+      description: |
+        A operação afetaria uma fatura já **paga** — código `FATURA_PAGA_NAO_ALTERAVEL` (RF-95).
+        Desmarque o pagamento (`DELETE /contas/{id}/pagamento`) antes de corrigir.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+
+  schemas:
+
+    Dinheiro:
+      type: string
+      pattern: '^-?\d+\.\d{2}$'
+      description: |
+        Valor monetário como **string decimal com 2 casas**. Nunca number — ponto flutuante
+        perderia exatidão em operações monetárias (RNF-01).
+      examples: ['1200.00', '33.34', '-200.00']
+
+    Escopo:
+      type: string
+      enum: [PESSOAL, GRUPO]
+      description: |
+        `PESSOAL` — visível apenas ao dono.
+        `GRUPO` — visível a todos os membros do grupo. **Não divide o valor**: ele pertence
+        integralmente ao dono.
+
+    StatusConta:
+      type: string
+      enum: [EM_ABERTO, PAGA]
+
+    StatusFatura:
+      type: string
+      enum: [ABERTA, FECHADA, PAGA]
+
+    TipoConta:
+      type: string
+      enum: [FATURA_CARTAO, PIX, BOLETO, FATURA_SERVICO]
+
+    Frequencia:
+      type: string
+      enum: [MENSAL]
+      description: Apenas mensal no MVP (premissa P-10).
+
+    Erro:
+      type: object
+      required: [codigo, mensagem]
+      properties:
+        codigo:
+          type: string
+          example: FATURA_PAGA_NAO_ALTERAVEL
+        mensagem:
+          type: string
+          description: Mensagem **acionável** — diz o que fazer, não só o que deu errado.
+          example: A fatura de agosto/2026 já foi paga. Desmarque o pagamento antes de alterar.
+        detalhes:
+          type: array
+          items:
+            type: object
+            properties:
+              campo: { type: string }
+              motivo: { type: string }
+
+    UsuarioResumo:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nome: { type: string }
+
+    Usuario:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        nome: { type: string }
+        criadoEm: { type: string, format: date-time }
+
+    CadastrarUsuario:
+      type: object
+      required: [email, senha, nome]
+      properties:
+        email: { type: string, format: email }
+        senha: { type: string, minLength: 8, writeOnly: true }
+        nome: { type: string, minLength: 1 }
+
+    AtualizarPerfil:
+      type: object
+      properties:
+        nome: { type: string, minLength: 1 }
+
+    Grupo:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nome: { type: string }
+        quantidadeMembros: { type: integer }
+
+    GrupoDetalhe:
+      allOf:
+        - $ref: '#/components/schemas/Grupo'
+        - type: object
+          properties:
+            membros:
+              type: array
+              items: { $ref: '#/components/schemas/UsuarioResumo' }
+
+    Categoria:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nome: { type: string }
+
+    Gasto:
+      type: object
+      description: |
+        Um gasto pessoal ou de grupo. **O valor pertence integralmente ao `dono`** — escopo GRUPO
+        significa visibilidade, não divisão.
+      properties:
+        id: { type: string, format: uuid }
+        descricao: { type: string }
+        valor: { $ref: '#/components/schemas/Dinheiro' }
+        data: { type: string, format: date }
+        categoria: { $ref: '#/components/schemas/Categoria' }
+        dono: { $ref: '#/components/schemas/UsuarioResumo' }
+        escopo: { $ref: '#/components/schemas/Escopo' }
+        grupo:
+          oneOf:
+            - $ref: '#/components/schemas/Grupo'
+            - type: 'null'
+        cartao:
+          oneOf:
+            - $ref: '#/components/schemas/Cartao'
+            - type: 'null'
+        competencia:
+          description: Fatura em que o gasto cai, quando pago em cartão.
+          oneOf:
+            - type: string
+              pattern: '^\d{4}-\d{2}$'
+            - type: 'null'
+
+    LancarGasto:
+      type: object
+      required: [descricao, valor, data, categoriaId, escopo]
+      properties:
+        descricao: { type: string, minLength: 1 }
+        valor: { $ref: '#/components/schemas/Dinheiro' }
+        data: { type: string, format: date }
+        categoriaId: { type: string, format: uuid }
+        escopo: { $ref: '#/components/schemas/Escopo' }
+        grupoId:
+          description: Obrigatório quando `escopo` = GRUPO (E-09).
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        cartaoId:
+          description: Quando informado, o gasto entra na fatura da competência calculada.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+
+    EditarGasto:
+      $ref: '#/components/schemas/LancarGasto'
+
+    PaginaGastos:
+      type: object
+      description: |
+        **Dois totais distintos que nunca devem ser somados** (RF-97, D-28):
+
+        - `totalPessoal` — soma dos itens em que o consultante é dono
+        - `totalGrupo` — soma dos itens de escopo GRUPO, de qualquer dono
+      required: [itens, totalPessoal, totalGrupo]
+      properties:
+        itens:
+          type: array
+          items: { $ref: '#/components/schemas/Gasto' }
+        totalPessoal: { $ref: '#/components/schemas/Dinheiro' }
+        totalGrupo: { $ref: '#/components/schemas/Dinheiro' }
+        totaisPorCategoria:
+          type: array
+          items:
+            type: object
+            properties:
+              categoria: { $ref: '#/components/schemas/Categoria' }
+              totalPessoal: { $ref: '#/components/schemas/Dinheiro' }
+              totalGrupo: { $ref: '#/components/schemas/Dinheiro' }
+
+    Cartao:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        apelido: { type: string }
+        diaFechamento: { type: integer, minimum: 1, maximum: 31 }
+        diaVencimento: { type: integer, minimum: 1, maximum: 31 }
+        dono: { $ref: '#/components/schemas/UsuarioResumo' }
+        escopo: { $ref: '#/components/schemas/Escopo' }
+        grupo:
+          oneOf:
+            - $ref: '#/components/schemas/Grupo'
+            - type: 'null'
+
+    CadastrarCartao:
+      type: object
+      required: [apelido, diaFechamento, diaVencimento, escopo]
+      properties:
+        apelido: { type: string, minLength: 1 }
+        diaFechamento: { type: integer, minimum: 1, maximum: 31 }
+        diaVencimento: { type: integer, minimum: 1, maximum: 31 }
+        escopo: { $ref: '#/components/schemas/Escopo' }
+        grupoId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+
+    Parcela:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        posicao: { type: integer, description: 'Posição na sequência, ex.: 3 de 12' }
+        total: { type: integer }
+        valor: { $ref: '#/components/schemas/Dinheiro' }
+        competencia: { type: string, pattern: '^\d{4}-\d{2}$' }
+
+    LancarCompraParcelada:
+      type: object
+      required: [descricao, valorParcela, numeroParcelas, dataCompra, cartaoId, categoriaId, escopo]
+      properties:
+        descricao: { type: string, minLength: 1 }
+        valorParcela: { $ref: '#/components/schemas/Dinheiro' }
+        numeroParcelas: { type: integer, minimum: 1 }
+        dataCompra: { type: string, format: date }
+        cartaoId: { type: string, format: uuid }
+        categoriaId: { type: string, format: uuid }
+        escopo: { $ref: '#/components/schemas/Escopo' }
+        grupoId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+
+    CompraDetalhe:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        descricao: { type: string }
+        valorParcela: { $ref: '#/components/schemas/Dinheiro' }
+        numeroParcelas: { type: integer }
+        valorTotal:
+          allOf: [{ $ref: '#/components/schemas/Dinheiro' }]
+          description: 'Calculado: valorParcela × numeroParcelas. A soma das parcelas é sempre exatamente este valor (RF-32).'
+        dataCompra: { type: string, format: date }
+        cartao: { $ref: '#/components/schemas/Cartao' }
+        categoria: { $ref: '#/components/schemas/Categoria' }
+        dono: { $ref: '#/components/schemas/UsuarioResumo' }
+        escopo: { $ref: '#/components/schemas/Escopo' }
+        parcelas:
+          type: array
+          items: { $ref: '#/components/schemas/Parcela' }
+
+    ItemFatura:
+      type: object
+      properties:
+        descricao: { type: string }
+        valor: { $ref: '#/components/schemas/Dinheiro' }
+        data: { type: string, format: date }
+        dono: { $ref: '#/components/schemas/UsuarioResumo' }
+        parcela:
+          description: Presente apenas quando o item é parcela de uma compra.
+          oneOf:
+            - $ref: '#/components/schemas/Parcela'
+            - type: 'null'
+
+    Fatura:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        cartao: { $ref: '#/components/schemas/Cartao' }
+        competencia: { type: string, pattern: '^\d{4}-\d{2}$' }
+        valorTotal: { $ref: '#/components/schemas/Dinheiro' }
+        vencimento: { type: string, format: date }
+        status: { $ref: '#/components/schemas/StatusFatura' }
+        itens:
+          type: array
+          items: { $ref: '#/components/schemas/ItemFatura' }
+
+    Conta:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        descricao: { type: string }
+        valor: { $ref: '#/components/schemas/Dinheiro' }
+        vencimento: { type: string, format: date }
+        tipo: { $ref: '#/components/schemas/TipoConta' }
+        status: { $ref: '#/components/schemas/StatusConta' }
+        dataPagamento:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        categoria: { $ref: '#/components/schemas/Categoria' }
+        dono: { $ref: '#/components/schemas/UsuarioResumo' }
+        escopo: { $ref: '#/components/schemas/Escopo' }
+        grupo:
+          oneOf:
+            - $ref: '#/components/schemas/Grupo'
+            - type: 'null'
+        faturaId:
+          description: Presente quando `tipo` = FATURA_CARTAO. A conta é derivada e não editável.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        derivada:
+          type: boolean
+          description: 'true quando o valor vem da consolidação de uma fatura (P-11).'
+
+    CadastrarConta:
+      type: object
+      required: [descricao, valor, vencimento, tipo, categoriaId, escopo]
+      properties:
+        descricao: { type: string, minLength: 1 }
+        valor: { $ref: '#/components/schemas/Dinheiro' }
+        vencimento: { type: string, format: date }
+        tipo: { $ref: '#/components/schemas/TipoConta' }
+        categoriaId: { type: string, format: uuid }
+        escopo: { $ref: '#/components/schemas/Escopo' }
+        grupoId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+
+    PaginaVencimentos:
+      type: object
+      required: [itens, totalPessoal, totalGrupo]
+      properties:
+        itens:
+          type: array
+          description: Ordenados por data de vencimento.
+          items: { $ref: '#/components/schemas/Conta' }
+        totalPessoal: { $ref: '#/components/schemas/Dinheiro' }
+        totalGrupo: { $ref: '#/components/schemas/Dinheiro' }
+
+    ContaRecorrente:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        descricao: { type: string }
+        valorBase: { $ref: '#/components/schemas/Dinheiro' }
+        diaVencimento: { type: integer, minimum: 1, maximum: 31 }
+        frequencia: { $ref: '#/components/schemas/Frequencia' }
+        tipo: { $ref: '#/components/schemas/TipoConta' }
+        ativa: { type: boolean }
+        escopo: { $ref: '#/components/schemas/Escopo' }
+
+    CadastrarContaRecorrente:
+      type: object
+      required: [descricao, valorBase, diaVencimento, frequencia, tipo, categoriaId, escopo]
+      properties:
+        descricao: { type: string, minLength: 1 }
+        valorBase: { $ref: '#/components/schemas/Dinheiro' }
+        diaVencimento: { type: integer, minimum: 1, maximum: 31 }
+        frequencia: { $ref: '#/components/schemas/Frequencia' }
+        tipo: { $ref: '#/components/schemas/TipoConta' }
+        categoriaId: { type: string, format: uuid }
+        escopo: { $ref: '#/components/schemas/Escopo' }
+        grupoId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+
+    Receita:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        descricao: { type: string }
+        valor: { $ref: '#/components/schemas/Dinheiro' }
+        data: { type: string, format: date }
+
+    LancarReceita:
+      type: object
+      required: [descricao, valor, data]
+      properties:
+        descricao: { type: string, minLength: 1 }
+        valor: { $ref: '#/components/schemas/Dinheiro' }
+        data: { type: string, format: date }
+
+    Balanco:
+      type: object
+      properties:
+        competencia: { type: string, pattern: '^\d{4}-\d{2}$' }
+        receitas: { $ref: '#/components/schemas/Dinheiro' }
+        gastos:
+          allOf: [{ $ref: '#/components/schemas/Dinheiro' }]
+          description: Inclui os aportes em investimento do período (RF-76).
+        aportes:
+          allOf: [{ $ref: '#/components/schemas/Dinheiro' }]
+          description: Parcela dos gastos correspondente a aportes, destacada para transparência.
+        resultado: { $ref: '#/components/schemas/Dinheiro' }
+
+    Orcamento:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        categoria: { $ref: '#/components/schemas/Categoria' }
+        competencia: { type: string, pattern: '^\d{4}-\d{2}$' }
+        valorTeto: { $ref: '#/components/schemas/Dinheiro' }
+
+    AcompanhamentoOrcamento:
+      type: object
+      properties:
+        categoria: { $ref: '#/components/schemas/Categoria' }
+        orcado: { $ref: '#/components/schemas/Dinheiro' }
+        realizado: { $ref: '#/components/schemas/Dinheiro' }
+        saldo:
+          allOf: [{ $ref: '#/components/schemas/Dinheiro' }]
+          description: Negativo quando estourado.
+        estourado: { type: boolean }
+
+    CriarObjetivo:
+      type: object
+      required: [nome, escopo]
+      properties:
+        nome: { type: string, minLength: 1 }
+        meta:
+          description: Opcional — objetivos abertos como "Geral" podem não ter alvo (RF-73).
+          oneOf:
+            - $ref: '#/components/schemas/Dinheiro'
+            - type: 'null'
+        prazoAlvo:
+          description: Opcional (RF-74).
+          oneOf:
+            - type: string
+              pattern: '^\d{4}-\d{2}$'
+            - type: 'null'
+        escopo: { $ref: '#/components/schemas/Escopo' }
+        grupoId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+
+    Aporte:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        valor: { $ref: '#/components/schemas/Dinheiro' }
+        data: { type: string, format: date }
+        dono: { $ref: '#/components/schemas/UsuarioResumo' }
+
+    ObjetivoDetalhe:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nome: { type: string }
+        meta:
+          oneOf:
+            - $ref: '#/components/schemas/Dinheiro'
+            - type: 'null'
+        prazoAlvo:
+          oneOf:
+            - type: string
+              pattern: '^\d{4}-\d{2}$'
+            - type: 'null'
+        totalAportado: { $ref: '#/components/schemas/Dinheiro' }
+        saldoAtual: { $ref: '#/components/schemas/Dinheiro' }
+        rendimento:
+          allOf: [{ $ref: '#/components/schemas/Dinheiro' }]
+          description: '`saldoAtual − totalAportado`. **Pode ser negativo** (E-14).'
+        progressoPercentual:
+          description: '`null` quando não há meta.'
+          oneOf:
+            - type: string
+            - type: 'null'
+        aporteMensalNecessario:
+          description: '`null` quando não há meta ou prazo.'
+          oneOf:
+            - $ref: '#/components/schemas/Dinheiro'
+            - type: 'null'
+        atrasado:
+          type: boolean
+          description: Prazo vencido sem a meta atingida (E-15). Não bloqueia novos aportes.
+        escopo: { $ref: '#/components/schemas/Escopo' }
+        aportes:
+          type: array
+          items: { $ref: '#/components/schemas/Aporte' }
+
+    PosicaoInvestimentos:
+      type: object
+      properties:
+        objetivos:
+          type: array
+          items: { $ref: '#/components/schemas/ObjetivoDetalhe' }
+        totalAportado: { $ref: '#/components/schemas/Dinheiro' }
+        saldoTotal: { $ref: '#/components/schemas/Dinheiro' }
+        rendimentoTotal: { $ref: '#/components/schemas/Dinheiro' }
