@@ -2,10 +2,25 @@
 # Elimina credenciais AWS de longa duracao no repositorio: o Actions assume esta
 # role apresentando um token OIDC de curta duracao.
 
+# Le o thumbprint do certificado atual do GitHub em vez de fixar um valor.
+# Thumbprints copiados de tutoriais ficam desatualizados quando o GitHub rotaciona
+# o certificado, e o sintoma e "The web identity token provided could not be validated".
+data "tls_certificate" "github" {
+  url = "https://token.actions.githubusercontent.com/.well-known/openid-configuration"
+}
+
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
+
+  thumbprint_list = distinct(concat(
+    [for c in data.tls_certificate.github.certificates : c.sha1_fingerprint],
+    # Thumbprints historicos do GitHub, mantidos por seguranca durante rotacoes.
+    [
+      "6938fd4d98bab03faadb97b34396831e3780aea1",
+      "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
+    ]
+  ))
 }
 
 # Trust policy restrita a REPOSITORIO e BRANCH especificos (RF-93).
