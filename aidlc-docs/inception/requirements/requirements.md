@@ -47,6 +47,7 @@ O front-end, por outro lado, foi **removido** do escopo deste repositório.
 | 4 | **Contas a pagar** (RF-55 a RF-67) e **Investimentos** (RF-68 a RF-77); fatura de cartão unificada à visão de vencimentos | Pedido do usuário durante a revisão |
 | 5 | **Contrato de API** como entregável explícito (RF-78 a RF-80): OpenAPI 3.1 YAML, gerado após a Application Design | Pedido do usuário: documento de endpoints para construir o front |
 | 6 | **CI/CD e provisionamento** (RF-81 a RF-93): GitHub Actions com OIDC, ECR, deploy por SSM e bootstrap manual documentado | Pergunta do usuário sobre o momento do provisionamento, que revelou a lacuna da fase de Operations do AI-DLC |
+| 7 | **Casos de borda resolvidos** (E-03, E-10, E-12, E-13) com retropropagação para RF-09, RF-25 e três requisitos novos (RF-94 a RF-96). Fecha D-13 e resolve parcialmente D-04 | Decisões tomadas no planejamento das User Stories |
 
 ---
 
@@ -129,7 +130,7 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 | RF-06 | M | O sistema deve permitir criar um grupo com nome identificador. |
 | RF-07 | M | O sistema deve permitir que um usuário pertença a **zero, um ou vários** grupos — a participação em grupo é **opcional**. Um usuário sem nenhum grupo usa o sistema normalmente, apenas sem gastos compartilhados por grupo. |
 | RF-08 | M | O sistema deve permitir adicionar e remover membros de um grupo, sem limite fixo de membros (**N pessoas**). |
-| RF-09 | M | O sistema deve tornar visível a todos os membros de um grupo qualquer gasto marcado com escopo daquele grupo. |
+| RF-09 | M | O sistema deve tornar visível a todos os membros de um grupo qualquer gasto marcado com escopo daquele grupo, **inclusive os lançados antes da entrada do membro no grupo**. Visibilidade e rateio são desacoplados: o membro vê os gastos anteriores, mas não possui cota neles (E-10). |
 | RF-10 | S | O sistema deve permitir que um membro saia de um grupo, preservando o histórico dos gastos já lançados. |
 
 ### 3.3 Compartilhamento e Rateio
@@ -165,9 +166,12 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 |---|---|---|
 | RF-23 | M | O sistema deve permitir cadastrar cartões de crédito com apelido, **dia de fechamento** e **dia de vencimento** (Question 8). |
 | RF-24 | M | O sistema deve permitir que um cartão pertença a um **usuário** ou a um **grupo**; a fatura de um cartão do grupo é visível a todos os seus membros (Question 12). |
-| RF-25 | M | O sistema deve determinar automaticamente em qual **fatura de competência** cada compra ou parcela cai, a partir da data da compra e do **dia de fechamento** do cartão — nunca do dia de vencimento (ver RF-61). |
+| RF-25 | M | O sistema deve determinar automaticamente em qual **fatura de competência** cada compra ou parcela cai, a partir da data da compra e do **dia de fechamento** do cartão — nunca do dia de vencimento (ver RF-61). O corte é **exclusivo**: uma compra no exato dia do fechamento pertence à **fatura seguinte** (E-03). |
 | RF-26 | M | O sistema deve consolidar a fatura mensal de um cartão, listando todos os lançamentos e parcelas que nela incidem, com o valor total. A fatura fechada materializa-se como uma **conta a pagar** (RF-59). |
 | RF-27 | M | O sistema deve permitir marcar uma fatura como **paga**, registrando a data do pagamento — operação equivalente a quitar a conta a pagar correspondente (RF-57). |
+| RF-94 | M | O sistema deve permitir **desmarcar** o pagamento de uma fatura ou conta, revertendo-a para EM ABERTO. É a única via para corrigir lançamentos que afetariam uma fatura já paga (E-12, E-13). |
+| RF-95 | M | O sistema deve **bloquear** qualquer operação que altere o valor de uma fatura ou conta já **PAGA** — inclusive lançamento retroativo e exclusão de compra (E-13). |
+| RF-96 | M | Ao lançar uma compra retroativa cuja fatura de competência já fechou mas **não** foi paga, o sistema deve **reabrir e recalcular** essa fatura, mantendo a compra na competência correta pela data (E-12). |
 | RF-28 | S | O sistema deve permitir consultar faturas futuras, projetando as parcelas já comprometidas. |
 
 ### 3.6 Compras Parceladas
@@ -396,17 +400,17 @@ aportam ao longo dos meses e os dois enxergam o total acumulado e o progresso.
 |---|---|---|
 | E-01 | Compra parcelada com resíduo de centavos (R$ 100 em 3x) | RF-31: última parcela absorve |
 | E-02 | Rateio configurado cuja soma difere do total do gasto | RF-15: rejeitar a operação |
-| E-03 | Compra no exato dia de fechamento do cartão | Regra de fronteira a definir na Functional Design (ver decisão D-04) |
+| E-03 | Compra no exato dia de fechamento do cartão | ✅ **Resolvido** (User Stories): vai para a **fatura seguinte** — o fechamento ocorre no início do dia. Corte exclusivo: `dataCompra < diaFechamento`. Fecha D-04 |
 | E-04 | Cartão com fechamento no dia 31 e mês com 30 dias | Regra de fronteira a definir na Functional Design |
 | E-05 | Membro sai do grupo com gastos compartilhados em aberto | RF-10: preservar histórico |
 | E-06 | Exclusão de categoria com gastos vinculados | RF-37: bloquear ou realocar |
 | E-07 | Tentativa de adicionar usuário inexistente a um grupo | Rejeitar com erro de validação |
 | E-08 | Usuário tenta acessar fatura de cartão de outro grupo | RF-04: negar acesso |
 | E-09 | Gasto de escopo GRUPO lançado por usuário que não pertence a nenhum grupo | Rejeitar — escopo GRUPO exige grupo válido do qual o autor é membro (RF-07, RF-11) |
-| E-10 | Membro adicionado a um grupo após gastos já lançados | Definir na Functional Design se ele passa a enxergar o histórico ou apenas os gastos posteriores à entrada |
+| E-10 | Membro adicionado a um grupo após gastos já lançados | ✅ **Resolvido** (User Stories): enxerga **todo o histórico** do grupo. Visibilidade e rateio ficam desacoplados — vê os gastos antigos, mas não tem cota neles. Fecha D-13 |
 | E-11 | Conta recorrente com vencimento no dia 31 e mês com 30 dias | Regra de fronteira a definir na Functional Design (mesma natureza de E-04) |
-| E-12 | Compra lançada retroativamente, em fatura de cartão já fechada | Definir na Functional Design: rejeitar, ou alocar na próxima fatura aberta |
-| E-13 | Compra excluída depois que a fatura já virou conta a pagar | O valor da conta precisa ser recalculado, ou a operação bloqueada se a conta já estiver PAGA |
+| E-12 | Compra lançada retroativamente, em fatura de cartão já fechada | ✅ **Resolvido** (User Stories): a fatura é **reaberta e recalculada**, com a compra na competência correta pela data — **exceto** se já estiver PAGA, quando a operação é bloqueada (E-13) |
+| E-13 | Alteração que afeta fatura já **PAGA** (exclusão de compra ou lançamento retroativo) | ✅ **Resolvido** (User Stories): **bloquear a operação**. Fatura paga é fato consumado e bate com o extrato do banco. Saída para o usuário: desmarcar o pagamento, corrigir, e marcar como paga de novo — operação explícita, não efeito colateral |
 | E-14 | Saldo atual do objetivo informado **menor** que o total aportado (prejuízo ou resgate não registrado) | Rendimento implícito fica negativo (RF-72). Deve ser aceito e exibido, não rejeitado — ver premissa P-08 |
 | E-15 | Objetivo com meta e prazo já vencido sem a meta atingida | Sinalizar o objetivo como atrasado; não bloquear novos aportes |
 | E-16 | Objetivo de grupo com membro que sai do grupo | Mesmo tratamento de E-05: preservar o histórico de aportes |
@@ -453,11 +457,11 @@ aportam ao longo dos meses e os dois enxergam o total acumulado e o progresso.
 | D-01 | **Flyway** como ferramenta de migration, mantendo `ddl-auto: validate` | ✅ Decidido (Question 13). Resolve o débito bloqueante apontado na engenharia reversa |
 | D-02 | Mecanismo de autenticação (JWT stateless / sessão / OAuth2-OIDC) | ⏳ Adiado para **NFR Requirements** (seleção de stack) |
 | D-03 | Estrutura de pacotes e separação de camadas | ⏳ Adiado para **Application Design** |
-| D-04 | Regra de fronteira do fechamento de fatura (compra no exato dia do fechamento; fechamento dia 29–31 em meses curtos) | ⏳ Adiado para **Functional Design** |
+| D-04 | Regra de fronteira do fechamento de fatura | ✅ **Parcialmente resolvido** (User Stories): compra no exato dia do fechamento vai para a **fatura seguinte** — corte exclusivo `dataCompra < diaFechamento` (E-03). Continua adiado apenas o caso de fechamento em dia 29–31 com mês curto (E-04) | ⏳ Functional Design (só E-04) |
 | D-05 | Framework PBT: **Kotest Property Testing** (recomendação PBT-09 para Kotlin) | ✅ Pré-decidido; confirmar em NFR Requirements |
 | D-06 | **Contrato de API em OpenAPI 3.1 (YAML)**, entregue **após a Application Design** (RF-78 a RF-80) | ✅ Decidido pelo usuário. Justificativa: o front-end vive em outro repositório e seria construído sobre um contrato provisório se gerado a partir dos requisitos. Esperar o modelo de domínio estabilizar evita retrabalho no front. Formato YAML permite Swagger UI e geração de cliente TypeScript. A ferramenta de geração no backend (springdoc-openapi ou spec escrita à mão) segue adiada para **NFR Requirements** |
 | D-07 | ~~Modelagem de "participante" de um gasto compartilhado (membro do grupo vs. usuário avulso).~~ **Resolvido** pela remoção de RF-12: existe apenas um tipo de participante — **membro do grupo**. A cota de rateio referencia um membro, não um usuário arbitrário. | ✅ Resolvido |
-| D-13 | Visibilidade do histórico para membro que entra em um grupo já existente (ver E-10) | ⏳ Adiado para **Functional Design** |
+| D-13 | Visibilidade do histórico para membro que entra em um grupo já existente | ✅ **Resolvido** (User Stories): enxerga todo o histórico; visibilidade desacoplada do rateio (E-10) |
 | D-14 | **Fatura de cartão unificada com conta a pagar**: a fatura fechada gera automaticamente uma conta a pagar (RF-59), em vez de viver num módulo separado | ✅ Decidido. Uma única visão de vencimentos reunindo fatura, PIX, boleto e fatura de serviço |
 | D-15 | **Fechamento** (não vencimento) determina a fatura de destino de cada compra (RF-61) | ✅ Decidido. Confirma o comportamento real de cartão de crédito e mantém os valores compatíveis com o extrato do banco |
 | D-16 | **Recorrência como pergunta no cadastro** da conta (RF-62), com contas recorrentes e avulsas no mesmo modelo | ✅ Decidido |
@@ -561,6 +565,7 @@ O ciclo será considerado bem-sucedido quando:
 | RNF-03, RNF-06 | Práticas já estabelecidas no repositório (engenharia reversa) |
 | RF-55 a RF-67 | Rodada de esclarecimento sobre contas a pagar — pedido do usuário: *"cada conta pode ter um vencimento especifico para ela"*, detalhado como *"conta de cartao de credito, pix que tenho para fazer, boleto, fatura (energia eletrica, gás, viagem)"* e *"a fatura da conta deve passar a ser um vencimento geral"* |
 | RF-68 a RF-77 | Mesmo pedido — *"eu quero poder adicionar valores relacionados a investimentos... Exemplo: investimento de viagem e investimento de geral"* |
+| RF-94 a RF-96 | Resolução dos casos de borda E-12 e E-13 no planejamento das User Stories |
 | RF-81 a RF-93 | Pedido do usuário: *"preciso que no plaejamento seja incluido também o github actions com tudo já pronto... Tem como provisionar a infrsaestrutura já com github actions?"* — surgido da pergunta sobre em que momento a infra seria provisionada |
 | RF-78 a RF-80 | Pedido do usuário: *"vou precisar de um documento também com endpoints para montar o front"* — formalizado como especificação OpenAPI 3.1, entregue após a Application Design |
 | RF-45 a RF-54 | Rodada de esclarecimento sobre infraestrutura (deploy em AWS EC2, Terraform no mesmo repo, PostgreSQL na instância) |

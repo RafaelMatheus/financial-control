@@ -5,7 +5,7 @@
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: INCEPTION
-- **Current Stage**: Requirements Analysis (aguardando aprovação do usuário)
+- **Current Stage**: User Stories — Parte 2 concluída (aguardando aprovação)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -44,8 +44,8 @@ RF-16, RF-24).
 ### INCEPTION PHASE
 - [x] Workspace Detection — COMPLETED (2026-07-30T16:11:59Z)
 - [x] Reverse Engineering — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
-- [x] Requirements Analysis — ARTEFATOS GERADOS (2026-07-30T16:11:59Z), aguardando aprovação
-- [ ] User Stories — PENDING (avaliação condicional)
+- [x] Requirements Analysis — COMPLETED e APROVADO na revisão 6 (2026-07-30T16:11:59Z)
+- [x] User Stories — ARTEFATOS GERADOS (2026-07-30T16:11:59Z), aguardando aprovação
 - [ ] Workflow Planning — PENDING
 - [ ] Application Design — PENDING (avaliação condicional)
 - [ ] Units Generation — PENDING (avaliação condicional)
@@ -77,7 +77,7 @@ RF-16, RF-24).
     10 cenários, 16 casos de borda, 11 premissas, 26 decisões, 5 riscos
   - `bootstrap-runbook.md` (esboço — versão executável sai na Infrastructure Design)
 - **Depth**: Comprehensive
-- **Aprovação do usuário**: PENDENTE (revisão 6)
+- **Aprovação do usuário**: ✅ APROVADO na revisão 6 (2026-07-30T16:11:59Z) — *"pode partir para o próximo passo"*
 
 ### Histórico de revisões dos requisitos
 | Rev. | RF ativos | Mudança |
@@ -88,6 +88,35 @@ RF-16, RF-24).
 | 4 | 76 | Contas a pagar (RF-55 a RF-67) e Investimentos (RF-68 a RF-77) |
 | 5 | 79 | Contrato de API como entregável: OpenAPI 3.1 YAML após a Application Design (RF-78 a RF-80) |
 | 6 | 92 | CI/CD e provisionamento: GitHub Actions com OIDC, ECR, deploy por SSM, bootstrap manual (RF-81 a RF-93) |
+
+## User Stories Status
+- [x] Parte 1 — Planejamento: assessment + plano aprovado
+- [x] Parte 2 — Geração: personas.md e stories.md
+- **Artifacts Location**:
+  - `aidlc-docs/inception/plans/user-stories-assessment.md`
+  - `aidlc-docs/inception/plans/story-generation-plan.md`
+  - `aidlc-docs/inception/user-stories/personas.md`
+  - `aidlc-docs/inception/user-stories/stories.md`
+- **Conteúdo**: 11 épicos, 60 histórias (H-01 a H-60), 3 jornadas transversais (J-01 a J-03),
+  1 persona com 4 contextos, matriz de rastreabilidade com cobertura 70/70
+- **Núcleo mínimo**: 30 histórias marcadas
+- **Aprovação do usuário**: PENDENTE
+
+### Decisões fechadas pelas User Stories
+| ID | Decisão | Origem |
+|---|---|---|
+| D-04 | Compra no dia exato do fechamento vai para a **fatura seguinte** (corte exclusivo). Resta só o caso de fechamento em dia 29–31 (E-04) | E-03 |
+| D-13 | Membro que entra num grupo enxerga **todo o histórico**; visibilidade desacoplada do rateio | E-10 |
+
+Novos requisitos derivados: **RF-94** (desmarcar pagamento), **RF-95** (bloquear alteração em fatura
+paga), **RF-96** (reabrir e recalcular fatura fechada não paga). Requisitos ativos: **95**.
+
+### Pontos novos levantados pelas jornadas transversais
+| # | Questão | Destino |
+|---|---|---|
+| 1 | O "realizado" do orçamento conta pela data da compra ou pela competência da fatura? (J-02) | Functional Design |
+| 2 | Rateio incide sobre cada parcela, não só sobre o total da compra (J-01) | Application Design |
+| 3 | API deve distinguir "total do grupo" de "minhas cotas" (J-03) | Application Design |
 
 ### Documento de registro de pesquisa
 `aidlc-docs/research-log.md` — registro cronológico e analítico do processo (decisões, alternativas

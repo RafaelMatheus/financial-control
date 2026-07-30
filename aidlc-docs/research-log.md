@@ -106,6 +106,21 @@ mais 2 rodadas posteriores de revisão. Ver Seção 4 para a análise quantitati
 removido), 17 requisitos não-funcionais, 10 cenários de usuário, 16 casos de borda, 11 premissas,
 26 decisões técnicas e 5 riscos.
 
+### 2.4 User Stories
+
+**Assessment**: quatro critérios de alta prioridade atendidos — funcionalidades novas voltadas ao
+usuário, sistema multi-persona aparente, API consumida por cliente externo, e lógica de negócio com
+múltiplos cenários. Qualquer um deles isoladamente já obrigaria a execução.
+
+**Decisões de formato**: organização híbrida (épicos por área + jornadas quando o fluxo cruza 3+
+áreas), persona única, granularidade mista, critérios em Gherkin para regras e lista para CRUD,
+MoSCoW com marcação de núcleo mínimo.
+
+**Resultado**: 11 épicos, 60 histórias, 3 jornadas transversais, 1 persona com 4 contextos,
+cobertura 70/70 dos requisitos de domínio.
+
+**Três achados de valor metodológico** registrados abaixo (Seções 3.13 a 3.15).
+
 ---
 
 ## 3. Decisões e episódios relevantes
@@ -389,6 +404,70 @@ recurso do volume, aprovado num PR lido às pressas, destrói os dados financeir
 recuperação. As mitigações acordadas (`prevent_destroy`, plan visível no PR, backup como
 pré-requisito de merge em `infra/**`) foram registradas para a Infrastructure Design.
 
+### 3.13 A persona que não existia
+
+**Episódio**: a análise inicial dos requisitos sugeria três papéis distintos — quem cria e
+administra o grupo, quem apenas participa, e o proprietário do cartão. A pergunta foi levada ao
+usuário como escolha entre uma, duas ou três personas.
+
+**Resposta**: **uma persona só**.
+
+**Verificação nos requisitos**: a resposta estava correta e já estava escrita. **RF-16** permite que
+*qualquer membro* edite ou exclua gastos de escopo GRUPO — não há privilégio de autoria nem de
+criação. **RF-08** não restringe quem pode adicionar ou remover membros. **RF-24** trata a
+propriedade do cartão como definidora de *visibilidade*, não como classe de usuário.
+
+> A hierarquia administrador/membro é tão convencional em sistemas com grupos que ela foi
+> **projetada sobre os requisitos** durante a análise, sem que estivesse neles. Modelá-la teria
+> criado uma distinção que o sistema não implementa, e todas as histórias teriam herdado uma
+> diferença falsa. O registro em `personas.md` inclui uma nota explícita para a Application Design:
+> a ausência de hierarquia é decisão de produto, não omissão, e a modelagem não deve antecipá-la
+> "por precaução".
+
+### 3.14 Um requisito nasceu de uma proibição
+
+**Episódio**: ao resolver os casos de borda E-12 (lançamento retroativo em fatura fechada) e E-13
+(alteração em fatura já paga), o usuário escolheu **bloquear** qualquer operação que altere fatura
+paga — justificativa: fatura paga é fato consumado, o dinheiro saiu e o valor bate com o extrato do
+banco.
+
+**Consequência não solicitada**: se alterações são bloqueadas e não há caminho de saída, um
+lançamento errado numa fatura paga fica **preso para sempre**. A proibição, sozinha, cria um
+beco sem saída.
+
+**Resultado**: **RF-94** (desmarcar o pagamento de fatura ou conta) foi criado, sem ter sido pedido.
+Junto com RF-95 (a proibição em si) e RF-96 (reabrir e recalcular fatura fechada não paga), forma
+um trio coerente: a operação de correção existe, mas é explícita e consciente — o usuário precisa
+desmarcar o pagamento deliberadamente, em vez de a fatura ser alterada como efeito colateral.
+
+> Padrão generalizável: **toda regra que proíbe uma operação sobre estado terminal precisa de uma
+> operação inversa que reabra esse estado**, ou o usuário fica sem recurso. A proibição isolada
+> parece completa quando escrita, e só se revela incompleta ao imaginar o usuário que errou.
+
+### 3.15 As jornadas transversais descobriram o que os épicos escondiam
+
+**Contexto**: a organização híbrida previa histórias de jornada apenas para fluxos que atravessassem
+três ou mais áreas. Foram escritas três: compra parcelada em cartão de grupo com rateio (J-01),
+fechar o mês (J-02), e entrar num grupo existente (J-03).
+
+**Resultado**: as três jornadas levantaram **três questões que não existiam em nenhum dos 60
+requisitos nem em nenhuma das 60 histórias de épico**:
+
+| Origem | Questão descoberta |
+|---|---|
+| J-01 | O rateio incide sobre **cada parcela**, não apenas sobre o total da compra. As invariantes de H-12 e H-28 se **compõem**: a soma das cotas deve fechar por parcela, e a soma das parcelas por compra |
+| J-02 | O "realizado" do orçamento conta pela **data da compra** ou pela **competência da fatura**? Uma compra de 30/07 no cartão entra no orçamento de julho ou de setembro? |
+| J-03 | "Total do grupo" e "minhas cotas" **divergem** para um membro recém-adicionado. A API precisa expor a diferença, ou o usuário verá dois números sem entender o motivo |
+
+> Nenhuma das três é visível dentro de um épico. Elas vivem exatamente nas **costuras** entre áreas
+> — que é onde a decomposição funcional, por construção, não olha. A questão de J-01 é a mais séria:
+> ela altera a estrutura do modelo de dados (a cota referencia a parcela, não a compra), e teria
+> sido descoberta na implementação, não no design.
+>
+> Este é o argumento empírico a favor do formato híbrido sobre o puramente feature-based. O custo
+> foi escrever três histórias adicionais; o retorno foi uma questão de modelagem que mudaria o
+> schema depois de pronto.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -408,14 +487,18 @@ pré-requisito de merge em `infra/**`) foram registradas para a Infrastructure D
 
 | Métrica | Valor |
 |---|---|
-| Requisitos funcionais ativos | 92 (RF-01 a RF-93, RF-12 removido) |
+| Requisitos funcionais ativos | 95 (RF-01 a RF-96, RF-12 removido) |
+| Histórias de usuário | 63 (60 de épico + 3 jornadas) |
+| Épicos | 11 |
+| Personas | 1 (com 4 contextos) |
+| Cobertura requisito ↔ história | 70/70 requisitos de domínio |
 | Requisitos não-funcionais | 17 |
 | Cenários de usuário | 10 |
 | Casos de borda e erro | 16 |
 | Premissas registradas | 11 |
 | Decisões técnicas | 26 (20 fechadas, 6 adiadas) |
 | Riscos registrados | 5 |
-| Revisões do documento de requisitos | 6 |
+| Revisões do documento de requisitos | 7 |
 
 ### 4.3 Evolução do escopo
 
@@ -427,6 +510,7 @@ pré-requisito de merge em `infra/**`) foram registradas para a Infrastructure D
 | 4 | 76 | Contas a pagar + Investimentos |
 | 5 | 79 | Contrato de API como entregável (OpenAPI 3.1) |
 | 6 | 92 | CI/CD e provisionamento (GitHub Actions, OIDC, ECR, SSM) |
+| 7 | 95 | Casos de borda resolvidos nas User Stories (RF-94 a RF-96) |
 
 ---
 
@@ -478,6 +562,22 @@ PostgreSQL no EC2 em vez de RDS foi escolha consciente do usuário. O método n�
 R-01 com severidade, mitigação acordada e a ressalva de que RF-54 é obrigatório na prática apesar
 da prioridade "S".
 
+**O-14 — Convenções de domínio podem ser projetadas sobre requisitos que não as contêm.** A
+hierarquia administrador/membro é tão comum em sistemas com grupos que foi assumida durante a
+análise de personas, apesar de RF-16 e RF-08 dizerem explicitamente o contrário. Só a verificação
+requisito a requisito desfez a projeção.
+
+**O-15 — Regras que proíbem operações sobre estado terminal exigem uma operação inversa.** Bloquear
+alterações em fatura paga (RF-95) criava um beco sem saída para quem errou; RF-94 (desmarcar o
+pagamento) nasceu dessa constatação, sem ter sido pedido. A proibição isolada parece completa quando
+escrita, e só se revela incompleta ao imaginar o usuário que precisa corrigir algo.
+
+**O-16 — Questões de modelagem vivem nas costuras entre áreas funcionais.** Três jornadas
+transversais levantaram três questões ausentes de todos os 60 requisitos e de todas as 60 histórias
+de épico — incluindo uma (rateio por parcela, não por compra) que altera a estrutura do modelo de
+dados. A decomposição funcional, por construção, não olha para as fronteiras entre suas próprias
+partições.
+
 **O-11 — Fases declaradas como placeholder criam expectativa de cobertura que não existe.** A fase
 de Operations aparece no diagrama de três fases do `CLAUDE.md` como etapa do processo; só ao abrir
 `operations/operations.md` se descobre que é um placeholder vazio e que o fluxo termina em Build and
@@ -505,13 +605,16 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: INCEPTION
-**Stage**: Requirements Analysis — aguardando aprovação (revisão 6)
-**Próxima stage prevista**: User Stories
+**Stage**: User Stories — Parte 2 concluída, aguardando aprovação
+**Próxima stage prevista**: Workflow Planning
 
 **Stages concluídas**: Workspace Detection, Reverse Engineering (aprovada), Requirements Analysis
-(6 revisões, gate pendente).
+(7 revisões, aprovada), User Stories (gate pendente).
 
 **Decisões ainda em aberto** (adiadas para stages posteriores): mecanismo de autenticação (D-02),
-estrutura de pacotes (D-03), regra de fronteira do fechamento (D-04),
-visibilidade de histórico em grupo (D-13), mecanismo de recorrência (D-19), mecanismo de fechamento
-de fatura (D-20), dimensionamento da EC2 (D-11), mecanismo de deploy (D-12).
+estrutura de pacotes (D-03), fronteira do fechamento em dia 29–31 (D-04, parcial),
+mecanismo de recorrência (D-19), mecanismo de fechamento de fatura (D-20), dimensionamento da EC2
+(D-11). Fechadas nesta stage: D-13 (visibilidade de histórico) e D-04 parcialmente.
+
+**Questões novas abertas pelas jornadas transversais**: base de cálculo do "realizado" do orçamento
+(J-02), rateio por parcela (J-01), distinção "total do grupo" vs. "minhas cotas" na API (J-03).

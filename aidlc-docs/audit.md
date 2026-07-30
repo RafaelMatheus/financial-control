@@ -283,3 +283,46 @@ Complete audit trail of all user inputs and AI responses.
 **Context**: INCEPTION PHASE - Requirements Analysis - Revisão 6 concluída
 
 ---
+
+## Requirements Analysis — Approval Gate (APROVADO)
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: Apresentado o que aconteceria em caso de aprovação — sequência User Stories → Workflow Planning → Application Design → Units Generation → Construction (loop por unidade) → Build and Test, com indicação de onde cada decisão adiada será fechada.
+**User Input**: "pode partir para o próximo passo"
+**AI Response**: "Requirements Analysis aprovada na revisão 6 (92 RF ativos, 17 RNF, 10 cenários, 16 casos de borda, 11 premissas, 26 decisões, 5 riscos). Stage marcada como COMPLETED em aidlc-state.md. Iniciando User Stories — Parte 1 (Planejamento)."
+**Context**: INCEPTION PHASE - Requirements Analysis - APROVADO
+
+---
+
+## User Stories — Parte 1: Assessment
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: N/A (avaliação obrigatória do Step 1)
+**AI Response**: "Executado o assessment obrigatório de necessidade da stage. Resultado: EXECUTAR. Critérios de alta prioridade atendidos: novas funcionalidades voltadas ao usuário, sistema multi-persona, API consumida por cliente externo, lógica de negócio complexa com múltiplos cenários. Artefato gerado em aidlc-docs/inception/plans/user-stories-assessment.md."
+**Context**: INCEPTION PHASE - User Stories - Part 1 Step 1
+
+---
+
+## User Stories — Parte 1: Plano e questões
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: 6 questões de planejamento em `story-generation-plan.md`, apresentadas via AskUserQuestion em três rodadas — organização, personas, granularidade, formato dos critérios, tratamento dos casos de borda e priorização.
+**User Input**: "Como organizar as histórias? (67 requisitos de domínio)"="Híbrido (Recomendado)"; "Quantas personas o sistema realmente tem?"="Uma só — usuário"; "Qual o tamanho de cada história?"="Misto (Recomendado)"; "Quatro casos de borda seguem em aberto... Resolver agora?"="Resolver agora"; "Formato dos critérios de aceitação?"="Misto (Recomendado)"; "As histórias devem indicar prioridade de entrega?"="MoSCoW + núcleo mínimo (Recomendado)"; "E-03: uma compra feita no exato dia do fechamento cai em qual fatura?"="Na fatura seguinte"; "E-12: lançamento retroativo..."="Reabrir e recalcular a fatura"; "Quando a fatura já está PAGA e algo a alteraria..."="Bloquear a operação"; "E-10: alguém entra num grupo que já tem meses de gastos lançados..."="Todo o histórico"
+**AI Response**: "Plano consolidado. Organização híbrida com critério de corte de 3+ áreas para jornadas. Persona única, sem hierarquia — decisão apoiada em RF-16, que já permite a qualquer membro editar gastos do grupo. Granularidade e critérios mistos. Quatro casos de borda resolvidos e retropropagados para requirements.md: E-03 fecha D-04 parcialmente (corte exclusivo, dataCompra < diaFechamento); E-10 fecha D-13 (visibilidade desacoplada do rateio); E-12 e E-13 geraram três requisitos novos — RF-94 (desmarcar pagamento), RF-95 (bloquear alteração em fatura paga) e RF-96 (reabrir e recalcular fatura fechada não paga). RF-94 não existia e é consequência direta da escolha de bloquear: sem a operação inversa, um lançamento errado ficaria preso para sempre."
+**Context**: INCEPTION PHASE - User Stories - Part 1 (Steps 2 a 10)
+
+---
+
+## User Stories — Gate do plano (APROVADO)
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: "Plano de geração das histórias pronto (Parte 1). Aprova para eu gerar as histórias e personas?"
+**User Input**: "Aprovar e gerar"
+**AI Response**: "Plano aprovado. Executando a Parte 2 — geração de personas.md e stories.md conforme a metodologia aprovada."
+**Context**: INCEPTION PHASE - User Stories - Part 1 gate (Steps 12-14)
+
+---
+
+## User Stories — Parte 2: Geração
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: N/A (execução do plano aprovado)
+**AI Response**: "Gerados `aidlc-docs/inception/user-stories/personas.md` e `stories.md`. Personas: uma única persona ('Usuário') com 4 contextos declarados (usuário individual, membro de grupo, autor do lançamento, proprietário do cartão), com justificativa explícita de por que administrador e membro NÃO foram modelados como personas distintas — o sistema não implementa hierarquia. Stories: 11 épicos, 60 histórias (H-01 a H-60) e 3 jornadas transversais (J-01 a J-03). Critérios em Gherkin nas regras de negócio e em lista nas de CRUD. 30 histórias marcadas como NÚCLEO. Matriz de rastreabilidade com cobertura 70/70 requisitos de domínio, sem lacunas. Três histórias marcadas com invariante para property-based testing (H-12, H-28, H-29). Todos os checkboxes do plano marcados [x]. As jornadas transversais levantaram três pontos que NÃO existiam antes: (1) o 'realizado' do orçamento conta pela data da compra ou pela competência da fatura (J-02); (2) o rateio incide sobre cada parcela, não só sobre o total da compra (J-01); (3) a API precisa distinguir 'total do grupo' de 'minhas cotas' (J-03)."
+**Context**: INCEPTION PHASE - User Stories - Part 2 (Steps 15-18)
+
+---
