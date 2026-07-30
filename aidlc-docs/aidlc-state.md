@@ -5,7 +5,7 @@
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: INCEPTION
-- **Current Stage**: User Stories — Parte 2 concluída (aguardando aprovação)
+- **Current Stage**: Workflow Planning (aguardando aprovação do plano de execução)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -45,17 +45,36 @@ RF-16, RF-24).
 - [x] Workspace Detection — COMPLETED (2026-07-30T16:11:59Z)
 - [x] Reverse Engineering — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
 - [x] Requirements Analysis — COMPLETED e APROVADO na revisão 6 (2026-07-30T16:11:59Z)
-- [x] User Stories — ARTEFATOS GERADOS (2026-07-30T16:11:59Z), aguardando aprovação
-- [ ] Workflow Planning — PENDING
-- [ ] Application Design — PENDING (avaliação condicional)
-- [ ] Units Generation — PENDING (avaliação condicional)
+- [x] User Stories — COMPLETED e APROVADO (2026-07-30T16:11:59Z)
+- [x] Workflow Planning — PLANO GERADO (2026-07-30T16:11:59Z), aguardando aprovação
+- [ ] Application Design — **EXECUTE**
+- [ ] Units Generation — **EXECUTE**
 
 ### CONSTRUCTION PHASE
-- [ ] Per-Unit Loop — PENDING
-- [ ] Build and Test — PENDING
+- [ ] Functional Design — **EXECUTE** (por unidade)
+- [ ] NFR Requirements — **EXECUTE** (primeira unidade apenas)
+- [ ] NFR Design — **EXECUTE** (por unidade)
+- [ ] Infrastructure Design — **EXECUTE** (unidade de infraestrutura apenas)
+- [ ] Code Generation — **EXECUTE** (sempre, por unidade)
+- [ ] Build and Test — **EXECUTE** (sempre, ao final)
 
 ### OPERATIONS PHASE
 - [ ] Operations — PLACEHOLDER
+
+## Execution Plan Summary
+- **Artifact**: `aidlc-docs/inception/plans/execution-plan.md`
+- **Stages a executar**: TODAS as condicionais — Application Design, Units Generation, Functional
+  Design, NFR Requirements, NFR Design, Infrastructure Design, Code Generation, Build and Test
+- **Stages puladas**: nenhuma
+- **Nível de risco**: Médio (complexidade alta, impacto do erro contido — sem produção, sem dados
+  reais, sem integração externa)
+- **Rollback**: fácil até o primeiro `terraform apply` com dados reais
+- **Complexidade de teste**: complexa (invariantes monetárias, PBT, Testcontainers)
+- **Unidades previstas**: 5 (U1 Fundação, U2 Lançamentos, U3 Crédito, U4 Planejamento,
+  U5 Infraestrutura) — decomposição definitiva sai na Units Generation
+- **Núcleo mínimo**: U1 + U2 + U3
+- **Gates de aprovação restantes**: ~20
+- **Aprovação do plano**: PENDENTE
 
 ## Reverse Engineering Status
 - [x] Reverse Engineering — Artefatos gerados em 2026-07-30T16:11:59Z (commit analisado: f1d7060)
@@ -100,7 +119,7 @@ RF-16, RF-24).
 - **Conteúdo**: 11 épicos, 60 histórias (H-01 a H-60), 3 jornadas transversais (J-01 a J-03),
   1 persona com 4 contextos, matriz de rastreabilidade com cobertura 70/70
 - **Núcleo mínimo**: 30 histórias marcadas
-- **Aprovação do usuário**: PENDENTE
+- **Aprovação do usuário**: ✅ APROVADO em 2026-07-30T16:11:59Z
 
 ### Decisões fechadas pelas User Stories
 | ID | Decisão | Origem |
