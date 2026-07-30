@@ -72,10 +72,33 @@ RF-16, RF-24).
 ## Requirements Analysis Status
 - [x] Requirements Analysis — Artefatos gerados em 2026-07-30T16:11:59Z
 - **Artifacts Location**: `aidlc-docs/inception/requirements/`
-  - `requirement-verification-questions.md` (17 perguntas respondidas + análise de contradições)
-  - `requirements.md` (44 requisitos funcionais, 12 não-funcionais, 6 cenários, 8 casos de borda)
+  - `requirement-verification-questions.md` (17 perguntas respondidas + análise de contradições + revisões pós-gate)
+  - `requirements.md` — **revisão 4**: 76 RF ativos (RF-01 a RF-77, RF-12 removido), 17 RNF,
+    10 cenários, 16 casos de borda, 11 premissas, 20 decisões, 4 riscos
 - **Depth**: Comprehensive
-- **Aprovação do usuário**: PENDENTE
+- **Aprovação do usuário**: PENDENTE (revisão 4)
+
+### Histórico de revisões dos requisitos
+| Rev. | RF ativos | Mudança |
+|---|---|---|
+| 1 | 44 | Versão inicial (17 perguntas de esclarecimento) |
+| 2 | 54 | Infraestrutura: AWS EC2 + Terraform no mesmo repo + PostgreSQL na instância |
+| 3 | 53 | "Casa" generalizada para "Grupo"; RF-12 (compartilhamento avulso) removido |
+| 4 | 76 | Contas a pagar (RF-55 a RF-67) e Investimentos (RF-68 a RF-77) |
+
+### Documento de registro de pesquisa
+`aidlc-docs/research-log.md` — registro cronológico e analítico do processo (decisões, alternativas
+descartadas, dados quantitativos e observações metodológicas O-01 a O-10). Destina-se a servir de
+base para um artigo científico ao final do ciclo. **Deve ser alimentado a cada alteração
+relevante**, antes de considerar a tarefa concluída.
+
+### Revisão pós-gate — "Casa" generalizada para "Grupo"
+O usuário solicitou mudanças no gate de aprovação: o conceito **Casa** (grupo doméstico) foi
+generalizado para **Grupo** — coleção nomeada de usuários que compartilham gastos (casa, república,
+casal, viagem etc.). Participação é opcional (zero, um ou vários grupos por usuário) e um grupo tem
+N membros. A cardinalidade já estava especificada; RF-07 e RF-08 foram reforçados para torná-la
+explícita. Renomeação aplicada em RF-03, RF-06 a RF-12, RF-16, RF-21, RF-24, cenários C-01/C-04,
+casos de borda E-05/E-08, premissas P-05/P-07 e decisão D-07.
 
 ### Ampliação de escopo detectada
 O pedido original ("cadastrar gastos e parcelas de cartão de crédito") foi ampliado durante o

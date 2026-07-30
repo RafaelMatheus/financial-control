@@ -283,3 +283,57 @@ contradições e ambiguidades.
 | 4 | **Tensão de escopo**: Q7 (qualquer membro da casa edita gastos compartilhados) vs. Q12 (cartão pode ser da casa) | Não é contradição, mas exige regra explícita sobre quem administra o cartão da casa e quem marca a fatura como paga. Endereçado por RF-24 e RF-27, e sinalizado como ponto de atenção para a Application Design. |
 
 **Status**: nenhuma contradição em aberto. Requisitos prontos para consolidação.
+
+---
+
+## Revisão pós-aprovação — Generalização de "Casa" para "Grupo"
+
+**Timestamp**: 2026-07-30T16:11:59Z
+**Origem**: usuário solicitou mudanças no gate de aprovação dos requisitos.
+**Input do usuário**: *"vamos tratar casa como um grupo enta2o o usuario pode ou nao participar de
+um grupo e pode ter n pessoas neste grupo"*
+
+**Mudança aplicada**: o conceito **Casa** (grupo doméstico) foi generalizado para **Grupo** — uma
+coleção nomeada de usuários que compartilham gastos, podendo representar uma casa, república,
+casal, viagem ou qualquer outro arranjo.
+
+**Escopo real da mudança**: conceitual e de nomenclatura. A cardinalidade descrita pelo usuário
+("pode ou não participar de um grupo", "pode ter N pessoas") **já estava especificada** em RF-07 e
+RF-08 desde a primeira versão. Os requisitos foram reforçados para tornar isso explícito:
+- RF-07 — participação em grupo é **opcional**; um usuário sem grupo usa o sistema normalmente
+- RF-08 — sem limite fixo de membros (**N pessoas**)
+
+**Requisitos afetados** (renomeação de Casa → Grupo): RF-03, RF-06 a RF-12, RF-16, RF-21, RF-24,
+cenários C-01 e C-04, casos de borda E-05 e E-08, premissas P-05 e P-07, decisão D-07.
+
+**Nota histórica**: as respostas registradas acima preservam a redação original do usuário, que
+usava "casa". Elas não foram reescritas — são o registro do que foi efetivamente perguntado e
+respondido naquele momento.
+
+**Consequência a resolver**: com grupos genéricos, o **compartilhamento avulso** (RF-12) pode ter
+se tornado redundante — o caso que ele cobria (compartilhar uma viagem com pessoas de fora da casa)
+agora é resolvido criando um grupo "Viagem". Levado ao usuário como pergunta de acompanhamento.
+
+### Resolução da consequência: RF-12 removido
+
+**Pergunta feita ao usuário**: *"Com grupos genéricos, o 'compartilhamento avulso' (RF-12) ainda
+faz sentido? Ele existia para cobrir gastos com pessoas de fora da casa — mas agora isso se resolve
+criando um grupo."*
+
+**Resposta do usuário**: **Remover RF-12** — modelo único de compartilhamento.
+
+**Impacto**: a Question 5 havia sido respondida como "Ambos" (grupo fixo + compartilhamento
+pontual) num momento em que o grupo era exclusivamente doméstico. Com grupos genéricos, os dois
+modelos colapsaram em um só. Ajustes aplicados em `requirements.md`:
+
+- **RF-12** marcado como REMOVIDO (número não reaproveitado, para preservar rastreabilidade)
+- **RF-03** — visibilidade agora deriva exclusivamente de pertencer a um grupo
+- **RF-13 / RF-14** — rateio entre *membros do grupo*, não entre "participantes" genéricos
+- **C-04** — reescrito: dividir uma viagem passa a ser criar o grupo "Viagem Chapada"
+- **E-07** — reformulado para validação de membro de grupo
+- **E-09, E-10** — novos casos de borda decorrentes do modelo único
+- **D-07** — resolvido: existe um único tipo de participante (membro do grupo)
+- **D-13** — nova decisão adiada: visibilidade do histórico para membro que entra depois
+
+**Ganho**: um único caminho de visibilidade e um único caminho de rateio, em vez de dois modelos
+paralelos com duas regras de autorização.

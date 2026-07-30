@@ -11,12 +11,12 @@
 
 | Dimensão | Avaliação |
 |---|---|
-| **User Request** | *"Gostaria de construir um sistema de controle de gastos financeiros que me permita cadastrar gastos e parcelas de cartão de crédito"* — ampliado durante o esclarecimento para incluir multi-usuário, categorias, receitas, orçamento e **compartilhamento de gastos numa casa** |
+| **User Request** | *"Gostaria de construir um sistema de controle de gastos financeiros que me permita cadastrar gastos e parcelas de cartão de crédito"* — ampliado durante o esclarecimento para incluir multi-usuário, categorias, receitas, orçamento e **compartilhamento de gastos num grupo** |
 | **Request Type** | **New Project** (domínio de negócio construído do zero sobre um esqueleto Spring Boot existente) |
 | **Request Clarity** | **Incompleto na origem** → resolvido para **Claro** após 17 perguntas de esclarecimento |
 | **Initial Scope Estimate** | **System-wide** — todo o modelo de domínio, camada de persistência, camada de API e autenticação |
-| **Initial Complexity Estimate** | **Complex** — 7+ agregados de domínio, regras de rateio configurável, cálculo de competência de fatura a partir do ciclo do cartão, aritmética monetária com resíduo, e um modelo de autorização com dois eixos (usuário e casa) |
-| **Depth Justification** | **Comprehensive**. O escopo cresceu significativamente durante o esclarecimento: o pedido original ("cadastrar gastos e parcelas") tornou-se um sistema multi-usuário com compartilhamento de despesas domésticas. Dinheiro, rateio entre pessoas e isolamento de dados são áreas onde ambiguidade custa caro. |
+| **Initial Complexity Estimate** | **Complex** — 10+ agregados de domínio, regras de rateio configurável, cálculo de competência de fatura a partir do ciclo do cartão, motor de recorrência de contas, aritmética monetária com resíduo, e um modelo de autorização com dois eixos (usuário e grupo) |
+| **Depth Justification** | **Comprehensive**. O escopo cresceu significativamente durante o esclarecimento: o pedido original ("cadastrar gastos e parcelas") tornou-se um sistema multi-usuário com compartilhamento de despesas em grupo. Dinheiro, rateio entre pessoas e isolamento de dados são áreas onde ambiguidade custa caro. |
 
 ### Evolução do escopo durante a análise
 
@@ -24,11 +24,27 @@ O pedido inicial sugeria um app pessoal simples. O esclarecimento revelou três 
 materiais:
 
 1. **Multi-usuário com isolamento de dados** (não era mencionado no pedido original)
-2. **Compartilhamento de gastos numa casa, com rateio configurável** (requisito novo, trazido pelo
+2. **Compartilhamento de gastos num grupo, com rateio configurável** (requisito novo, trazido pelo
    usuário na resposta à Question 2) — este é o requisito de maior complexidade do sistema
 3. **Receitas e orçamento por categoria** (além de gastos)
 
+E, numa segunda rodada de revisão (após o primeiro gate de aprovação), mais duas:
+
+4. **Contas a pagar com vencimento próprio** — fatura de cartão, PIX, boleto e fatura de serviço
+   numa visão única de vencimentos, com recorrência opcional
+5. **Objetivos de investimento** — aportes por objetivo nomeado, com meta, prazo alvo e saldo
+   atualizável manualmente
+
 O front-end, por outro lado, foi **removido** do escopo deste repositório.
+
+### Histórico de revisões deste documento
+
+| Rev. | Mudança | Origem |
+|---|---|---|
+| 1 | Versão inicial — 44 RF, 12 RNF | 17 perguntas de esclarecimento |
+| 2 | Infraestrutura: deploy em AWS EC2, Terraform no mesmo repo, PostgreSQL na instância (RF-45 a RF-54, RNF-13 a RNF-17, riscos R-01 a R-04) | Pergunta do usuário sobre onde colocar o Terraform |
+| 3 | "Casa" generalizada para **"Grupo"**; **RF-12 removido** (compartilhamento avulso) — modelo único de compartilhamento | Mudança solicitada no gate de aprovação |
+| 4 | **Contas a pagar** (RF-55 a RF-67) e **Investimentos** (RF-68 a RF-77); fatura de cartão unificada à visão de vencimentos | Pedido do usuário durante a revisão |
 
 ---
 
@@ -38,14 +54,17 @@ O front-end, por outro lado, foi **removido** do escopo deste repositório.
 
 - API REST (JSON) cobrindo todo o domínio de controle financeiro
 - Autenticação e autorização de usuários
-- Casas (grupos domésticos) com múltiplos membros
+- Grupos com N membros (ex.: casa, república, viagem, casal)
 - Gastos pessoais e compartilhados, com rateio configurável
 - Receitas
 - Categorias de gastos
 - Orçamento mensal por categoria
-- Cartões de crédito (pessoais ou da casa) com ciclo de fechamento/vencimento
+- Cartões de crédito (pessoais ou do grupo) com ciclo de fechamento/vencimento
 - Compras parceladas com geração automática de parcelas
 - Consolidação de faturas mensais com marcação de pagamento
+- **Contas a pagar** (fatura de cartão, PIX, boleto, fatura de serviço) com vencimento próprio,
+  recorrência opcional e visão consolidada de vencimentos
+- **Objetivos de investimento** com aportes, meta, prazo alvo e saldo atualizável manualmente
 - Schema de banco versionado via Flyway
 - Testes automatizados (exemplo + property-based parcial)
 - **Infraestrutura como código (Terraform)** para deploy em **AWS EC2**, no diretório
@@ -63,6 +82,9 @@ O front-end, por outro lado, foi **removido** do escopo deste repositório.
 | **App mobile nativo** | Não solicitado |
 | **Multi-moeda** | Não solicitado; assume-se **BRL** (ver premissa P-01) |
 | **Relatórios avançados / dashboards analíticos** | Não solicitado no MVP; consultas agregadas cobrem o essencial |
+| **Carteira de investimentos (ativos, cotações, rentabilidade por papel)** | O usuário optou por aportes + saldo manual. Sem CDB/tesouro/ações individualizados, sem indexadores, sem cotação |
+| **Resgate / retirada de objetivo de investimento** | Não marcado pelo usuário na seleção de atributos do objetivo — ver premissa P-08 |
+| **Pagamento efetivo (integração com banco, geração de PIX ou boleto)** | O sistema registra que a conta foi paga; não executa o pagamento |
 | **Acerto de contas entre membros ("quem deve a quem")** | Não solicitado. O sistema calcula as cotas de cada gasto (RF-19), mas **não** consolida saldos entre pessoas nem registra pagamentos entre membros — ver premissa P-06 |
 | **Baseline de resiliência (HA, DR, RTO/RPO)** | Extensão desligada (Question 15). A arquitetura alvo é instância única — ver risco R-04 |
 | **RDS ou qualquer banco gerenciado** | Decisão D-10 — PostgreSQL roda na própria instância EC2 |
@@ -81,33 +103,44 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 |---|---|---|
 | RF-01 | M | O sistema deve permitir o cadastro de um usuário com identificação única (e-mail) e credencial de acesso. |
 | RF-02 | M | O sistema deve autenticar o usuário antes de permitir qualquer operação sobre dados financeiros. |
-| RF-03 | M | O sistema deve garantir que um usuário só acesse dados dos quais é proprietário ou aos quais tem visibilidade por pertencer a uma casa ou por compartilhamento avulso. |
+| RF-03 | M | O sistema deve garantir que um usuário só acesse dados dos quais é proprietário ou aos quais tem visibilidade **por pertencer a um grupo**. |
 | RF-04 | M | O sistema deve rejeitar, com resposta apropriada, qualquer tentativa de acesso a recurso de outro usuário fora das regras de visibilidade. |
 | RF-05 | S | O sistema deve permitir que o usuário consulte e atualize seus próprios dados de perfil. |
 
 > **Nota**: o *mecanismo* de autenticação (JWT stateless, sessão, OAuth2/OIDC) é uma decisão de
 > stack, deliberadamente adiada para a stage **NFR Requirements** (ver Seção 8, decisão D-02).
 
-### 3.2 Casa (grupo doméstico)
+### 3.2 Grupo
+
+> **Nota de terminologia**: o conceito foi originalmente levantado como **"Casa"** (grupo
+> doméstico) e depois **generalizado para "Grupo"** a pedido do usuário. Um grupo é uma coleção
+> nomeada de usuários que compartilham gastos — pode representar uma casa, uma república, um casal,
+> uma viagem ou qualquer outro arranjo. A generalização não altera a cardinalidade, que já estava
+> especificada: um usuário pertence a **zero, um ou vários** grupos, e um grupo tem **N membros**.
 
 | ID | Prioridade | Requisito |
 |---|---|---|
-| RF-06 | M | O sistema deve permitir criar uma casa com nome identificador. |
-| RF-07 | M | O sistema deve permitir que um usuário pertença a **zero, uma ou várias** casas. |
-| RF-08 | M | O sistema deve permitir adicionar e remover membros de uma casa. |
-| RF-09 | M | O sistema deve tornar visível a todos os membros de uma casa qualquer gasto marcado com escopo daquela casa. |
-| RF-10 | S | O sistema deve permitir que um membro saia de uma casa, preservando o histórico dos gastos já lançados. |
+| RF-06 | M | O sistema deve permitir criar um grupo com nome identificador. |
+| RF-07 | M | O sistema deve permitir que um usuário pertença a **zero, um ou vários** grupos — a participação em grupo é **opcional**. Um usuário sem nenhum grupo usa o sistema normalmente, apenas sem gastos compartilhados por grupo. |
+| RF-08 | M | O sistema deve permitir adicionar e remover membros de um grupo, sem limite fixo de membros (**N pessoas**). |
+| RF-09 | M | O sistema deve tornar visível a todos os membros de um grupo qualquer gasto marcado com escopo daquele grupo. |
+| RF-10 | S | O sistema deve permitir que um membro saia de um grupo, preservando o histórico dos gastos já lançados. |
 
 ### 3.3 Compartilhamento e Rateio
 
+> **Modelo único de compartilhamento**: todo compartilhamento acontece **através de um grupo**.
+> Não existe compartilhamento pontual com usuários avulsos — para dividir um gasto com pessoas
+> específicas, cria-se um grupo com elas. Isso resulta em um único caminho de visibilidade e um
+> único caminho de rateio, em vez de dois modelos paralelos.
+
 | ID | Prioridade | Requisito |
 |---|---|---|
-| RF-11 | M | O sistema deve permitir marcar um gasto com escopo **PESSOAL** (visível apenas ao autor) ou **CASA** (visível a todos os membros da casa indicada). |
-| RF-12 | M | O sistema deve permitir, adicionalmente, o **compartilhamento avulso** de um gasto com usuários específicos que não pertencem à casa (Question 5 — opção "Ambos"). |
-| RF-13 | M | O sistema deve dividir o valor de um gasto compartilhado entre os participantes, com **divisão igual como padrão**. |
-| RF-14 | M | O sistema deve permitir sobrescrever a divisão padrão de um gasto, por **percentual** ou por **valor absoluto**, individualmente por participante. |
+| RF-11 | M | O sistema deve permitir marcar um gasto com escopo **PESSOAL** (visível apenas ao autor) ou **GRUPO** (visível a todos os membros do grupo indicado). |
+| ~~RF-12~~ | — | ~~Compartilhamento avulso com usuários que não pertencem ao grupo.~~ **REMOVIDO** na revisão pós-gate. Justificativa: com a generalização de "Casa" para "Grupo" (conceito genérico), o caso de uso que este requisito cobria — dividir um gasto com pessoas fora do grupo doméstico — passa a ser atendido criando um grupo. Manter os dois modelos significaria duas regras de visibilidade e dois caminhos de autorização sem ganho funcional. **O número RF-12 não foi reaproveitado**, para preservar a rastreabilidade da numeração. |
+| RF-13 | M | O sistema deve dividir o valor de um gasto de escopo GRUPO entre os membros do grupo, com **divisão igual como padrão**. |
+| RF-14 | M | O sistema deve permitir sobrescrever a divisão padrão de um gasto, por **percentual** ou por **valor absoluto**, individualmente por membro. |
 | RF-15 | M | O sistema deve garantir que a soma das cotas de um gasto compartilhado seja **exatamente igual** ao valor total do gasto — invariante de integridade monetária. |
-| RF-16 | M | O sistema deve permitir que **qualquer membro da casa** edite ou exclua um gasto de escopo CASA daquela casa (Question 7). |
+| RF-16 | M | O sistema deve permitir que **qualquer membro do grupo** edite ou exclua um gasto de escopo GRUPO daquele grupo (Question 7). |
 | RF-17 | M | O sistema deve registrar quem lançou cada gasto (autoria), mesmo que outros membros possam editá-lo. |
 
 ### 3.4 Gastos
@@ -117,7 +150,7 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 | RF-18 | M | O sistema deve permitir cadastrar um gasto com, no mínimo: descrição, valor, data e categoria. |
 | RF-19 | M | O sistema deve permitir associar um gasto a uma forma de pagamento — à vista ou em cartão de crédito. |
 | RF-20 | M | O sistema deve permitir editar e excluir gastos, respeitando as regras de permissão (RF-16). |
-| RF-21 | M | O sistema deve permitir consultar gastos por período, com filtros por categoria, casa e escopo. |
+| RF-21 | M | O sistema deve permitir consultar gastos por período, com filtros por categoria, grupo e escopo. |
 | RF-22 | S | O sistema deve totalizar os gastos consultados, no total e por categoria. |
 
 ### 3.5 Cartões de Crédito
@@ -125,10 +158,10 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 | ID | Prioridade | Requisito |
 |---|---|---|
 | RF-23 | M | O sistema deve permitir cadastrar cartões de crédito com apelido, **dia de fechamento** e **dia de vencimento** (Question 8). |
-| RF-24 | M | O sistema deve permitir que um cartão pertença a um **usuário** ou a uma **casa**; a fatura de um cartão da casa é visível a todos os seus membros (Question 12). |
-| RF-25 | M | O sistema deve determinar automaticamente em qual **fatura de competência** cada compra ou parcela cai, a partir da data da compra e do dia de fechamento do cartão. |
-| RF-26 | M | O sistema deve consolidar a fatura mensal de um cartão, listando todos os lançamentos e parcelas que nela incidem, com o valor total. |
-| RF-27 | M | O sistema deve permitir marcar uma fatura como **paga**, registrando a data do pagamento. |
+| RF-24 | M | O sistema deve permitir que um cartão pertença a um **usuário** ou a um **grupo**; a fatura de um cartão do grupo é visível a todos os seus membros (Question 12). |
+| RF-25 | M | O sistema deve determinar automaticamente em qual **fatura de competência** cada compra ou parcela cai, a partir da data da compra e do **dia de fechamento** do cartão — nunca do dia de vencimento (ver RF-61). |
+| RF-26 | M | O sistema deve consolidar a fatura mensal de um cartão, listando todos os lançamentos e parcelas que nela incidem, com o valor total. A fatura fechada materializa-se como uma **conta a pagar** (RF-59). |
+| RF-27 | M | O sistema deve permitir marcar uma fatura como **paga**, registrando a data do pagamento — operação equivalente a quitar a conta a pagar correspondente (RF-57). |
 | RF-28 | S | O sistema deve permitir consultar faturas futuras, projetando as parcelas já comprometidas. |
 
 ### 3.6 Compras Parceladas
@@ -157,7 +190,7 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 |---|---|---|
 | RF-39 | M | O sistema deve permitir cadastrar receitas com descrição, valor e data. |
 | RF-40 | M | O sistema deve permitir consultar receitas por período. |
-| RF-41 | S | O sistema deve apresentar o balanço do período (receitas − gastos). |
+| RF-41 | S | O sistema deve apresentar o balanço do período (receitas − gastos). Os **aportes em investimento contam como gasto** neste cálculo (RF-76). |
 
 ### 3.9 Orçamento por Categoria
 
@@ -167,7 +200,52 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 | RF-43 | M | O sistema deve comparar o orçado com o realizado do mês, por categoria. |
 | RF-44 | S | O sistema deve sinalizar categorias que ultrapassaram o teto orçado. |
 
-### 3.10 Infraestrutura e Deploy
+### 3.10 Contas a Pagar (vencimentos)
+
+> **Conceito**: uma **conta a pagar** é qualquer obrigação financeira com **vencimento próprio** e
+> status de pagamento — fatura de cartão de crédito, PIX a fazer, boleto, ou fatura de serviço
+> (energia, gás, água, internet). Todas convivem numa **visão única de vencimentos**.
+>
+> **Unificação com a fatura de cartão**: a fatura consolidada do cartão (RF-26) **é** uma conta a
+> pagar, gerada automaticamente pelo sistema — não precisa ser cadastrada à mão.
+
+| ID | Prioridade | Requisito |
+|---|---|---|
+| RF-55 | M | O sistema deve permitir cadastrar uma conta a pagar com, no mínimo: descrição, valor, **data de vencimento própria**, tipo e categoria. |
+| RF-56 | M | O sistema deve suportar os tipos de conta: **FATURA_CARTAO**, **PIX**, **BOLETO** e **FATURA_SERVICO** (energia, gás, água, internet e similares). |
+| RF-57 | M | O sistema deve manter o status de cada conta como **EM ABERTO** ou **PAGA**, registrando a data do pagamento na quitação. |
+| RF-58 | M | O sistema deve apresentar uma **visão consolidada de vencimentos** por período, reunindo todos os tipos de conta, ordenada por data de vencimento e com o total do período. |
+| RF-59 | M | O sistema deve **gerar automaticamente** uma conta a pagar do tipo FATURA_CARTAO a cada fechamento de fatura, com valor igual ao total consolidado (RF-26) e vencimento igual ao dia de vencimento do cartão (RF-23). |
+| RF-60 | M | Enquanto a fatura de um cartão estiver **aberta**, cada nova compra lançada naquele cartão deve **incrementar o valor** da fatura em formação. |
+| RF-61 | M | O corte que determina em qual fatura a compra cai é o **dia de fechamento** do cartão, informado no seu cadastro (RF-23). Compras após o fechamento vão para a fatura do mês seguinte, ainda que a fatura corrente não tenha vencido. |
+| RF-62 | M | Ao cadastrar uma conta, o sistema deve **perguntar se ela se repete**. Contas recorrentes e avulsas convivem no mesmo modelo. |
+| RF-63 | M | Para contas recorrentes, o sistema deve gerar automaticamente a ocorrência de cada período a partir do cadastro (descrição, dia de vencimento e frequência). |
+| RF-64 | M | O valor de uma ocorrência de conta recorrente deve ser **ajustável** no momento do pagamento — contas como energia e gás variam mês a mês. |
+| RF-65 | M | O sistema deve permitir marcar uma conta a pagar com escopo **PESSOAL** ou **GRUPO**, seguindo as mesmas regras de visibilidade e rateio dos gastos (RF-11, RF-13 a RF-16). |
+| RF-66 | S | O sistema deve permitir consultar contas **a vencer** num horizonte configurável (ex.: próximos 7 ou 30 dias) e identificar contas **vencidas e não pagas**. |
+| RF-67 | S | O sistema deve permitir encerrar uma conta recorrente, interrompendo a geração de novas ocorrências sem apagar o histórico. |
+
+### 3.11 Investimentos
+
+> **Conceito**: um **objetivo de investimento** é um bolso nomeado onde o usuário guarda dinheiro
+> com um propósito — "Viagem", "Reserva de emergência", "Geral". O usuário registra **aportes** e
+> pode atualizar o **saldo atual à mão** para refletir o rendimento, sem que o sistema precise
+> conhecer ativos ou indexadores.
+
+| ID | Prioridade | Requisito |
+|---|---|---|
+| RF-68 | M | O sistema deve permitir criar objetivos de investimento com nome identificador (ex.: "Viagem", "Geral"). |
+| RF-69 | M | O sistema deve permitir registrar **aportes** em um objetivo, com valor e data. |
+| RF-70 | M | O sistema deve acumular o **total aportado** em cada objetivo. |
+| RF-71 | M | O sistema deve permitir **atualizar manualmente o saldo atual** de um objetivo, para refletir rendimento sem exigir controle de ativos. |
+| RF-72 | M | O sistema deve calcular o **rendimento implícito** de um objetivo como `saldo atual − total aportado`. |
+| RF-73 | M | O sistema deve permitir definir um **valor de meta** para um objetivo, apresentando o progresso e quanto falta. A meta é **opcional** — objetivos abertos como "Geral" podem não ter alvo. |
+| RF-74 | M | O sistema deve permitir definir um **prazo alvo** para um objetivo e calcular o **aporte mensal necessário** para atingir a meta dentro do prazo. |
+| RF-75 | M | O sistema deve permitir que um objetivo de investimento pertença a um **grupo**, com todos os membros aportando e enxergando o progresso — seguindo as regras de visibilidade de RF-09 e RF-11. |
+| RF-76 | M | O **aporte deve ser contabilizado como gasto** no balanço do mês (RF-41), como qualquer outra saída de dinheiro. |
+| RF-77 | S | O sistema deve apresentar a posição consolidada de todos os objetivos: total aportado, saldo atual e rendimento agregado. |
+
+### 3.12 Infraestrutura e Deploy
 
 | ID | Prioridade | Requisito |
 |---|---|---|
@@ -210,8 +288,8 @@ Numeração `RF-nn`. Prioridade: **M** (must), **S** (should), **C** (could).
 
 ## 5. Cenários de Usuário Principais
 
-**C-01 — Lançar um gasto compartilhado da casa com rateio desigual**
-Rafael faz uma compra de mercado de R$ 400. Ele lança o gasto com escopo CASA (Apartamento 42),
+**C-01 — Lançar um gasto compartilhado do grupo com rateio desigual**
+Rafael faz uma compra de mercado de R$ 400. Ele lança o gasto com escopo GRUPO (Apartamento 42),
 categoria "Alimentação". O sistema propõe divisão igual (R$ 200 / R$ 200). Rafael ajusta para
 70% / 30%, resultando em R$ 280 para ele e R$ 120 para Ana. Ana, ao consultar seus gastos do
 período, enxerga o lançamento e sua cota de R$ 120.
@@ -227,9 +305,12 @@ Rafael consulta a fatura de agosto/2026 do Nubank. O sistema lista todos os lan�
 com competência naquela fatura, apresenta o total e permite marcá-la como paga com a data do
 pagamento.
 
-**C-04 — Compartilhamento avulso fora da casa**
-Rafael paga R$ 900 de uma viagem e compartilha o gasto com João e Maria, que não são membros da
-casa. O sistema divide o valor entre os três e torna o lançamento visível a eles, sem envolver Ana.
+**C-04 — Dividir um gasto com pessoas fora do grupo doméstico**
+Rafael vai dividir R$ 900 de uma viagem com João e Maria, que não pertencem ao grupo
+"Apartamento 42". Ele cria o grupo **"Viagem Chapada"** com os três e lança o gasto com escopo
+GRUPO nesse grupo. O sistema divide o valor entre os três membros e torna o lançamento visível a
+eles, sem envolver Ana. Ilustra o modelo único de compartilhamento: qualquer arranjo de pessoas é
+expresso como um grupo.
 
 **C-05 — Acompanhar o orçamento**
 Rafael define um teto de R$ 1.500/mês para "Alimentação". Ao consultar o orçamento de agosto, vê o
@@ -240,6 +321,29 @@ Rafael percebe que lançou o notebook em 12x de R$ 100 quando o correto era 10x 
 a compra; o sistema descarta as 12 parcelas anteriores e regenera 10 parcelas, mantendo a
 invariante soma = R$ 1.200.
 
+**C-07 — Ver tudo o que vence no mês, num lugar só**
+Rafael abre a visão de vencimentos de agosto/2026. O sistema lista, ordenado por data: a fatura do
+Nubank (R$ 539,90, vence 05/08 — gerada automaticamente no fechamento de 28/07), a conta de energia
+(R$ 180, vence 10/08 — recorrente), o PIX do aluguel para Ana (R$ 800, vence 15/08) e o boleto do
+IPVA (R$ 420, vence 20/08). Total de R$ 1.939,90. Ele marca a energia como paga em 09/08.
+
+**C-08 — Compra entra na fatura aberta**
+Em 20/07 Rafael compra R$ 150 em livros no Nubank (fechamento dia 28). Como a fatura de agosto
+ainda está aberta, o valor entra nela — que sobe de R$ 389,90 para R$ 539,90. Em 30/07 ele compra
+mais R$ 80: já passou o fechamento, então esse valor vai para a fatura de setembro, mesmo a de
+agosto ainda não tendo vencido.
+
+**C-09 — Guardar dinheiro para a viagem**
+Rafael cria o objetivo "Viagem Europa" com meta de R$ 15.000 e prazo alvo julho/2027. O sistema
+calcula o aporte mensal necessário. Ele aporta R$ 2.000 em junho, julho e agosto — R$ 6.000
+acumulados, e cada aporte entra como gasto no balanço do mês. Em setembro ele consulta o extrato do
+banco, vê R$ 6.240 e atualiza o saldo à mão; o sistema passa a mostrar R$ 240 de rendimento e
+progresso de 41,6% da meta.
+
+**C-10 — Objetivo compartilhado do grupo**
+Rafael e Ana criam o objetivo "Reforma" no grupo "Apartamento 42", com meta de R$ 8.000. Ambos
+aportam ao longo dos meses e os dois enxergam o total acumulado e o progresso.
+
 ### Cenários de borda e erro identificados
 
 | # | Cenário | Tratamento esperado |
@@ -248,10 +352,18 @@ invariante soma = R$ 1.200.
 | E-02 | Rateio configurado cuja soma difere do total do gasto | RF-15: rejeitar a operação |
 | E-03 | Compra no exato dia de fechamento do cartão | Regra de fronteira a definir na Functional Design (ver decisão D-04) |
 | E-04 | Cartão com fechamento no dia 31 e mês com 30 dias | Regra de fronteira a definir na Functional Design |
-| E-05 | Membro sai da casa com gastos compartilhados em aberto | RF-10: preservar histórico |
+| E-05 | Membro sai do grupo com gastos compartilhados em aberto | RF-10: preservar histórico |
 | E-06 | Exclusão de categoria com gastos vinculados | RF-37: bloquear ou realocar |
-| E-07 | Compartilhamento avulso com usuário inexistente | Rejeitar com erro de validação |
-| E-08 | Usuário tenta acessar fatura de cartão de outra casa | RF-04: negar acesso |
+| E-07 | Tentativa de adicionar usuário inexistente a um grupo | Rejeitar com erro de validação |
+| E-08 | Usuário tenta acessar fatura de cartão de outro grupo | RF-04: negar acesso |
+| E-09 | Gasto de escopo GRUPO lançado por usuário que não pertence a nenhum grupo | Rejeitar — escopo GRUPO exige grupo válido do qual o autor é membro (RF-07, RF-11) |
+| E-10 | Membro adicionado a um grupo após gastos já lançados | Definir na Functional Design se ele passa a enxergar o histórico ou apenas os gastos posteriores à entrada |
+| E-11 | Conta recorrente com vencimento no dia 31 e mês com 30 dias | Regra de fronteira a definir na Functional Design (mesma natureza de E-04) |
+| E-12 | Compra lançada retroativamente, em fatura de cartão já fechada | Definir na Functional Design: rejeitar, ou alocar na próxima fatura aberta |
+| E-13 | Compra excluída depois que a fatura já virou conta a pagar | O valor da conta precisa ser recalculado, ou a operação bloqueada se a conta já estiver PAGA |
+| E-14 | Saldo atual do objetivo informado **menor** que o total aportado (prejuízo ou resgate não registrado) | Rendimento implícito fica negativo (RF-72). Deve ser aceito e exibido, não rejeitado — ver premissa P-08 |
+| E-15 | Objetivo com meta e prazo já vencido sem a meta atingida | Sinalizar o objetivo como atrasado; não bloquear novos aportes |
+| E-16 | Objetivo de grupo com membro que sai do grupo | Mesmo tratamento de E-05: preservar o histórico de aportes |
 
 ---
 
@@ -265,7 +377,7 @@ invariante soma = R$ 1.200.
 
 > **Ressalva importante sobre a extensão Security**: desligá-la remove o *checklist bloqueante de
 > hardening* das stages do AI-DLC. **Não** remove autenticação, isolamento de dados ou permissões
-> de casa — confirmado pelo usuário na Question 17, esses permanecem como requisitos funcionais
+> de grupo — confirmado pelo usuário na Question 17, esses permanecem como requisitos funcionais
 > de primeira classe (RF-01 a RF-05, RF-16, RF-24).
 
 ---
@@ -278,9 +390,13 @@ invariante soma = R$ 1.200.
 | P-02 | Fuso horário de negócio: **America/Sao_Paulo**, com persistência em UTC. | Médio — afetaria cálculo de competência de fatura |
 | P-03 | Volume: dezenas de usuários, milhares de lançamentos. Sem requisito de escala. | Baixo — afetaria decisões de índice e paginação |
 | P-04 | ~~Deploy: nenhuma decisão tomada.~~ **Revisada**: deploy em **AWS EC2**, IaC em Terraform no mesmo repositório, PostgreSQL na própria instância. Ver Seção 8 (D-08 a D-10) e Seção 8.1 (riscos). | — (decidido) |
-| P-05 | Receitas são individuais, **não** compartilháveis entre membros da casa. | Médio — o usuário pediu compartilhamento explicitamente para *gastos* |
+| P-05 | Receitas são individuais, **não** compartilháveis entre membros do grupo. | Médio — o usuário pediu compartilhamento explicitamente para *gastos* |
 | P-06 | O sistema calcula as cotas de cada gasto, mas **não** consolida "quem deve a quem" nem registra acertos entre membros. | Médio — é a extensão natural do rateio; fora do escopo declarado |
-| P-07 | Um gasto pago com cartão de crédito da casa também pode ter rateio próprio, independente da propriedade do cartão. | Médio — afeta o modelo de domínio |
+| P-07 | Um gasto pago com cartão de crédito do grupo também pode ter rateio próprio, independente da propriedade do cartão. | Médio — afeta o modelo de domínio |
+| P-08 | **Não** há registro de resgate/retirada de objetivo de investimento — o usuário não marcou esse atributo. Retiradas são refletidas indiretamente ao atualizar o saldo atual à mão (RF-71). | Médio — se incorreta, o rendimento implícito (RF-72) fica distorcido em objetivos com retirada |
+| P-09 | O sistema **registra** que uma conta foi paga; não executa pagamento nem integra com banco. | Baixo |
+| P-10 | Contas recorrentes têm frequência **mensal**. Outras periodicidades (anual, semanal) não foram solicitadas. | Médio — IPVA e IPTU são anuais e poderiam se beneficiar |
+| P-11 | A fatura de cartão gerada como conta a pagar (RF-59) é **derivada**, não editável diretamente: seu valor vem da consolidação dos lançamentos (RF-26). | Médio — afeta o modelo de domínio e o comportamento de E-13 |
 
 ---
 
@@ -294,7 +410,15 @@ invariante soma = R$ 1.200.
 | D-04 | Regra de fronteira do fechamento de fatura (compra no exato dia do fechamento; fechamento dia 29–31 em meses curtos) | ⏳ Adiado para **Functional Design** |
 | D-05 | Framework PBT: **Kotest Property Testing** (recomendação PBT-09 para Kotlin) | ✅ Pré-decidido; confirmar em NFR Requirements |
 | D-06 | Documentação de API: springdoc-openapi | ⏳ Adiado para **NFR Requirements** — necessário por RNF-08 |
-| D-07 | Modelagem de "participante" de um gasto compartilhado (membro da casa vs. usuário avulso — entidade única ou distinta) | ⏳ Adiado para **Application Design** |
+| D-07 | ~~Modelagem de "participante" de um gasto compartilhado (membro do grupo vs. usuário avulso).~~ **Resolvido** pela remoção de RF-12: existe apenas um tipo de participante — **membro do grupo**. A cota de rateio referencia um membro, não um usuário arbitrário. | ✅ Resolvido |
+| D-13 | Visibilidade do histórico para membro que entra em um grupo já existente (ver E-10) | ⏳ Adiado para **Functional Design** |
+| D-14 | **Fatura de cartão unificada com conta a pagar**: a fatura fechada gera automaticamente uma conta a pagar (RF-59), em vez de viver num módulo separado | ✅ Decidido. Uma única visão de vencimentos reunindo fatura, PIX, boleto e fatura de serviço |
+| D-15 | **Fechamento** (não vencimento) determina a fatura de destino de cada compra (RF-61) | ✅ Decidido. Confirma o comportamento real de cartão de crédito e mantém os valores compatíveis com o extrato do banco |
+| D-16 | **Recorrência como pergunta no cadastro** da conta (RF-62), com contas recorrentes e avulsas no mesmo modelo | ✅ Decidido |
+| D-17 | **Investimento: aportes + saldo manual** (RF-69, RF-71), sem controle de ativos, indexadores ou cotação | ✅ Decidido. Rendimento é derivado (`saldo − aportado`), não calculado a partir de taxas |
+| D-18 | **Aporte conta como gasto** no balanço do mês (RF-76) | ✅ Decidido pelo usuário. Consequência: o balanço mede fluxo de caixa, não variação patrimonial — investir reduz o saldo do mês |
+| D-19 | Mecanismo de geração das ocorrências de contas recorrentes (job agendado, geração sob demanda na consulta, ou híbrido) | ⏳ Adiado para **Functional Design** |
+| D-20 | Momento e mecanismo do fechamento automático da fatura (RF-59) — job agendado ou cálculo derivado na leitura | ⏳ Adiado para **Functional Design** |
 | D-08 | **Terraform no mesmo repositório**, em `infra/terraform/` | ✅ Decidido. Critério: um único serviço consome a infra, um único mantenedor, infra pequena. App e IaC mudam no mesmo PR, sem sincronização entre repositórios. Repo separado passaria a valer com múltiplos serviços na mesma infra ou separação real de permissões de deploy |
 | D-09 | **IaC dentro deste ciclo AI-DLC** — a stage Infrastructure Design será executada | ✅ Decidido |
 | D-10 | **PostgreSQL na própria instância EC2** (container Docker), não em RDS | ✅ Decidido. Menor custo e menor complexidade; em contrapartida, backup e recuperação passam a ser responsabilidade própria — ver risco R-01 |
@@ -341,7 +465,7 @@ O ciclo será considerado bem-sucedido quando:
 2. Uma compra parcelada lançada por valor de parcela gerar N parcelas com soma exatamente igual ao
    total
 3. Cada parcela cair na fatura correta segundo o ciclo de fechamento do cartão
-4. Um gasto de casa aparecer para todos os membros com as cotas corretas, e a soma das cotas
+4. Um gasto de grupo aparecer para todos os membros com as cotas corretas, e a soma das cotas
    igualar o valor do gasto
 5. A fatura mensal consolidar corretamente os lançamentos e puder ser marcada como paga
 6. O schema for criado por migrations Flyway versionadas, com `ddl-auto: validate` passando
@@ -349,6 +473,13 @@ O ciclo será considerado bem-sucedido quando:
    rateio
 8. A infraestrutura (EC2 + PostgreSQL em container + volume EBS + security group) for provisionável
    a partir do Terraform versionado em `infra/terraform/`, sem passos manuais no console AWS
+9. A visão de vencimentos reunir, ordenados por data, a fatura de cartão gerada automaticamente e
+   as contas de PIX, boleto e serviço — com marcação de pagamento funcionando para todas
+10. Uma compra lançada antes do fechamento aumentar a fatura em aberto, e uma lançada depois do
+    fechamento cair na fatura seguinte, ainda que a atual não tenha vencido
+11. Uma conta recorrente gerar as ocorrências de cada mês com valor ajustável no pagamento
+12. Um objetivo de investimento acumular aportes, aceitar atualização manual de saldo, exibir
+    rendimento implícito e progresso contra a meta, e funcionar também no escopo de grupo
 
 ---
 
@@ -357,8 +488,8 @@ O ciclo será considerado bem-sucedido quando:
 | Requisito | Origem |
 |---|---|
 | RF-01 a RF-05 | Question 1 (multi-usuário) + Question 17 (auth como requisito funcional) |
-| RF-06 a RF-10 | Question 2 (texto livre do usuário sobre casa) + Question 5 |
-| RF-11 a RF-17 | Questions 5, 6, 7 |
+| RF-06 a RF-10 | Question 2 (texto livre do usuário sobre grupo) + Question 5 |
+| RF-11, RF-13 a RF-17 | Questions 5, 6, 7 — **revisados** na generalização Casa → Grupo. RF-12 (compartilhamento avulso) removido: a Question 5 fora respondida como "Ambos" quando o grupo era exclusivamente doméstico; com grupos genéricos, o modelo colapsou em um só |
 | RF-18 a RF-22 | Pedido original + Question 2 |
 | RF-23 a RF-28 | Questions 8, 9, 12 |
 | RF-29 a RF-35 | Pedido original + Questions 4, 10, 11 |
@@ -369,6 +500,8 @@ O ciclo será considerado bem-sucedido quando:
 | RNF-07 | Question 16 + `extensions/testing/property-based/property-based-testing.md` |
 | RNF-08 | Question 3 (front-end em outro repositório) |
 | RNF-03, RNF-06 | Práticas já estabelecidas no repositório (engenharia reversa) |
+| RF-55 a RF-67 | Rodada de esclarecimento sobre contas a pagar — pedido do usuário: *"cada conta pode ter um vencimento especifico para ela"*, detalhado como *"conta de cartao de credito, pix que tenho para fazer, boleto, fatura (energia eletrica, gás, viagem)"* e *"a fatura da conta deve passar a ser um vencimento geral"* |
+| RF-68 a RF-77 | Mesmo pedido — *"eu quero poder adicionar valores relacionados a investimentos... Exemplo: investimento de viagem e investimento de geral"* |
 | RF-45 a RF-54 | Rodada de esclarecimento sobre infraestrutura (deploy em AWS EC2, Terraform no mesmo repo, PostgreSQL na instância) |
 | RNF-13 a RNF-17 | Mesma rodada — decorrências não-funcionais das decisões D-08, D-09 e D-10 |
 | R-01 a R-04 | Análise de risco das decisões de infraestrutura |

@@ -131,3 +131,88 @@ Complete audit trail of all user inputs and AI responses.
 **Context**: INCEPTION PHASE - Requirements Analysis - Infrastructure scope decisions
 
 ---
+
+## Requirements Analysis — Approval Gate (rodada 1: mudanças solicitadas)
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: "Requirements Analysis concluída (agora incluindo infraestrutura). Como deseja prosseguir?" — opções: Aprovar e continuar / Solicitar mudanças / Pular User Stories / Reativar extensão Security
+**User Input**: "Solicitar mudanças"
+**AI Response**: "Usuário selecionou 'Solicitar mudanças' sem descrever a mudança. Feita pergunta de acompanhamento via AskUserQuestion oferecendo as áreas prováveis de alteração (escopo do MVP, regras de negócio, infraestrutura e deploy, premissas e riscos), com 'Other' disponível para texto livre."
+**Context**: INCEPTION PHASE - Requirements Analysis - Approval Gate (changes requested)
+
+---
+
+## Requirements Analysis — Change Request: "Casa" → "Grupo"
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: "O que você quer mudar nos requisitos?" (multi-select: Escopo do MVP / Regras de negócio / Infraestrutura e deploy / Premissas e riscos, com Other)
+**User Input**: "vamos tratar casa como um grupo enta2o o usuario pode ou nao participar de um grupo e pode ter n pessoas neste grupo"
+**AI Response**: "Mudança aplicada: conceito 'Casa' (grupo doméstico) generalizado para 'Grupo' — coleção nomeada de usuários que compartilham gastos, podendo representar casa, república, casal, viagem ou outro arranjo. Renomeação aplicada em requirements.md: RF-03, RF-06 a RF-12, RF-16, RF-21, RF-24, cenários C-01 e C-04, casos de borda E-05 e E-08, premissas P-05 e P-07, decisão D-07, seções de escopo e rastreabilidade. Adicionada nota de terminologia na Seção 3.2. Registrado que a cardinalidade descrita pelo usuário ('pode ou não participar', 'N pessoas') JÁ estava especificada em RF-07 e RF-08 desde a primeira versão — os requisitos foram reforçados para torná-la explícita (RF-07: participação opcional, usuário sem grupo usa o sistema normalmente; RF-08: sem limite fixo de membros). As respostas históricas em requirement-verification-questions.md foram preservadas com a redação original ('casa'), com nota explicando a generalização posterior. Estado atualizado em aidlc-state.md. Consequência identificada e levada ao usuário: com grupos genéricos, o compartilhamento avulso (RF-12) pode ter se tornado redundante."
+**Context**: INCEPTION PHASE - Requirements Analysis - Change applied (terminology generalization)
+
+---
+
+## Requirements Analysis — RF-12 Removal
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: "Com grupos genéricos, o 'compartilhamento avulso' (RF-12) ainda faz sentido? Ele existia para cobrir gastos com pessoas de fora da casa — mas agora isso se resolve criando um grupo."
+**User Input**: "Remover RF-12 (Recomendado)"
+**AI Response**: "RF-12 removido. Número não reaproveitado, para preservar rastreabilidade da numeração. Modelo único de compartilhamento: todo compartilhamento passa por grupo. Ajustes: RF-03 (visibilidade deriva só de grupo), RF-13/RF-14 (rateio entre membros do grupo), C-04 reescrito (criar grupo 'Viagem Chapada'), E-07 reformulado, E-09 e E-10 adicionados, D-07 resolvido por eliminação, D-13 adicionado."
+**Context**: INCEPTION PHASE - Requirements Analysis - Model simplification
+
+---
+
+## Requirements Analysis — Novos requisitos: Contas a Pagar e Investimentos
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "cada conta pode ter um vencimento especifico para ela, além disso eu quero poder adicionar valores relacionados a investimentos... Exemplo: investimento de viagem e investimento de geral ou algo do tipo"
+**AI Response**: "Dois requisitos novos identificados. Feita rodada de perguntas para desambiguar 'conta' (conta a pagar vs. campo no gasto vs. conta bancária) e profundidade do módulo de investimento. Usuário rejeitou duas rodadas de perguntas para reformulação antes de responder."
+**Context**: INCEPTION PHASE - Requirements Analysis - Rodada de revisão 4
+
+---
+
+## Requirements Analysis — Clarificação: tipos de conta
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "Eu posso cadastrar conta de cartao de credito, pix que tenho para fazer, boleto, fatura (energia eletrica, gás, viagem)"
+**AI Response**: "Esclarecido: 'conta' é uma obrigação a pagar de qualquer natureza, com vencimento próprio e status. Tipos: FATURA_CARTAO, PIX, BOLETO, FATURA_SERVICO. Identificada a necessidade de reconciliar com a fatura de cartão que já existia como RF-26/RF-27."
+**Context**: INCEPTION PHASE - Requirements Analysis - Desambiguação do conceito 'conta'
+
+---
+
+## Requirements Analysis — Clarificação: fatura como vencimento geral
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "a fatura da conta deve passar a ser um vencimento geral... Mas eu posso cadastrar itens novos que eu for comprando em determinado cartao, isso vai vencer junto com a conta normal, porém, vai aumentar a fatura dos próximos meses caso nao tenha passado da data de vencimento da fatura..."
+**AI Response**: "Confirmada a unificação: fatura de cartão vira conta a pagar automaticamente (D-14). Detectada divergência entre a linguagem do usuário ('data de vencimento') e a semântica do domínio ('fechamento'): no funcionamento real de cartão, o fechamento é que determina em qual fatura a compra cai, existindo uma janela entre fechamento e vencimento em que a fatura já está fechada mas não paga. Apresentado diagrama da linha do tempo e pedida confirmação, pois a escolha errada produziria valores incompatíveis com o extrato bancário."
+**Context**: INCEPTION PHASE - Requirements Analysis - Detecção de ambiguidade semântica
+
+---
+
+## Requirements Analysis — Decisões de contas e investimentos (rodada A)
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: 3 perguntas via AskUserQuestion — Qual data decide em que fatura a compra cai? / As contas que não são de cartão se repetem todo mês? / Investimentos por objetivo: até onde vai?
+**User Input**: "Qual data decide em que fatura a compra cai?"="voce precisa perguntar a dara de fechamento da fatura"; "As contas que não são de cartão (energia, gás, aluguel, PIX, boleto) se repetem todo mês?"="pode perguntar se a conta se repete"; "Investimentos por objetivo ('viagem', 'geral'): até onde vai?"="Aportes + saldo atualizável à mão"
+**AI Response**: "Interpretações registradas: (1) o fechamento é o critério de corte e é informado no cadastro do cartão — já coberto por RF-23, formalizado em RF-61; (2) a recorrência é uma pergunta feita ao cadastrar a conta, com recorrentes e avulsas no mesmo modelo — RF-62; (3) investimento com aportes por objetivo mais saldo atualizável manualmente, rendimento derivado como saldo menos aportado — RF-69, RF-71, RF-72."
+**Context**: INCEPTION PHASE - Requirements Analysis - Rodada de revisão 4 (decisões A)
+
+---
+
+## Requirements Analysis — Decisões de investimento (rodada B)
+**Timestamp**: 2026-07-30T16:11:59Z
+**AI Prompt**: 2 perguntas via AskUserQuestion — Aporte conta como gasto no balanço? / O que os objetivos de investimento precisam ter?
+**User Input**: "Quando você aporta R$ 2.000 num objetivo de investimento, isso conta como gasto no balanço do mês?"="Conta como gasto"; "O que os objetivos de investimento precisam ter?"="Valor de meta, Prazo alvo, Pode ser do grupo"
+**AI Response**: "Registrado como D-18 e RF-76: o aporte entra no total de gastos do mês. Consequência conceitual anotada no research-log — o balanço passa a medir fluxo de caixa, não variação patrimonial. Objetivos ganham meta opcional (RF-73), prazo alvo com cálculo de aporte mensal necessário (RF-74) e escopo de grupo (RF-75). Registro de resgate NÃO foi marcado — registrado como premissa P-08, com o caso de borda E-14 (rendimento implícito negativo) a ser aceito e exibido."
+**Context**: INCEPTION PHASE - Requirements Analysis - Rodada de revisão 4 (decisões B)
+
+---
+
+## Requirements Analysis — Artefatos da revisão 4
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: N/A (geração de artefatos)
+**AI Response**: "requirements.md revisão 4: adicionadas Seção 3.10 Contas a Pagar (RF-55 a RF-67) e Seção 3.11 Investimentos (RF-68 a RF-77); Infraestrutura renumerada para 3.12. Atualizados RF-25, RF-26, RF-27 (unificação com conta a pagar) e RF-41 (aporte como gasto). Adicionados cenários C-07 a C-10, casos de borda E-11 a E-16, premissas P-08 a P-11, decisões D-14 a D-20, 4 critérios de aceitação e entradas de rastreabilidade. Incluído histórico de revisões do documento. Total: 76 RF ativos, 17 RNF, 10 cenários, 16 casos de borda, 11 premissas, 20 decisões, 4 riscos."
+**Context**: INCEPTION PHASE - Requirements Analysis - Revisão 4 concluída
+
+---
+
+## Preferência do usuário — Registro de pesquisa para artigo científico
+**Timestamp**: 2026-07-30T16:11:59Z
+**User Input**: "a medida que for fazendo todas as alteracoes vá salvando em documento pois no final de tudo vamos montar um artigo cientifico de tudo q foi montado até agora entao adicione tudo em um documento sempre que for alterando"
+**AI Response**: "Criado `aidlc-docs/research-log.md` — documento acumulativo e analítico, distinto do audit.md (que é trilha bruta). Contém: contexto do estudo, cronologia das stages, 10 episódios de decisão com alternativas descartadas e justificativa, dados quantitativos do processo (esclarecimento, artefatos, evolução do escopo por revisão) e 10 observações metodológicas numeradas (O-01 a O-10) sobre o próprio método AI-DLC. Será alimentado a cada alteração relevante daqui em diante. Preferência salva em memória."
+**Context**: Cross-cutting — instrução de documentação contínua
+
+---
