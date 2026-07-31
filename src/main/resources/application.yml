@@ -12,6 +12,8 @@ spring:
 
   jpa:
     hibernate:
+      # Mantido em validate de proposito (RNF-04): detecta divergencia entre as
+      # entidades e o schema criado pelo Flyway. Nunca trocar por update.
       ddl-auto: validate
     open-in-view: false
     properties:
@@ -19,8 +21,31 @@ spring:
         jdbc:
           time_zone: UTC
 
+  flyway:
+    enabled: true
+    # Banco novo. Ligar baseline esconderia uma migration faltando.
+    baseline-on-migrate: false
+
 server:
   port: ${SERVER_PORT:8080}
+
+app:
+  auth:
+    # Sem default: um default aqui viraria o segredo de producao no dia em que a
+    # variavel faltasse. Vem do Parameter Store, como as credenciais do banco.
+    jwt-secret: ${JWT_SECRET}
+    jwt-validade-horas: 24
+    bcrypt-forca: 12
+    max-tentativas: 5
+    bloqueio-minutos: 15
+
+springdoc:
+  swagger-ui:
+    # A especificacao completa e um mapa da superficie de ataque. Habilitar por
+    # perfil, em dev.
+    enabled: false
+  api-docs:
+    path: /v3/api-docs
 
 management:
   endpoints:
@@ -34,3 +59,6 @@ management:
 logging:
   level:
     com.rafaelmatheus.financialcontrol: INFO
+  pattern:
+    # O correlacao vem do MDC, posto pelo FiltroCorrelacao (D-53).
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{correlacao:-sem-id}] %logger{36} - %msg%n"

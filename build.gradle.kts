@@ -21,21 +21,49 @@ repositories {
     mavenCentral()
 }
 
+// Versoes fora do BOM do Spring Boot, reunidas aqui para que a atualizacao seja
+// um lugar so. Versao fixada e divida com prazo — foi o que derrubou o apply do
+// RDS em engine_version = "16.6".
+val jjwtVersion = "0.12.5"
+val kotestVersion = "5.9.1"
+val springdocVersion = "2.8.6"
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+
+    // Migrations (RNF-04, D-01). O suporte a PostgreSQL saiu do core no Flyway 10:
+    // sem o segundo artefato a aplicacao sobe e falha com "Unsupported Database".
+    implementation("org.flywaydb:flyway-core")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
+
+    // JWT stateless (D-02). api em compileOnly-like, impl e jackson so em runtime.
+    implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:$jjwtVersion")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
+
+    // Contrato de API gerado do codigo (D-06, RNF-08).
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
 
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:junit-jupiter")
+
+    // Property-based testing (RNF-07, D-05, PBT-09).
+    testImplementation("io.kotest:kotest-property:$kotestVersion")
+    testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
+    testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

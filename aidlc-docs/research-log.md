@@ -1159,6 +1159,53 @@ gerenciado trouxe backup nativo. Registrado como decisão pendente, não como de
 a diferença entre 1 e 7 dias de retenção é a diferença entre perder um dia de lançamentos financeiros
 e perder uma semana.
 
+### 3.36 O exemplo que passava por coincidência
+
+Primeira execução dos testes de propriedade de `Dinheiro`: **falha imediata**, no primeiro caso
+gerado.
+
+A especificação, escrita na Functional Design, dizia que `dividirEm` põe o resíduo **na última
+parte**, e trazia o exemplo canônico:
+
+```
+R$ 100,00 em 3  ->  33,33  33,33  33,34
+```
+
+O exemplo está certo. A regra que ele ilustra, não. O property-based testing encontrou
+`R$ 10.000.000.000,00 em 6` — e o shrinking reduziu de 118 partes para 6, entregando o caso mínimo
+pronto para leitura. Ali sobram **4 centavos**, e "todos na última" produz uma parte 0,04 acima das
+outras.
+
+O erro é conceitual, não de digitação: o resíduo de uma divisão em `n` partes vale até `n-1`
+centavos. O exemplo de 100,00 em 3 tem resíduo de exatamente um centavo, então **ilustrava a regra
+errada com o resultado certo**.
+
+O caso que torna o defeito concreto no domínio: R$ 1,19 em 120 parcelas. A implementação original
+daria 119 parcelas de zero e uma de R$ 1,19.
+
+> **O-28 — Um exemplo confirma; ele não delimita.** O exemplo escolhido à mão para ilustrar uma
+> regra tende a ser o mais legível, e o mais legível costuma ser aquele em que a regra errada e a
+> certa coincidem. Foi por isso que o defeito atravessou a Functional Design, a revisão do design e
+> a escrita do código: em todos esses momentos, a única evidência disponível era o exemplo — e o
+> exemplo passava.
+>
+> Onde a geração aleatória ganha não é em achar casos exóticos: é em não ter preferência por casos
+> bonitos.
+
+**Sobre o shrinking** (PBT-08): o primeiro contraexemplo foi com 118 partes, número em que ninguém
+raciocina. O shrinking devolveu 6, e com 6 dá para fazer a conta de cabeça e ver o erro. Sem isso, o
+teste teria dito "falhou" e a depuração começaria do zero.
+
+**Correção**: aritmética em centavos inteiros, com os centavos que sobram distribuídos **um por
+parte, nas últimas**. Preserva o exemplo do design — 100,00 em 3 continua dando 33,33 / 33,33 /
+33,34 — e limita a diferença entre partes a um centavo de verdade.
+
+> Vale notar o custo evitado. `dividirEm` só tem consumidor em **U3**, a unidade mais complexa do
+> sistema, no meio do parcelamento. A decisão de escrever a função e suas propriedades em U1, mesmo
+> sem consumidor, foi tomada por economia de contexto (§3 de `business-rules.md`) — e acabou pagando
+> antes disso: o defeito foi encontrado num arquivo de 60 linhas, e não no meio de faturas,
+> competências e contas a pagar.
+
 ---
 
 ## 4. Dados quantitativos do processo

@@ -1,4 +1,27 @@
 spring:
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      # NAO usar create-drop. Com ele o schema dos testes viria do JPA, e nao das
+      # migrations — a migration nunca seria exercitada, e o indice unico parcial
+      # de membro_grupo, que o JPA nao sabe expressar, simplesmente nao existiria.
+      # O teste de concorrencia de RN-G05 passaria pelo motivo errado.
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+
+app:
+  auth:
+    # Segredo fixo e obviamente falso: os testes precisam de um valor estavel, e
+    # deixar claro que e de teste evita que alguem o copie para outro lugar.
+    jwt-secret: segredo-apenas-de-teste-com-tamanho-suficiente-para-hmac-sha256
+    jwt-validade-horas: 24
+    # Forca minima do BCrypt: 12 custa ~250ms por hash, e a suite tem dezenas de
+    # autenticacoes. Aqui a lentidao nao protege nada, so atrasa o CI.
+    bcrypt-forca: 4
+    max-tentativas: 5
+    bloqueio-minutos: 15
+
+logging:
+  level:
+    com.rafaelmatheus.financialcontrol: DEBUG
