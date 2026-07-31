@@ -1,33 +1,23 @@
-name: AWS example workflow
+name: AWS Test
 
 on:
   push:
-    branches:
-      - main
-      - master
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  S3PackageUpload:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Exibe os claims do token OIDC emitido pelo GitHub
-      - name: Debug OIDC Claims
-        uses: github/actions-oidc-debugger@v1
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::594116288641:role/github-actions
-          role-session-name: GitHubActions
           aws-region: us-east-1
+          role-session-name: GitHubActions
 
-      - name: Verify AWS Identity
-        run: aws sts get-caller-identity
+      - run: aws sts get-caller-identity
