@@ -536,3 +536,11 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U5: bootstrap por workflow_dispatch
+**Timestamp**: 2026-07-31T01:00:00Z
+**User Input**: "faz comit e push"; "os actions nao rodaram"; escolha "Escrevo um workflow de bootstrap"
+**AI Response**: "Sobre o commit e push: nada pendente, a árvore já estava limpa e origin/main idêntica ao HEAD (300c5f6). Sobre os Actions não terem rodado, três causas somadas, todas esperadas: (1) os dois commits que tocaram infra/terraform/** — 5ad7b27 e 2025c57 — foram enviados quando o terraform-apply.yml não existia na main, porque tinha sido apagado pelo 0f2a224, e o GitHub avalia os gatilhos contra os arquivos de workflow presentes no commit enviado; (2) os dois commits seguintes mexeram só em .github/ e aidlc-docs/, que não casam com nenhum filtro de path; (3) o terraform-plan.yml só roda em pull_request e estamos empurrando direto para a main. Observado que a não-execução foi felizarda: um apply agora falharia no terraform init, porque o bucket financial-control-tfstate-594116288641 ainda não existe — é exatamente a dependência circular que o bootstrap quebra. DECISÃO D-41: o usuário optou por um workflow de bootstrap em vez do CloudShell. Criado .github/workflows/bootstrap.yml, workflow_dispatch apenas, nunca em push. Gate preservado: input `mode` com default `plan`, e aplicar exige um segundo disparo explícito, mantendo a revisão humana do diff da trust policy que era o ganho do caminho manual. O plan é publicado no job summary, com contagem de recursos a destruir ou substituir em destaque. O obstáculo conceitual era o state, que não pode morar no bucket que o bootstrap ainda vai criar: resolvido baixando do S3 no início, tolerando ausência na primeira execução, e devolvendo no fim com if: always() para que uma falha no meio do apply não deixe recursos órfãos fora do state, mais um artifact como plano B caso o bucket sequer exista. Sem lock, aceitável porque o disparo é manual, único e serializado por concurrency. Os 5 workflows foram validados como YAML. Registrado no research-log como 3.31 e O-20 (uma decisão de processo pode ter prazo de validade mais curto que a justificativa que a gerou — D-26 dizia manual porque não havia identidade no CI capaz de criar IAM, e essa restrição deixou de valer)."
+**Context**: CONSTRUCTION PHASE - U5 - Bootstrap
+
+---
+

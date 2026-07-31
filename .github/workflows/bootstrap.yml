@@ -1,0 +1,142 @@
+name: Terraform — Bootstrap (uma vez)
+
+# Quebra a dependencia circular: o CI precisa de um bucket de state e de uma
+# role, mas os dois sao infraestrutura que so o Terraform criaria (D-26).
+#
+# Roda so por disparo manual. NUNCA em push: e um stack que se aplica uma vez,
+# e um apply acidental aqui mexe na identidade que o proprio CI usa.
+#
+# O state deste stack e local por natureza — o bucket que o guardaria e o que
+# ele ainda vai criar. Como o runner e efemero, o state e baixado do S3 no
+# inicio e devolvido no fim. Sem lock: aceitavel porque o disparo e manual,
+# unico e serializado pelo `concurrency` abaixo.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'plan mostra o diff; apply executa'
+        type: choice
+        options: [plan, apply]
+        default: plan
+
+concurrency:
+  group: terraform-bootstrap
+  cancel-in-progress: false # nunca cancelar: interromper deixa state orfao
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Bootstrap (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform/bootstrap
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Autenticar na AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.10.5'
+          terraform_wrapper: false # o wrapper polui o stdout que vai para o summary
+
+      # O nome do bucket e deterministico: veja main.tf. Derivado aqui em vez de
+      # hardcoded para o workflow nao mentir se a conta mudar.
+      - name: Localizar o bucket de state
+        id: bucket
+        run: |
+          ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          echo "name=financial-control-tfstate-${ACCOUNT}" >> "$GITHUB_OUTPUT"
+          echo "Conta: ${ACCOUNT}"
+
+      # Na primeira execucao o bucket ainda nao existe e isto falha — esperado.
+      - name: Recuperar o state anterior
+        run: |
+          if aws s3 cp "s3://${{ steps.bucket.outputs.name }}/bootstrap/terraform.tfstate" \
+               terraform.tfstate 2>/dev/null; then
+            echo "State recuperado do S3."
+          else
+            echo "Sem state remoto — primeira execucao, o state nasce aqui."
+          fi
+
+      - name: Init
+        run: terraform init -input=false
+
+      - name: Plan
+        id: plan
+        run: |
+          terraform plan -input=false -no-color | tee plan.txt
+
+          {
+            echo "### Terraform Plan — bootstrap"
+            echo
+            DESTRUTIVO=$(grep -cE 'must be replaced|will be destroyed' plan.txt || true)
+            if [ "${DESTRUTIVO}" -gt 0 ]; then
+              echo "> **${DESTRUTIVO} recurso(s) a destruir ou substituir. Nao aplique sem ler.**"
+              echo
+            fi
+            echo '```hcl'
+            cat plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply
+        if: inputs.mode == 'apply'
+        run: terraform apply -input=false -auto-approve
+
+      # `always()`: se o apply falhar no meio, os recursos ja criados precisam
+      # estar no state — senao a proxima execucao tenta cria-los de novo.
+      - name: Guardar o state
+        if: always() && inputs.mode == 'apply'
+        run: |
+          if [ ! -f terraform.tfstate ]; then
+            echo "Nenhum terraform.tfstate para guardar."
+            exit 0
+          fi
+
+          # Se o apply morreu antes de criar o bucket, nao ha para onde subir.
+          # Nesse caso o state vira artifact, senao os recursos ja criados ficam
+          # orfaos e a proxima execucao tenta cria-los de novo.
+          if aws s3 cp terraform.tfstate \
+               "s3://${{ steps.bucket.outputs.name }}/bootstrap/terraform.tfstate"; then
+            echo "State guardado em s3://${{ steps.bucket.outputs.name }}/bootstrap/"
+          else
+            echo "::warning::Bucket indisponivel. O state vai como artifact do job."
+            echo "salvar_artifact=sim" >> "$GITHUB_ENV"
+          fi
+
+      - name: State como artifact (plano B)
+        if: always() && env.salvar_artifact == 'sim'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootstrap-tfstate
+          path: infra/terraform/bootstrap/terraform.tfstate
+          retention-days: 90
+
+      - name: Saídas
+        if: inputs.mode == 'apply'
+        run: |
+          {
+            echo "### Saídas do bootstrap"
+            echo
+            echo "Registrar como *variables* do repositório em"
+            echo "Settings → Secrets and variables → Actions:"
+            echo
+            echo '| Variable | Valor |'
+            echo '|---|---|'
+            echo "| \`AWS_ROLE_ARN\` | \`$(terraform output -raw role_arn)\` |"
+            echo "| \`AWS_REGION\` | \`$(terraform output -raw aws_region)\` |"
+            echo "| \`ECR_REPOSITORY\` | \`$(terraform output -raw ecr_repository_url)\` |"
+            echo
+            echo "Bucket de state: \`$(terraform output -raw state_bucket)\`"
+          } >> "$GITHUB_STEP_SUMMARY"

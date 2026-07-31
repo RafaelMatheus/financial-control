@@ -962,6 +962,39 @@ Default `dev` enquanto só esse ambiente existe; promover a `prod` é criar a va
 `TF_ENVIRONMENT` no repositório, **sem tocar em código**. O `terraform-apply.yml` ganhou ainda um
 input de escolha no `workflow_dispatch`, para aplicar um ambiente sob demanda.
 
+### 3.31 O bootstrap que passou a caber no CI
+
+**Decisão D-41**: o bootstrap deixa de ser executado manualmente e passa a rodar por
+`workflow_dispatch` no GitHub Actions — revertendo parcialmente **D-26** (bootstrap manual e único).
+
+O que mudou não foi o desenho, foi um fato: a role manual do CI recebeu `AdministratorAccess`. Com
+OIDC funcionando e privilégio total, o Actions passou a poder fazer tudo que o operador humano faria
+no CloudShell. A justificativa original de D-26 era a dependência circular — e ela continua real,
+mas ela exige apenas que *alguém* crie o bucket antes do primeiro `init` remoto, não que esse alguém
+seja uma pessoa.
+
+**O obstáculo residual era o state**, e ele é conceitual: o state do bootstrap não pode morar no
+bucket que o bootstrap ainda vai criar. Num operador humano isso se resolve sozinho, porque a máquina
+dele persiste. Num runner efêmero, não. Solução adotada: baixar o state do S3 no início (tolerando a
+ausência na primeira execução) e devolvê-lo no fim, com `if: always()` para que uma falha no meio do
+apply não deixe recursos órfãos fora do state.
+
+> **O-20 — Uma decisão de processo pode ter prazo de validade mais curto que a justificativa que a
+> gerou.** D-26 dizia "manual" porque, no momento em que foi tomada, não havia identidade no CI capaz
+> de criar IAM. A justificativa era técnica e verdadeira. Quando a identidade passou a existir, a
+> decisão continuou registrada como se fosse princípio. Vale distinguir, no registro de decisões,
+> **o que é restrição do momento do que é escolha de arquitetura** — a primeira deve ser reavaliada
+> quando o momento muda, a segunda não.
+
+**Gate preservado**: o disparo tem input `mode` com default `plan`. A primeira execução só mostra o
+diff, publicado no *job summary*; aplicar exige um segundo disparo explícito. Isso mantém a revisão
+humana da trust policy que era o ganho do caminho manual — o que se perdeu foi o terminal, não o
+controle.
+
+**Sem lock**: o state vai e volta por `aws s3 cp`, sem `use_lockfile`. Aceitável porque o disparo é
+manual, único e serializado por `concurrency: terraform-bootstrap`. Não seria aceitável num stack de
+aplicação contínua.
+
 ---
 
 ## 4. Dados quantitativos do processo
