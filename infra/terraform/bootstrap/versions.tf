@@ -50,6 +50,22 @@ variable "ci_role_name" {
   default     = "github-actions"
 }
 
+variable "extra_trusted_subs" {
+  description = <<-EOT
+    Valores extras aceitos no claim `sub`, somados ao padrao repo:owner/repo:ref.
+
+    O default preserva o `sub` que a role criada no console ja aceitava. O formato
+    com IDs numericos (owner@25590639, repo@1316467420) nao e o padrao do GitHub e
+    sua origem nao foi identificada — mas o pipeline autentica com ele, entao
+    remove-lo no apply arriscaria trancar o CI para fora da propria role.
+
+    Depois de confirmar qual `sub` o token realmente carrega, esta lista deve
+    encolher para so o que for necessario (RF-93).
+  EOT
+  type        = list(string)
+  default     = ["repo:RafaelMatheus@25590639/financial-control@1316467420:*"]
+}
+
 variable "github_repository" {
   description = "Repositorio GitHub no formato owner/repo"
   type        = string

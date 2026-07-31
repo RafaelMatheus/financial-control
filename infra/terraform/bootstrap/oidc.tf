@@ -49,8 +49,11 @@ resource "aws_iam_openid_connect_provider" "github" {
 # Sem a condicao de "sub", qualquer repositorio do GitHub poderia assumir a role.
 data "aws_iam_policy_document" "github_actions_assume" {
   statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect = "Allow"
+    # sts:TagSession estava na trust policy criada no console e e mantido: se a
+    # action marcar a sessao com tags, remover isto quebra a assuncao da role —
+    # e quebraria justamente a role que o CI usa para consertar o proprio erro.
+    actions = ["sts:AssumeRoleWithWebIdentity", "sts:TagSession"]
 
     principals {
       type        = "Federated"
@@ -63,13 +66,19 @@ data "aws_iam_policy_document" "github_actions_assume" {
       values   = ["sts.amazonaws.com"]
     }
 
+    # Multiplos valores numa condicao IAM sao um OU. A lista e a UNIAO do padrao
+    # desenhado com o que a role ja tinha e que comprovadamente funciona, para
+    # que o apply nao possa derrubar a autenticacao do proprio CI.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values = [
-        "repo:${var.github_repository}:ref:refs/heads/${var.github_branch}",
-        "repo:${var.github_repository}:pull_request",
-      ]
+      values = concat(
+        [
+          "repo:${var.github_repository}:ref:refs/heads/${var.github_branch}",
+          "repo:${var.github_repository}:pull_request",
+        ],
+        var.extra_trusted_subs,
+      )
     }
   }
 }

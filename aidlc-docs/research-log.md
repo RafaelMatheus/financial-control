@@ -995,6 +995,54 @@ controle.
 manual, único e serializado por `concurrency: terraform-bootstrap`. Não seria aceitável num stack de
 aplicação contínua.
 
+### 3.32 O plan que mostrou a armadilha
+
+O `plan` do bootstrap veio limpo em quase tudo — `2 to import, 7 to add, 2 to change, 0 to destroy`
+— e com uma linha que justificou sozinha a decisão de olhar antes de aplicar.
+
+A trust policy da role criada no console:
+
+```json
+"Action": ["sts:AssumeRoleWithWebIdentity", "sts:TagSession"],
+"StringLike": { "…:sub": "repo:RafaelMatheus@25590639/financial-control@1316467420:*" }
+```
+
+A que o código geraria:
+
+```
+"repo:RafaelMatheus/financial-control:ref:refs/heads/main"
+"repo:RafaelMatheus/financial-control:pull_request"
+```
+
+O `sub` existente carrega **IDs numéricos** de owner e de repositório, formato que não é o padrão
+documentado do GitHub e cuja origem não foi identificada. E `sts:TagSession` sumiria da lista de
+ações.
+
+> **O-21 — Adotar um recurso é herdar uma configuração que ninguém leu.** A seção 3.29 tratou o
+> `import` block como conversão barata de recurso manual em recurso versionado. É — mas só o
+> *endereço* é barato. O **conteúdo** do recurso adotado passa a ser ditado pelo código, e onde o
+> código discorda da realidade, o apply impõe o código. Import não é "trazer para o Terraform": é
+> "mandar o Terraform sobrescrever isto".
+
+O que tornava o caso perigoso não era a divergência em si, e sim **em qual recurso** ela caía:
+
+> **O-22 — Há uma classe de mudança que remove a capacidade de desfazer a própria mudança.** A role
+> sob edição é a identidade que o CI usa para rodar o workflow que faria o conserto. Um apply que
+> quebrasse a trust policy tirava, no mesmo instante, a ferramenta de reverter — a saída restante
+> seria o console, manualmente. Mudanças no mecanismo de acesso merecem tratamento diferente de
+> mudanças na infraestrutura acessada.
+
+**Solução: união, não substituição.** Condições IAM com múltiplos valores são um OU, então a lista
+passou a somar o padrão desenhado ao `sub` que já funciona, e `sts:TagSession` foi mantido. Se o
+formato com IDs for o real, o pipeline continua; se for irrelevante, não custa nada. A dívida ficou
+registrada na descrição de `var.extra_trusted_subs`: confirmado qual `sub` o token carrega, a lista
+deve encolher para satisfazer RF-93.
+
+> Note-se que a alternativa "descobrir primeiro qual é o `sub` real" também estava disponível e teria
+> produzido uma policy mais enxuta. Escolheu-se a união porque ela é **segura sob as duas hipóteses**
+> — e a assimetria de custo justifica: errar para o lado permissivo custa uma condição a mais numa
+> policy; errar para o lado restritivo custa o acesso ao CI.
+
 ---
 
 ## 4. Dados quantitativos do processo
