@@ -1,7 +1,11 @@
-name: AWS Test
+name: AWS OIDC Test
 
 on:
+  workflow_dispatch:
   push:
+    branches:
+      - main
+      - master
 
 permissions:
   id-token: write
@@ -12,12 +16,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Print GitHub Context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          echo "$GITHUB_CONTEXT"
+
+      - name: Print Repository
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Repository Owner: ${{ github.repository_owner }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Ref Name: ${{ github.ref_name }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Actor: ${{ github.actor }}"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::594116288641:role/github-actions
-          aws-region: us-east-1
           role-session-name: GitHubActions
+          aws-region: us-east-1
 
-      - run: aws sts get-caller-identity
+      - name: Test AWS
+        run: |
+          aws sts get-caller-identity
