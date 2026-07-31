@@ -593,3 +593,20 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U1: Functional Design aprovado
+**Timestamp**: 2026-07-31T16:20:00Z
+**User Input**: "continue entao para u1"
+**AI Response**: "Interpretado como aprovação do Functional Design de U1. Stage marcada como concluída e aprovada. Iniciada a NFR Requirements de U1, que é onde D-02 (mecanismo de autenticação) fecha — decisão adiada desde a Requirements Analysis, e que também traz D-05 e D-06."
+**Context**: CONSTRUCTION PHASE - U1 - Functional Design aprovado
+
+---
+
+## CONSTRUCTION — U1: NFR Requirements
+**Timestamp**: 2026-07-31T16:40:00Z
+**AI Prompt**: 6 questões via AskUserQuestion, em duas rodadas — mecanismo de sessão, algoritmo de hash, proteção contra força bruta, origem do OpenAPI, framework de PBT e validade do token
+**User Input**: "JWT stateless (Recomendado)"; "BCrypt (Recomendado)"; "Bloqueio temporário por conta (Recomendado)"; "springdoc gera a partir do código (Recomendado)"; "Kotest Property Testing (Recomendado)"; "24 horas, sem refresh (Recomendado)"
+**AI Response**: "Plano de NFR Requirements com 11 passos e 6 questões, respostas em branco antes de perguntar — corrigindo o deslize da stage anterior. Aberta a stage sinalizando que RNF-12 (uso doméstico, dezenas de usuários, sem alta disponibilidade) deve podar o espaço de decisão em vez de convidar a superdimensionar. D-02 FECHADA após ficar aberta desde a Requirements Analysis: JWT stateless, 24h, sem refresh. D-06 fechada: springdoc gera do código, e o openapi.yaml escrito à mão passa a ser referência de design. D-05 confirmada: Kotest. Novas: D-48 (BCrypt força 12), D-49 (bloqueio de 5 tentativas por 15 minutos, contador em memória), D-50 (validade de 24h). Gerados nfr-requirements.md com 14 NFRs e tech-stack-decisions.md. PONTOS QUE SÓ APARECERAM AO DETALHAR: (1) a resposta do bloqueio por força bruta precisa ser indistinguível da de senha errada, senão o caminho de erro desfaz a proteção que RN-U04 monta no caminho normal; (2) o contador em memória quebra com mais de uma instância, e isso está registrado como a coisa a revisitar se houver escala horizontal — não o JWT, que só facilita; (3) flyway-database-postgresql é dependência separada desde o Flyway 10 e sem ela a aplicação sobe e falha na primeira migration; (4) o Swagger UI fica desabilitado por padrão porque a especificação completa é um mapa da superfície de ataque; (5) o filtro de segurança precisa liberar /health e /actuator/health sem autenticação, senão o healthcheck do container e do nginx derrubam o deploy; (6) girar o JWT_SECRET é a única forma de revogação disponível, dado que D-50 dispensou refresh e lista de bloqueio — registrado como procedimento de emergência; (7) a cobertura de teste foi definida por comportamento e não por percentual, com a observação de que 80% de linhas pode conviver com o predicado de visibilidade nunca testado. Documentado também o que NÃO entra na stack e por quê, para que as escolhas não sejam refeitas do zero em três meses. Novo parâmetro no Parameter Store: /{project}/auth/jwt-secret, levando parameters.tf de 5 para 6."
+**Context**: CONSTRUCTION PHASE - U1 - NFR Requirements
+
+---
+
