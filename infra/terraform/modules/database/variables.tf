@@ -14,9 +14,16 @@ variable "security_group_id" {
 }
 
 variable "engine_version" {
-  description = "Versao do PostgreSQL"
+  description = <<-EOT
+    Versao do PostgreSQL, so a maior.
+
+    Fixar a menor (era "16.6") quebra quando a AWS a retira do catalogo:
+    "Cannot find version 16.6 for postgres". Com so a maior, o RDS escolhe a
+    menor mais recente disponivel — e e o unico valor coerente com
+    auto_minor_version_upgrade = true, que ja estava ligado no modulo.
+  EOT
   type        = string
-  default     = "16.6"
+  default     = "16"
 }
 
 variable "instance_class" {
