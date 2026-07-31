@@ -110,6 +110,14 @@ data "aws_iam_policy_document" "github_actions" {
     effect = "Allow"
     actions = [
       "ec2:*",
+      # RDS gerenciado (D-37): sem estas acoes o apply falha ao criar
+      # aws_db_instance, aws_db_subnet_group e aws_db_parameter_group.
+      "rds:*",
+      # RDS cria a service-linked role na primeira instancia da conta.
+      "iam:CreateServiceLinkedRole",
+      # storage_encrypted = true com a chave padrao aws/rds.
+      "kms:DescribeKey",
+      "kms:CreateGrant",
       "iam:GetRole",
       "iam:PassRole",
       "iam:CreateRole",

@@ -33,6 +33,33 @@ tenta assumi-la 12 vezes antes de desistir).
 `6938fd4d98bab03faadb97b34396831e3780aea1` — valor antigo, muito copiado de tutoriais. Passou a ler
 o certificado atual via `data.tls_certificate`, mantendo os históricos na lista.
 
+**Segunda correção, também aguardando o mesmo apply**: a permission policy da role do CI não
+concedia nenhuma ação de `rds`. Foi escrita sob D-10 (Postgres em container) e não foi revisitada
+quando D-37 adotou o RDS gerenciado — o bootstrap é outro stack, com outro state. O apply do CI
+falharia ao criar `aws_db_instance`. Adicionados `rds:*`, `iam:CreateServiceLinkedRole`,
+`kms:DescribeKey` e `kms:CreateGrant`.
+
+## ⚠️ Pendência aberta pelo experimento de depuração
+
+Os commits `0f2a224` e `f8ed6f0` (ambos com mensagem "teste") **apagaram os 4 workflows do projeto**
+e puseram no lugar o `main.yml`, reprodutor mínimo do OIDC. Consequência: **o `main` está sem
+pipeline algum**.
+
+- Restaurar com `git checkout 8726974 -- .github/workflows/` — **só depois** do smoke test passar,
+  para não reintroduzir ruído no diagnóstico
+- O `main.yml` é temporário e sai quando o pipeline voltar
+- Os 4 workflows originais estão corretos: declaram `permissions: id-token: write` e usam
+  `configure-aws-credentials@v4` com a audience padrão `sts.amazonaws.com`
+
+**Defeito encontrado no reprodutor** (já corrigido): o sample da AWS trazia o ARN em
+`role-session-name` em vez de `role-to-assume`, então nenhuma role era assumida. O erro
+`Could not load credentials from any providers` vinha daí — falha *anterior* ao OIDC, não o bloqueio
+original. Também corrigidos `aws-region: east-1` → `us-east-1` e o step de S3 com placeholders.
+
+**Role em uso no reprodutor**: `arn:aws:iam::594116288641:role/github-actions`, criada **manualmente
+no console** pelo usuário. É diferente da role do Terraform (`financial-control-github-actions`) —
+ver a nota de reconciliação abaixo.
+
 **Ainda não verificado** — duas hipóteses em aberto:
 
 1. **Thumbprint desatualizado** — resolvido pelo commit, mas o `terraform apply` ainda não foi
@@ -40,6 +67,23 @@ o certificado atual via `data.tls_certificate`, mantendo os históricos na lista
 2. **Capitalização do owner no `sub`** — a trust policy exige
    `repo:RafaelMatheus/financial-control:ref:refs/heads/main`. O `sub` do token usa a grafia exata
    que o GitHub guarda. Se o owner for `rafaelmatheus` minúsculo ou outra variação, nunca casa
+
+## Reconciliação pendente entre o console e o Terraform
+
+Recursos criados à mão no console **colidem com o bootstrap** no próximo `terraform apply`. O OIDC
+provider é único por conta: se já existe, o apply falha com `EntityAlreadyExists`. A role manual
+`github-actions` não colide (o Terraform cria `financial-control-github-actions`), mas vira recurso
+órfão fora do state.
+
+Antes do apply, importar o que já existe:
+
+```bash
+terraform import aws_iam_openid_connect_provider.github \
+  arn:aws:iam::594116288641:oidc-provider/token.actions.githubusercontent.com
+```
+
+Se o provider manual foi criado com o thumbprint antigo copiado de tutorial, o import traz o defeito
+junto — o apply seguinte corrige, porque o `oidc.tf` agora lê o certificado via `data.tls_certificate`.
 
 ## Próximos passos, na ordem
 

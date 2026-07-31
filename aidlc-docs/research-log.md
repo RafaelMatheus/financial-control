@@ -820,6 +820,73 @@ conhecidos na lista.
 > A lição prática não é "não use constantes", e sim: **onde existe um data source que descobre o
 > valor, prefira-o à constante** — mesmo que a constante esteja certa hoje.
 
+### 3.27 A permissão que faltava por causa de uma decisão posterior
+
+**Episódio**: ao retomar a sessão para desbloquear o OIDC, a revisão da trust policy levou à leitura
+da *permission policy* da mesma role. Ela concede `ec2:*`, `iam:*` granular, `ssm:*` e `s3:*` do
+state — mas **nenhuma ação de `rds`**.
+
+A causa é temporal, não descuidada: a policy foi escrita quando valia **D-10** (PostgreSQL em
+container no próprio EC2). A revisão 9 substituiu D-10 por **D-37** (RDS gerenciado), criou o módulo
+`database` com `aws_db_instance`, `aws_db_subnet_group` e `aws_db_parameter_group` — e o bootstrap,
+que é um stack **separado**, não foi revisitado.
+
+> **O-14 — Mudança de arquitetura tem raio de alcance maior que o módulo que ela altera.** A
+> migração para RDS foi tratada como uma mudança no stack principal: módulo trocado, requisitos
+> revisados, runbook atualizado, risco fechado. O bootstrap ficou fora do raio de revisão porque é
+> outro stack, com outro state, executado por outro caminho. O erro só apareceria no primeiro
+> `apply` do CI a chegar no módulo `database` — depois de o OIDC ser resolvido, isto é, um bloqueio
+> escondido atrás de outro.
+>
+> Regra prática derivada: quando uma decisão troca um recurso por um serviço gerenciado, **a lista
+> de permissões do agente que aplica a infraestrutura é sempre parte do raio da mudança**, mesmo
+> quando mora em outro stack.
+
+Correção aplicada ao `oidc.tf` do bootstrap: `rds:*`, `iam:CreateServiceLinkedRole` (o RDS cria a
+service-linked role na primeira instância da conta) e `kms:DescribeKey` + `kms:CreateGrant`
+(`storage_encrypted = true` com a chave padrão `aws/rds`).
+
+Detalhe de oportunidade: a correção entra **sem custo de execução extra**, porque o bootstrap já
+precisava ser reaplicado para levar a correção do thumbprint (3.26). Dois defeitos de origens
+distintas, um único `terraform apply`.
+
+### 3.28 O reprodutor mínimo que não reproduzia
+
+**Episódio**: com o OIDC bloqueado, o usuário reduziu o problema ao menor caso possível — apagou os
+4 workflows do projeto (commit `0f2a224`, 296 linhas removidas) e colocou no lugar o `main.yml`, o
+workflow de exemplo da documentação da AWS. A estratégia é a correta: isolar a variável.
+
+O exemplo, porém, trazia o ARN da role no campo errado:
+
+```yaml
+role-session-name: arn:aws:iam::594116288641:role/github-actions   # errado
+role-to-assume:    arn:aws:iam::594116288641:role/github-actions   # certo
+```
+
+`role-session-name` é apenas o rótulo da sessão. Sem `role-to-assume`, a action não assume role
+nenhuma — e o erro observado foi `Could not load credentials from any providers`, que é uma falha
+**anterior** ao OIDC. Mais dois defeitos no mesmo arquivo: `aws-region: east-1` (região inexistente)
+e o step final copiando um `index.html` que não existe para um bucket com o nome no placeholder.
+
+> **O-15 — Um reprodutor mínimo defeituoso é pior que nenhum teste.** O teste falhou, e a falha
+> parecia confirmar o bloqueio original — mas a mensagem era de outra causa, três camadas antes.
+> Um reprodutor que erra *antes* do ponto sob investigação produz evidência que se parece com
+> confirmação. O sintoma de que isso está acontecendo é a mensagem de erro **mudar de natureza**:
+> "could not load credentials" e "web identity token could not be validated" descrevem etapas
+> diferentes, e tratar as duas como "o OIDC falhou de novo" apaga a informação.
+>
+> Vale contrastar com 3.26, onde a progressão dos erros funcionou como diagnóstico. A diferença é
+> que lá os erros avançavam; aqui o erro **regrediu**, e regressão de erro num teste recém-escrito
+> aponta para o teste, não para o sistema.
+
+**Efeito colateral do experimento**: o `main` ficou sem pipeline algum. Os 4 workflows continuam
+recuperáveis em `8726974` (`git checkout 8726974 -- .github/workflows/`), mas enquanto o reprodutor
+está no ar não há CI. A restauração deve esperar o smoke test passar, para não reintroduzir ruído.
+
+> **O-16 — Depurar apagando é reversível em git e irreversível em atenção.** O artefato volta com um
+> comando; o risco real é a restauração ficar esquecida, porque o pipeline ausente não gera alarme.
+> Registrar a pendência num artefato do método é o que fecha esse buraco — foi o que se fez aqui.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -1057,17 +1124,28 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: INCEPTION
-**Stage**: Units Generation — concluída, aguardando aprovação. **Fim da fase de Inception.**
-**Próxima fase**: CONSTRUCTION — loop por unidade (Functional Design, NFR, Code Generation)
+**Stage**: CONSTRUCTION — **U5 Infraestrutura**. Infrastructure Design aprovada; Code Generation com
+o código gerado e o gate de aprovação pendente; **bootstrap manual em andamento, bloqueado no OIDC**.
+**Próxima unidade**: U1 — Fundação (`common`, `usuario`, `grupo`).
 
-**Stages concluídas**: Workspace Detection, Reverse Engineering (aprovada), Requirements Analysis
-(8 revisões), User Stories (aprovada), Workflow Planning (aprovada), Application Design (aprovada),
-Units Generation (gate pendente).
+**Fase de Inception encerrada**: 7 stages concluídas e aprovadas — Workspace Detection, Reverse
+Engineering, Requirements Analysis (9 revisões), User Stories, Workflow Planning, Application
+Design, Units Generation. Nenhuma pulada.
+
+**Bloqueio ativo**: o GitHub Actions falha em `sts:AssumeRoleWithWebIdentity` —
+*"The web identity token provided could not be validated"*. Duas correções aguardando um único
+`terraform apply` do bootstrap: thumbprint lido via `data.tls_certificate` (3.26) e permissões de
+`rds` na policy do CI (3.27). Hipótese ainda não descartada: capitalização do owner no claim `sub`.
 
 **Decisões ainda em aberto** (adiadas para stages posteriores): mecanismo de autenticação (D-02),
-estrutura de pacotes (D-03), fronteira do fechamento em dia 29–31 (D-04, parcial),
-mecanismo de recorrência (D-19), mecanismo de fechamento de fatura (D-20), dimensionamento da EC2
-(D-11). Fechadas nesta stage: D-13 (visibilidade de histórico) e D-04 parcialmente.
+fronteira do fechamento em dia 29–31 (D-04, parcial), mecanismo de recorrência (D-19), mecanismo de
+fechamento de fatura (D-20), base de cálculo do "realizado" do orçamento (J-02), `Fatura.status`
+persistido ou derivado (D-33). Fechadas na Construction: D-11, D-12, D-34 a D-39.
 
-**Questões novas abertas pelas jornadas transversais**: base de cálculo do "realizado" do orçamento
-(J-02), rateio por parcela (J-01), distinção "total do grupo" vs. "minhas cotas" na API (J-03).
+**Insumo pendente do usuário**: `domain_name` — sem ele não há TLS e a API responde por HTTP no IP
+elástico.
+
+**Questões abertas pelas jornadas transversais**: J-02 (base de cálculo do "realizado" do orçamento)
+segue aberta, destino Functional Design de U4. J-01 (rateio por parcela) foi **extinta** na revisão 8
+com a remoção do rateio; J-03 (distinção "total do grupo" vs. "total pessoal") foi **resolvida** por
+RF-97 e D-28.
