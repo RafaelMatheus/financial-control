@@ -22,6 +22,11 @@ on:
         type: choice
         options: [dev, prod]
         default: dev
+      mode:
+        description: 'plan mostra o diff; apply executa'
+        type: choice
+        options: [plan, apply]
+        default: plan
 
 concurrency:
   group: terraform-apply-${{ inputs.environment || vars.TF_ENVIRONMENT || 'dev' }}
@@ -36,6 +41,9 @@ env:
   # O default é `dev` enquanto só esse ambiente existe; para promover a `prod`,
   # basta criar a variable TF_ENVIRONMENT — sem tocar neste arquivo.
   TF_ENV: ${{ inputs.environment || vars.TF_ENVIRONMENT || 'dev' }}
+  # No push a merge continua aplicando sozinho (D-25). O `plan` so existe como
+  # default do disparo manual, para inspecionar antes de criar recurso pago.
+  TF_MODE: ${{ inputs.mode || 'apply' }}
 
 jobs:
   apply:
@@ -61,11 +69,32 @@ jobs:
       - name: Init
         run: terraform init -backend-config=envs/${TF_ENV}/backend.hcl
 
+      - name: Plan
+        run: |
+          terraform plan -input=false -no-color \
+            -var-file=envs/${TF_ENV}/terraform.tfvars \
+            -var="ecr_repository=${{ vars.ECR_REPOSITORY }}" | tee plan.txt
+
+          {
+            echo "### Terraform Plan — \`${TF_ENV}\`"
+            echo
+            DESTRUTIVO=$(grep -cE 'must be replaced|will be destroyed' plan.txt || true)
+            if [ "${DESTRUTIVO}" -gt 0 ]; then
+              echo "> **${DESTRUTIVO} recurso(s) a destruir ou substituir.**"
+              echo
+            fi
+            echo '```hcl'
+            cat plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Apply
+        if: env.TF_MODE == 'apply'
         run: |
           terraform apply -auto-approve \
             -var-file=envs/${TF_ENV}/terraform.tfvars \
             -var="ecr_repository=${{ vars.ECR_REPOSITORY }}"
 
       - name: Saídas
+        if: env.TF_MODE == 'apply'
         run: terraform output
