@@ -63,6 +63,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # O user-data cria apenas o .env. A composicao e a configuracao do nginx
+      # vivem no repositorio e precisam chegar na instancia a cada deploy —
+      # senao `docker compose -f docker-compose.prod.yml` roda num diretorio que
+      # nao tem esse arquivo. Vao em base64 para atravessar o JSON do SSM sem
+      # sofrer com aspas, quebras de linha e cifroes.
+      - name: Empacotar a composicao e o nginx
+        id: pack
+        run: |
+          echo "compose=$(base64 -w0 docker-compose.prod.yml)" >> "$GITHUB_OUTPUT"
+          echo "nginx_tls=$(base64 -w0 infra/nginx/nginx.conf)" >> "$GITHUB_OUTPUT"
+          echo "nginx_http=$(base64 -w0 infra/nginx/nginx-http.conf)" >> "$GITHUB_OUTPUT"
+
       # Deploy por SSM Run Command (RF-88): sem SSH, porta 22 fechada,
       # nenhuma chave privada no repositório.
       - name: Deploy via SSM
@@ -75,10 +87,16 @@ jobs:
             --parameters commands='[
               "set -euo pipefail",
               "cd /opt/financial-control",
+              "mkdir -p nginx",
+              "echo ${{ steps.pack.outputs.compose }} | base64 -d > docker-compose.prod.yml",
+              "echo ${{ steps.pack.outputs.nginx_tls }} | base64 -d > nginx/nginx.conf",
+              "echo ${{ steps.pack.outputs.nginx_http }} | base64 -d > nginx/nginx-http.conf",
+              "set -a; . ./.env; set +a",
+              "if [ \"$ENABLE_TLS\" = \"true\" ]; then cp nginx/nginx.conf nginx/default.conf; sed -i \"s|DOMAIN|$DOMAIN_NAME|g\" nginx/default.conf; else cp nginx/nginx-http.conf nginx/default.conf; fi",
               "sed -i \"s|^IMAGE_TAG=.*|IMAGE_TAG=${{ steps.tag.outputs.value }}|\" .env",
               "aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin ${{ vars.ECR_REPOSITORY }}",
               "docker compose -f docker-compose.prod.yml pull",
-              "docker compose -f docker-compose.prod.yml up -d",
+              "docker compose -f docker-compose.prod.yml up -d --wait",
               "docker image prune -f"
             ]' \
             --query "Command.CommandId" --output text)
@@ -109,3 +127,28 @@ jobs:
             sleep 10
           done
           echo "Timeout aguardando o comando."; exit 1
+
+      # O SSM ter dado Success significa que os comandos rodaram, nao que a
+      # aplicacao atende. Sem esta verificacao, um deploy que sobe um container
+      # que morre em seguida e reportado como sucesso.
+      - name: Verificar o health check
+        run: |
+          IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=financial-control-${TF_ENV}" "Name=instance-state-name,Values=running" \
+            --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
+          echo "Instancia: $IP"
+
+          for i in $(seq 1 20); do
+            CORPO=$(curl -fsS --max-time 5 "http://$IP/health" 2>/dev/null || true)
+            if echo "$CORPO" | grep -q '"status":"UP"'; then
+              echo "Health check OK: $CORPO"
+              echo "### Deploy verificado" >> "$GITHUB_STEP_SUMMARY"
+              echo "\`http://$IP/health\` respondeu \`$CORPO\`" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "[$i/20] ainda nao respondeu UP: ${CORPO:-sem resposta}"
+            sleep 15
+          done
+
+          echo "::error::A aplicacao nao respondeu UP em 5 minutos."
+          exit 1

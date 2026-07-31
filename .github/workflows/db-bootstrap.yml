@@ -1,0 +1,92 @@
+name: Banco — Criar usuario da aplicacao
+
+# Passo 5b do runbook, automatizado. O Terraform nao consegue fazer isto: o RDS
+# esta em subnet privada e o Terraform roda de fora da VPC. Quem alcanca o banco
+# e a instancia EC2 — entao o SQL vai ate ela por SSM.
+#
+# Disparo manual. E idempotente: reexecutar apenas sincroniza a senha do usuario
+# da aplicacao com o valor atual do Parameter Store.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Ambiente
+        type: choice
+        options: [dev, prod]
+        default: dev
+
+concurrency:
+  group: db-bootstrap-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_ENV: ${{ inputs.environment }}
+
+jobs:
+  criar-usuario:
+    name: Criar usuario da aplicacao (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Autenticar na AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Enviar e executar o script na instancia
+        id: ssm
+        run: |
+          SCRIPT=$(base64 -w0 infra/scripts/db-bootstrap.sh)
+
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:Name,Values=financial-control-${TF_ENV}" \
+            --comment "Passo 5b — usuario da aplicacao (${TF_ENV})" \
+            --parameters commands='[
+              "set -euo pipefail",
+              "echo '"$SCRIPT"' | base64 -d > /tmp/db-bootstrap.sh",
+              "chmod +x /tmp/db-bootstrap.sh",
+              "/tmp/db-bootstrap.sh /financial-control-'"$TF_ENV"'",
+              "rm -f /tmp/db-bootstrap.sh"
+            ]' \
+            --query "Command.CommandId" --output text)
+          echo "command_id=$COMMAND_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Aguardar e mostrar a saida
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=financial-control-${TF_ENV}" "Name=instance-state-name,Values=running" \
+            --query "Reservations[0].Instances[0].InstanceId" --output text)
+
+          for i in $(seq 1 20); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "${{ steps.ssm.outputs.command_id }}" \
+              --instance-id "$INSTANCE_ID" \
+              --query Status --output text 2>/dev/null || echo Pending)
+            echo "[$i/20] $STATUS"
+
+            case "$STATUS" in
+              Success)
+                aws ssm get-command-invocation \
+                  --command-id "${{ steps.ssm.outputs.command_id }}" \
+                  --instance-id "$INSTANCE_ID" \
+                  --query StandardOutputContent --output text
+                exit 0 ;;
+              Failed|Cancelled|TimedOut)
+                aws ssm get-command-invocation \
+                  --command-id "${{ steps.ssm.outputs.command_id }}" \
+                  --instance-id "$INSTANCE_ID" \
+                  --query StandardErrorContent --output text
+                exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "Timeout aguardando o comando."; exit 1
