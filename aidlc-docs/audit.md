@@ -610,3 +610,12 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U1: NFR Design
+**Timestamp**: 2026-07-31T17:00:00Z
+**AI Prompt**: 3 questões via AskUserQuestion — imposição técnica da Visibilidade, camadas por feature, formato de log. O usuário perguntou "pq nao usou asktool?"; esclarecido que a pergunta tinha sido feita e as mensagens se cruzaram.
+**User Input**: "Repositório base sem método cru (Recomendado)"; "Hexagonal com portas e adaptadores"; "Texto simples com id de correlação (Recomendado)"
+**AI Response**: "D-51 (hexagonal), D-52 (Visibilidade por porta sem método cru) e D-53 (log em texto com id de correlação). A escolha de hexagonal foi CONTRA a recomendação, que era três camadas; a ressalva foi mantida e registrada no plano — num CRUD de 15 entidades parte do mapeamento é cerimônia. Observado que as duas primeiras escolhas se combinam bem: a porta de repositório vira o lugar exato onde mora a garantia de que não existe consulta sem filtro, e o domínio sequer conhece a forma de consultar. PADRÃO CENTRAL: a porta não expõe findAll nem findById; quem escrever consulta sem filtro não produz bug, produz erro de compilação. A alternativa @Filter do Hibernate foi avaliada e recusada porque falha em silêncio se alguém esquecer de habilitar o filtro na sessão — trocaria um erro impossível por um erro invisível. As 5 categorias obrigatórias foram avaliadas com justificativa explícita: Resilience parcial (sem integração externa, só indisponibilidade do banco), Scalability não-aplicável com registro do que quebraria numa segunda instância, Performance parcial, Security aplicável (é o eixo da unidade), Logical Components parcial. Documentada uma tabela de componentes que DELIBERADAMENTE não existem — cache, fila, circuit breaker, store de sessão, serviço de e-mail — porque ausência sem registro é indistinguível de esquecimento, e alguém em U3 vai propor um cache. Destacado que open-in-view: false transforma um problema de desempenho difícil de notar num erro difícil de ignorar. RegistroDeTentativas é o único componente com estado da unidade, e é exatamente o que quebra com escala horizontal."
+**Context**: CONSTRUCTION PHASE - U1 - NFR Design
+
+---
+
