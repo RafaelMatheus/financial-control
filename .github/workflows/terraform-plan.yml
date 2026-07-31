@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'infra/terraform/**'
+      - '!infra/terraform/bootstrap/**' # stack separado — ver terraform-apply.yml
       - '.github/workflows/terraform-*.yml'
 
 concurrency:

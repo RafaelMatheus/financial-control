@@ -552,3 +552,11 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U5: filtro de path do apply engolia o bootstrap
+**Timestamp**: 2026-07-31T13:30:00Z
+**User Input**: "Error: Failed to get existing workspaces: S3 bucket \"financial-control-tfstate-594116288641\" does not exist."
+**AI Response**: "Erro do terraform-apply.yml, não do bootstrap, e causado pelo meu próprio push. O commit deb2917 alterou infra/terraform/bootstrap/oidc.tf, que casa com o filtro paths: infra/terraform/** do apply da stack principal. O workflow disparou, tentou terraform init -backend-config=envs/dev/backend.hcl e falhou porque o bucket de state ainda não existe — é justamente o recurso que o bootstrap vai criar. Nada foi criado nem alterado: a falha ocorreu no init, antes de qualquer recurso. DEFEITO REAL IDENTIFICADO: o bootstrap mora dentro de infra/terraform/, então o filtro de path da stack principal o engole, apesar de serem stacks separados, com states separados e ciclos de vida separados — o bootstrap tem workflow próprio, bootstrap.yml, por disparo manual. Corrigido com exclusão de path negativa ('!infra/terraform/bootstrap/**') no terraform-apply.yml e no terraform-plan.yml. YAML revalidado nos dois arquivos."
+**Context**: CONSTRUCTION PHASE - U5 - Correção de filtro de path
+
+---
+
