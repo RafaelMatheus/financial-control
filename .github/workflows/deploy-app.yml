@@ -86,7 +86,7 @@ jobs:
             --comment "Deploy ${{ steps.tag.outputs.value }}" \
             --parameters commands='[
               "set -euo pipefail",
-              "cd /opt/financial-control",
+              "cd /opt/financial-control-${{ env.TF_ENV }}",
               "mkdir -p nginx",
               "echo ${{ steps.pack.outputs.compose }} | base64 -d > docker-compose.prod.yml",
               "echo ${{ steps.pack.outputs.nginx_tls }} | base64 -d > nginx/nginx.conf",
