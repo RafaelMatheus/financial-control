@@ -1043,6 +1043,32 @@ deve encolher para satisfazer RF-93.
 > — e a assimetria de custo justifica: errar para o lado permissivo custa uma condição a mais numa
 > policy; errar para o lado restritivo custa o acesso ao CI.
 
+### 3.33 O stack dentro do stack
+
+Um push que alterava `infra/terraform/bootstrap/oidc.tf` disparou o `terraform-apply.yml` da stack
+principal, que morreu em `Failed to get existing workspaces: S3 bucket does not exist`.
+
+A causa é puramente de layout: o bootstrap **mora dentro** de `infra/terraform/`, e o filtro
+`paths: infra/terraform/**` não distingue os dois. São stacks separados — states separados, ciclos
+de vida separados, e o bootstrap tem workflow próprio, por disparo manual. A árvore de diretórios
+sugeria uma hierarquia ("bootstrap é parte da infraestrutura") onde a semântica exigia irmandade
+("bootstrap é *outro* sistema, que por acaso está guardado ao lado").
+
+> **O-23 — Filtros de path herdam a hierarquia de diretórios, não a de sistemas.** O acoplamento não
+> estava em nenhuma decisão: emergiu de onde os arquivos foram postos. Sempre que dois artefatos com
+> ciclos de vida independentes compartilham prefixo de caminho, qualquer automação baseada em path
+> vai tratá-los como um só até que alguém escreva a exceção.
+
+Resolvido com exclusão negativa — `'!infra/terraform/bootstrap/**'` — nos dois workflows de
+Terraform. A alternativa estrutural seria mover o bootstrap para fora de `infra/terraform/`, o que
+tornaria a separação visível na árvore em vez de escondida num filtro; não foi feito para não
+invalidar os caminhos já documentados no runbook e no README.
+
+**Nota sobre o custo do erro**: nenhum. A falha ocorreu no `init`, antes de qualquer recurso. Vale
+observar por quê — a stack principal não consegue nem começar sem o backend, e o backend é produto do
+bootstrap. A dependência circular que o bootstrap existe para quebrar funcionou aqui como
+**proteção**: tornou impossível aplicar a stack principal fora de ordem.
+
 ---
 
 ## 4. Dados quantitativos do processo
