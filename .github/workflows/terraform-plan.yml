@@ -1,0 +1,86 @@
+name: Terraform — Plan
+
+# Filtro de path (RNF-14): só roda em mudança de infraestrutura.
+on:
+  pull_request:
+    paths:
+      - 'infra/terraform/**'
+      - '.github/workflows/terraform-*.yml'
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write      # OIDC (RF-82)
+  contents: read
+  pull-requests: write # comentar o plan no PR (RF-84)
+
+env:
+  # Mesma precedência do terraform-apply.yml, para que o plan do PR descreva
+  # exatamente o ambiente que o merge vai aplicar.
+  TF_ENV: ${{ vars.TF_ENVIRONMENT || 'dev' }}
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Autenticar na AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.10.5'
+
+      - name: Formatação
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+        id: fmt
+
+      - name: Init
+        run: terraform init -backend-config=envs/${TF_ENV}/backend.hcl
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Plan
+        id: plan
+        run: |
+          terraform plan -var-file=envs/${TF_ENV}/terraform.tfvars \
+            -var="ecr_repository=${{ vars.ECR_REPOSITORY }}" \
+            -no-color -out=tfplan 2>&1 | tee plan.txt
+        continue-on-error: true
+
+      - name: Comentar o plan no PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let plan = fs.readFileSync('infra/terraform/plan.txt', 'utf8');
+            if (plan.length > 60000) plan = plan.slice(0, 60000) + '\n... (truncado)';
+
+            const destroys = (plan.match(/must be replaced|will be destroyed/g) || []).length;
+            const alerta = destroys > 0
+              ? `\n> ⚠️ **Este plan contém ${destroys} recurso(s) a destruir ou substituir.**\n> O apply é automático no merge — leia com atenção antes de aprovar.\n`
+              : '';
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### Terraform Plan — \`${{ env.TF_ENV }}\`\n\nfmt: \`${{ steps.fmt.outcome }}\` · plan: \`${{ steps.plan.outcome }}\`\n${alerta}\n<details><summary>Ver plan completo</summary>\n\n\`\`\`hcl\n${plan}\n\`\`\`\n\n</details>`
+            });
+
+      - name: Falhar se o plan falhou
+        if: steps.plan.outcome == 'failure'
+        run: exit 1

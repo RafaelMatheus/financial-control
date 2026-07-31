@@ -1,0 +1,66 @@
+name: Terraform — Apply
+
+# Apply automático no merge, sem gate de aprovação (decisão D-25).
+# Mitigado por prevent_destroy no Elastic IP, ECR, RDS e bucket de state — ver risco R-05.
+#
+# ⚠️ A role do CI tem AdministratorAccess anexado, o que amplifica R-05:
+# qualquer push aqui tem poder total sobre a conta.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/terraform/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Ambiente a aplicar
+        type: choice
+        options: [dev, prod]
+        default: dev
+
+concurrency:
+  group: terraform-apply-${{ inputs.environment || vars.TF_ENVIRONMENT || 'dev' }}
+  cancel-in-progress: false # nunca cancelar um apply em andamento
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  # Ordem de precedência: escolha no dispatch > variable do repositório > dev.
+  # O default é `dev` enquanto só esse ambiente existe; para promover a `prod`,
+  # basta criar a variable TF_ENVIRONMENT — sem tocar neste arquivo.
+  TF_ENV: ${{ inputs.environment || vars.TF_ENVIRONMENT || 'dev' }}
+
+jobs:
+  apply:
+    name: Apply
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Autenticar na AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.10.5'
+
+      - name: Init
+        run: terraform init -backend-config=envs/${TF_ENV}/backend.hcl
+
+      - name: Apply
+        run: |
+          terraform apply -auto-approve \
+            -var-file=envs/${TF_ENV}/terraform.tfvars \
+            -var="ecr_repository=${{ vars.ECR_REPOSITORY }}"
+
+      - name: Saídas
+        run: terraform output

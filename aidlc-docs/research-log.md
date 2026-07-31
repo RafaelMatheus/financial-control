@@ -929,6 +929,39 @@ poder total sobre a conta, o que amplifica o risco R-05 (apply automático sem g
 > em que alguém restringisse a role. Privilégio excessivo não só aumenta o raio de dano: ele remove
 > o mecanismo que informaria que a policy está errada.
 
+### 3.30 O ambiente estava escrito em três lugares e em nenhum
+
+**Decisão D-40**: provisionar **`dev` primeiro**, como ensaio da stack completa, e só depois `prod`.
+
+A decisão parecia trivial — os dois ambientes já existiam em `envs/dev/` e `envs/prod/`, com tfvars
+e backend próprios. Mas os workflows estavam **fixados em `prod`** em três pontos independentes:
+
+| Arquivo | Acoplamento |
+|---|---|
+| `terraform-plan.yml` | `-backend-config=envs/prod/`, `-var-file=envs/prod/`, título do comentário no PR |
+| `terraform-apply.yml` | `-backend-config=envs/prod/`, `-var-file=envs/prod/`, nome do job |
+| `deploy-app.yml` | alvo do SSM por `tag:Name,Values=financial-control-prod`, em dois comandos |
+
+O terceiro é o interessante. A tag vem de `local.name = "${project_name}-${environment}"`, então em
+`dev` a instância se chama `financial-control-dev` — e o `send-command` não encontraria máquina
+alguma. O sintoma não seria um erro de configuração legível: seria um deploy que **reporta sucesso
+ao enviar o comando para zero alvos**.
+
+> **O-19 — Parametrizar metade de uma dimensão é pior que não parametrizar.** A estrutura `envs/*`
+> dava toda a aparência de um sistema multi-ambiente, e por isso ninguém desconfiaria que trocar de
+> ambiente exigia editar workflows. O acoplamento sobrevive justamente onde a abstração parece
+> completa: `envs/` cobria o Terraform, e o deploy por tag ficou fora do alcance dela.
+
+Resolvido com uma única variável de precedência, repetida nos três workflows:
+
+```yaml
+TF_ENV: ${{ inputs.environment || vars.TF_ENVIRONMENT || 'dev' }}
+```
+
+Default `dev` enquanto só esse ambiente existe; promover a `prod` é criar a variable
+`TF_ENVIRONMENT` no repositório, **sem tocar em código**. O `terraform-apply.yml` ganhou ainda um
+input de escolha no `workflow_dispatch`, para aplicar um ambiente sob demanda.
+
 ---
 
 ## 4. Dados quantitativos do processo

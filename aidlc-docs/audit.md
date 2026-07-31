@@ -527,3 +527,12 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U5: restauração dos workflows e parametrização de ambiente
+**Timestamp**: 2026-07-31T00:30:00Z
+**AI Prompt**: "Qual ambiente provisionar primeiro depois do bootstrap?" (via AskUserQuestion, 3 opções)
+**User Input**: "Só dev primeiro"
+**AI Response**: "Registrada como D-40. Restaurados os 4 workflows apagados pelo commit 0f2a224, via git checkout 8726974 -- .github/workflows/. A restauração é segura antes do bootstrap porque um commit que toca só .github/ não casa com o filtro de path do terraform-apply.yml, que reage apenas a infra/terraform/**. ACHADO: a escolha por dev revelou que os workflows estavam fixados em prod em três pontos independentes — terraform-plan.yml e terraform-apply.yml no backend-config, no var-file e nos nomes de job, e deploy-app.yml no alvo do SSM por tag:Name,Values=financial-control-prod, em dois comandos distintos. O terceiro seria o mais difícil de diagnosticar: a tag vem de local.name = project_name-environment, então em dev a instância se chama financial-control-dev, e o send-command reportaria sucesso ao enviar o comando para zero alvos, sem erro legível. Resolvido com a variável de precedência TF_ENV = inputs.environment || vars.TF_ENVIRONMENT || 'dev', replicada nos três workflows, mais um input de escolha dev/prod no workflow_dispatch do terraform-apply.yml. Promover a prod passa a ser criar a variable TF_ENVIRONMENT no repositório, sem tocar em código. Registrado no research-log como 3.30 e O-19 (parametrizar metade de uma dimensão é pior que não parametrizar)."
+**Context**: CONSTRUCTION PHASE - U5 - Workflows
+
+---
+
