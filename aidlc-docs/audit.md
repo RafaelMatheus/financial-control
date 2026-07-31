@@ -619,3 +619,11 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U1: Code Generation, Parte 1 (planejamento)
+**Timestamp**: 2026-07-31T17:15:00Z
+**User Input**: "continue"
+**AI Response**: "NFR Design aprovado. Criado o plano de Code Generation de U1 em aidlc-docs/construction/plans/u1-fundacao-code-generation-plan.md, com 28 passos numerados e checkboxes, agrupados em preparação, common, usuario, grupo, persistência e isolamento, infraestrutura decorrente e fechamento. Estimados ~45 arquivos novos e 7 modificados. Rastreabilidade das 8 histórias mapeada passo a passo. Registrados 4 riscos com tratamento, incluindo o de o ddl-auto validate reprovar o mapeamento — tratado como o ponto do requisito, a ser resolvido ajustando a migration e nunca desligando o validate. Destacados os dois passos mais importantes: o Passo 6, que cria a porta sem método cru, e o Passo 22, o teste de isolamento de dados. Aguardando aprovação do plano antes de gerar código."
+**Context**: CONSTRUCTION PHASE - U1 - Code Generation Parte 1
+
+---
+
