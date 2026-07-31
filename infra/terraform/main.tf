@@ -41,4 +41,15 @@ module "compute" {
   ecr_repository        = var.ecr_repository
   domain_name           = var.domain_name
   enable_tls            = var.enable_tls
+
+  # O user-data le o Parameter Store logo no boot e roda com `set -e`. Sem esta
+  # dependencia explicita, a instancia pode subir antes de os parametros
+  # existirem, o script aborta e o .env nunca e escrito — foi o que aconteceu no
+  # primeiro provisionamento de dev. Nao ha referencia entre os recursos que
+  # crie a ordem implicitamente, entao ela precisa ser declarada.
+  depends_on = [
+    aws_ssm_parameter.db_url,
+    aws_ssm_parameter.db_app_username,
+    aws_ssm_parameter.db_app_password,
+  ]
 }

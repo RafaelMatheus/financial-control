@@ -74,6 +74,7 @@ jobs:
           echo "compose=$(base64 -w0 docker-compose.prod.yml)" >> "$GITHUB_OUTPUT"
           echo "nginx_tls=$(base64 -w0 infra/nginx/nginx.conf)" >> "$GITHUB_OUTPUT"
           echo "nginx_http=$(base64 -w0 infra/nginx/nginx-http.conf)" >> "$GITHUB_OUTPUT"
+          echo "write_env=$(base64 -w0 infra/scripts/write-env.sh)" >> "$GITHUB_OUTPUT"
 
       # Deploy por SSM Run Command (RF-88): sem SSH, porta 22 fechada,
       # nenhuma chave privada no repositório.
@@ -86,6 +87,9 @@ jobs:
             --comment "Deploy ${{ steps.tag.outputs.value }}" \
             --parameters commands='[
               "set -euo pipefail",
+              "echo ${{ steps.pack.outputs.write_env }} | base64 -d > /tmp/write-env.sh",
+              "chmod +x /tmp/write-env.sh",
+              "/tmp/write-env.sh ${{ env.TF_ENV }} ${{ vars.ECR_REPOSITORY }}",
               "cd /opt/financial-control-${{ env.TF_ENV }}",
               "mkdir -p nginx",
               "echo ${{ steps.pack.outputs.compose }} | base64 -d > docker-compose.prod.yml",
