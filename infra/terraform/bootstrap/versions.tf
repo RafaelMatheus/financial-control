@@ -34,6 +34,22 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "aws_account_id" {
+  description = "Conta AWS alvo. Usado no id do import block do OIDC provider."
+  type        = string
+  default     = "594116288641"
+}
+
+variable "ci_role_name" {
+  description = <<-EOT
+    Nome da role assumida pelo GitHub Actions. Vale `github-actions` porque a
+    role foi criada manualmente no console para destravar o pipeline, e o
+    Terraform a adota por import em vez de criar uma segunda.
+  EOT
+  type        = string
+  default     = "github-actions"
+}
+
 variable "github_repository" {
   description = "Repositorio GitHub no formato owner/repo"
   type        = string

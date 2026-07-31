@@ -17,7 +17,23 @@ unidade **U5 — Infraestrutura**:
 | Code Generation | ✅ Código gerado e no GitHub — **gate de aprovação ainda pendente** |
 | Bootstrap manual | 🔴 **Em andamento, bloqueado** |
 
-## 🔴 Bloqueio atual
+## ✅ OIDC RESOLVIDO em 2026-07-31
+
+O smoke test ficou verde. Causa raiz: o sample da AWS trazia o ARN em `role-session-name` em vez de
+`role-to-assume` — nenhuma role era assumida. A role em uso é `github-actions`, criada manualmente
+no console, com **`AdministratorAccess`** anexado.
+
+**Estado atual do bootstrap**: metade feita à mão (OIDC provider e role). Faltam o **bucket de state**
+e o **repositório ECR**. O `oidc.tf` ganhou dois `import` blocks para adotar os recursos manuais no
+state em vez de tentar criar duplicatas.
+
+**Próximo passo concreto**: `terraform plan` no CloudShell e avaliar o diff da trust policy antes do
+apply — decisão do usuário de confiar no plan em vez de comparar antes.
+
+⚠️ **`AdministratorAccess` na role do CI amplifica o risco R-05** (apply automático sem gate).
+Qualquer push na `main` que toque `infra/terraform/**` tem poder total sobre a conta.
+
+## 🗄️ Histórico do bloqueio (resolvido)
 
 O GitHub Actions falha ao assumir a role por OIDC:
 

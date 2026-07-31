@@ -9,6 +9,28 @@ data "tls_certificate" "github" {
   url = "https://token.actions.githubusercontent.com/.well-known/openid-configuration"
 }
 
+# ---------------------------------------------------------------------------
+# Adocao dos recursos criados manualmente no console.
+#
+# O OIDC provider e a role ja existem: foram criados a mao para destravar o
+# pipeline. Um `import` block adota o recurso existente durante o apply, em vez
+# de tentar criar um segundo ao lado — provider OIDC e unico por conta, e o
+# apply falharia com EntityAlreadyExists.
+#
+# Depois do primeiro apply bem-sucedido estes dois blocos podem ser removidos:
+# cumprida a adocao, eles nao fazem mais nada.
+# ---------------------------------------------------------------------------
+
+import {
+  to = aws_iam_openid_connect_provider.github
+  id = "arn:aws:iam::${var.aws_account_id}:oidc-provider/token.actions.githubusercontent.com"
+}
+
+import {
+  to = aws_iam_role.github_actions
+  id = var.ci_role_name
+}
+
 resource "aws_iam_openid_connect_provider" "github" {
   url            = "https://token.actions.githubusercontent.com"
   client_id_list = ["sts.amazonaws.com"]
@@ -53,7 +75,9 @@ data "aws_iam_policy_document" "github_actions_assume" {
 }
 
 resource "aws_iam_role" "github_actions" {
-  name               = "${var.project_name}-github-actions"
+  # Nome vem de variavel porque a role ja existe com o nome `github-actions`,
+  # criado manualmente. O import block acima a adota com este nome.
+  name               = var.ci_role_name
   assume_role_policy = data.aws_iam_policy_document.github_actions_assume.json
   description        = "Role assumida pelo GitHub Actions via OIDC"
 }

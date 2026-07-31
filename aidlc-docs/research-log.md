@@ -887,6 +887,48 @@ está no ar não há CI. A restauração deve esperar o smoke test passar, para 
 > comando; o risco real é a restauração ficar esquecida, porque o pipeline ausente não gera alarme.
 > Registrar a pendência num artefato do método é o que fecha esse buraco — foi o que se fez aqui.
 
+### 3.29 O console adiantou o Terraform, e o código teve que correr atrás
+
+**Episódio**: para destravar o OIDC, o usuário criou o provider e a role `github-actions`
+**manualmente no console**. Funcionou — o smoke test ficou verde. Só que o bootstrap escrito em U5
+previa criar exatamente esses dois recursos, e um OIDC provider é único por conta: o `apply` morreria
+com `EntityAlreadyExists`.
+
+Situação clássica de infraestrutura provisionada por dois caminhos que não se conhecem. Três saídas
+possíveis, todas legítimas:
+
+| Saída | Custo |
+|---|---|
+| Apagar o manual e deixar o Terraform criar | derruba a autenticação que acabou de funcionar |
+| Deixar o manual fora do código | identidade do CI não versionada, drift permanente |
+| **Adotar o manual no state** | o código passa a mandar em algo que já existe — e pode sobrescrevê-lo |
+
+Escolhida a terceira, com `import` blocks (Terraform ≥ 1.5) em vez do comando `terraform import`.
+A diferença importa: o comando é um passo manual, fora do código, que só quem estava presente sabe
+que aconteceu; o bloco é **declarativo**, vive no repositório, e a adoção acontece durante o próprio
+`apply`.
+
+> **O-17 — Adotar é mais barato que recriar, e mais honesto que ignorar.** O reflexo diante de
+> infraestrutura criada à mão é "apaga e deixa o Terraform fazer certo". Mas apagar o que funciona
+> para recriar igual troca um risco conhecido (drift) por um desconhecido (a recriação não sair
+> idêntica). O `import` block converte o recurso manual em recurso versionado sem tocar nele.
+
+**Risco aceito e explicitado**: adotar a role significa que a trust policy do código passa a valer
+sobre a trust policy que funciona. Se divergirem — a hipótese da capitalização do owner, ainda não
+descartada — o apply quebra a autenticação recém-conquistada. O usuário optou por **confiar no
+`plan`**: o diff da trust policy aparece antes do apply, e é avaliado ali.
+
+**Segundo achado, sobre privilégio**: a role manual tem **`AdministratorAccess`** anexado. Isso
+resolve por acidente o problema da seção 3.27 — a falta de permissões de `rds` deixa de causar
+`AccessDenied`, porque não há permissão que falte. E cria outro: qualquer push na `main` passa a ter
+poder total sobre a conta, o que amplifica o risco R-05 (apply automático sem gate).
+
+> **O-18 — Uma permissão ampla demais não falha; ela silencia o teste.** A policy granular escrita em
+> U5 tinha um defeito real (faltava `rds`), descoberto por leitura e não por execução. Com
+> `AdministratorAccess`, esse defeito nunca se manifestaria — e continuaria lá, invisível, até o dia
+> em que alguém restringisse a role. Privilégio excessivo não só aumenta o raio de dano: ele remove
+> o mecanismo que informaria que a policy está errada.
+
 ---
 
 ## 4. Dados quantitativos do processo
