@@ -568,3 +568,10 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U5: ambiente dev provisionado
+**Timestamp**: 2026-07-31T15:00:00Z
+**AI Response**: "Ambiente dev de pé na quarta tentativa de apply, com o mesmo plan nas quatro. Saídas: api_url=http://52.73.89.203, instance_id=i-0151f919886de23ca, db_endpoint=financial-control-dev-db.cmjo0eeoyqhw.us-east-1.rds.amazonaws.com. As três falhas foram todas rejeições do lado do serviço, invisíveis ao plan: descrições com travessão e apóstrofo, FreeTierRestrictionError na retenção de backup, e Cannot find version 16.6 for postgres. A terceira revelou uma contradição interna do módulo: engine_version fixava a versão menor enquanto auto_minor_version_upgrade = true já estava ligado, ou seja, o código declarava ao mesmo tempo 'quero a menor mais recente automaticamente' e 'quero exatamente a 16.6'. Corrigido para fixar só a maior. RISCO R-01 REABERTO PARA PROD: a conta está no plano Free Tier e recusou 7 dias de retenção. Em dev caiu para 1 dia, inconsequente sem dado real; em prod é a reabertura de um risco que a revisão 9 tinha declarado fechado. Registrado como decisão pendente. Registrado no research-log como 3.35, O-26 (a taxa de acerto do plan é função de quanto da validação mora no provedor) e O-27 (contradições entre atributos do mesmo recurso não têm quem as revise: sintaxe o parser pega, valor o serviço pega, e duas configurações válidas que se anulam não são detectadas por ninguém)."
+**Context**: CONSTRUCTION PHASE - U5 - dev provisionado
+
+---
+

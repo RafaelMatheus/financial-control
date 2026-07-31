@@ -1115,6 +1115,50 @@ obedecer a uma regra que não se aplica ali.
 registra. Reaplicar continua de onde parou, sem recriar nada — que é exatamente o comportamento que
 o passo *Guardar o state* com `if: always()` (3.31) existe para garantir.
 
+### 3.35 Quatro applies para um plan
+
+A stack de `dev` subiu na **quarta** tentativa. O `plan` era o mesmo nas quatro, e passou limpo nas
+quatro — `33 to add, 0 to change, 0 to destroy`. Cada falha foi uma rejeição do lado do serviço:
+
+| # | Erro | Natureza |
+|---|---|---|
+| 1 | `must not contain non-printable control characters` / `Invalid rule description` | gramática de conteúdo do campo |
+| 2 | `FreeTierRestrictionError: backup retention period exceeds the maximum` | plano comercial da conta |
+| 3 | `Cannot find version 16.6 for postgres` | catálogo do serviço mudou |
+| 4 | — | sucesso |
+
+São três categorias completamente diferentes de restrição, e **nenhuma delas é expressável no
+Terraform**. É a confirmação empírica de O-25: o plan negocia com o state, não com a API.
+
+> **O-26 — A taxa de acerto do plan é uma função de quanto da validação mora no provedor.** Para
+> recursos cuja criação é essencialmente estrutural (VPC, subnet, route table), o plan é quase
+> profético — todos os 20 e tantos passaram de primeira. Para recursos com regras de negócio do lado
+> do serviço (RDS, com catálogo de versões, cotas e plano comercial), ele é pouco mais que uma
+> intenção declarada. Não é defeito do Terraform: é o limite de qualquer ferramenta que planeja
+> contra um modelo local de um sistema remoto.
+
+Vale notar o formato do progresso: **as falhas avançaram**, cada uma mais fundo que a anterior — o
+mesmo padrão de 3.26, e o mesmo valor diagnóstico. Erro novo é progresso; erro repetido é que seria
+motivo de preocupação.
+
+**Sobre a versão fixada**: `engine_version = "16.6"` não estava só desatualizada, estava
+**contradizendo o próprio módulo**, que já trazia `auto_minor_version_upgrade = true`. O código
+declarava simultaneamente "quero a menor mais recente automaticamente" e "quero exatamente a 16.6".
+Passou por geração, revisão e um plan sem que a contradição aparecesse, porque cada linha estava
+correta isoladamente.
+
+> **O-27 — Contradições entre atributos do mesmo recurso não têm quem as revise.** Erro de sintaxe o
+> parser pega; erro de valor o serviço pega. Duas configurações válidas que se anulam não são
+> detectadas por ninguém — só pelo comportamento, meses depois, quando alguém pergunta por que o
+> banco não atualizou sozinho.
+
+**Sobre o free tier e o risco R-01**: a conta está no plano Free Tier, que recusou retenção de 7
+dias. Em `dev` a redução para 1 dia é inconsequente — não há dado real. Em `prod`, é a reabertura de
+um risco que o projeto tinha declarado **fechado** na revisão 9, quando a migração para RDS
+gerenciado trouxe backup nativo. Registrado como decisão pendente, não como detalhe de configuração:
+a diferença entre 1 e 7 dias de retenção é a diferença entre perder um dia de lançamentos financeiros
+e perder uma semana.
+
 ---
 
 ## 4. Dados quantitativos do processo

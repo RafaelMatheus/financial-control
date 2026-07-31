@@ -4,6 +4,49 @@
 
 # 🔖 RETOMAR AQUI
 
+## ✅ AMBIENTE `dev` PROVISIONADO — 2026-07-31
+
+Bootstrap e stack principal aplicados pelo CI. **U5 entregue na prática.**
+
+| Saída | Valor |
+|---|---|
+| `api_url` | `http://52.73.89.203` (sem TLS — `domain_name` vazio em dev) |
+| `instance_id` | `i-0151f919886de23ca` |
+| `db_endpoint` | `financial-control-dev-db.cmjo0eeoyqhw.us-east-1.rds.amazonaws.com` |
+| state | `s3://financial-control-tfstate-594116288641/` (`bootstrap/` e `dev/`) |
+
+**Pendências imediatas**:
+
+1. **Passo 5b do runbook** — criar o usuário `financial_app` no banco, por SQL via SSM. O Terraform
+   não alcança o RDS em subnet privada
+2. **Gate de aprovação do Code Generation de U5** — nunca foi dado
+3. **Decisão pendente: retenção de backup em `prod`** — ver abaixo
+
+## ⚠️ Risco R-01 reaberto para `prod`
+
+A conta está no plano **Free Tier**, que recusou retenção de 7 dias com `FreeTierRestrictionError`.
+Em `dev` a retenção caiu para **1 dia**, o que é inconsequente sem dado real.
+
+Em `prod` isso reabre o R-01, declarado **fechado** na revisão 9 justamente porque o RDS gerenciado
+traria backup de 7 dias. A diferença entre 1 e 7 dias é a diferença entre perder um dia de
+lançamentos e perder uma semana. Duas saídas: subir o plano da conta, ou aceitar formalmente a
+retenção menor e reabrir o R-01 no `requirements.md`.
+
+## Correções aplicadas durante o provisionamento
+
+| Sintoma | Causa | Correção |
+|---|---|---|
+| `Could not load credentials` | `role-session-name` no lugar de `role-to-assume` | smoke test corrigido |
+| `EntityAlreadyExists` (previsto) | provider OIDC criado à mão | `import` blocks |
+| `S3 bucket does not exist` | filtro de path engolia o bootstrap | exclusão `!.../bootstrap/**` |
+| `non-printable control characters` | travessão e apóstrofo em `description` | texto ASCII |
+| `FreeTierRestrictionError` | plano da conta | retenção 1 dia em dev |
+| `Cannot find version 16.6` | versão menor fixada e fora do catálogo | só a maior (`"16"`) |
+
+---
+
+# 🗄️ Contexto anterior
+
 **Última sessão**: 2026-07-30 · **Commit**: `e5a5a3c`
 
 ## Onde paramos
