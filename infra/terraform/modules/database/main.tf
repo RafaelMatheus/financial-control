@@ -11,7 +11,9 @@
 resource "aws_db_subnet_group" "main" {
   name        = "${var.project_name}-db"
   subnet_ids  = var.private_subnet_ids
-  description = "Subnets privadas do banco — duas AZs, exigencia do RDS"
+  # Sem travessao nem acento: a API do RDS rejeita multibyte nesta descricao
+  # com "must not contain non-printable control characters".
+  description = "Subnets privadas do banco - duas AZs, exigencia do RDS"
 
   tags = { Name = "${var.project_name}-db" }
 }

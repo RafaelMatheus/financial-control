@@ -1069,6 +1069,52 @@ observar por quê — a stack principal não consegue nem começar sem o backend
 bootstrap. A dependência circular que o bootstrap existe para quebrar funcionou aqui como
 **proteção**: tornou impossível aplicar a stack principal fora de ordem.
 
+### 3.34 O idioma que não atravessa a fronteira da API
+
+O primeiro apply da stack de `dev` falhou em três recursos, com duas mensagens distintas e uma causa
+única:
+
+```
+RDS:  The parameter DBSubnetGroupDescription must not contain non-printable control characters.
+EC2:  Invalid rule description. Valid descriptions are strings less than 256 characters
+      from the following set:  a-zA-Z0-9. _-:/()#,@[]+=&;{}!$*
+```
+
+Os culpados eram um travessão (`—`) numa descrição de subnet group e o apóstrofo de `Let's Encrypt`
+em duas descrições de regra de security group. Nada de exótico: pontuação normal de texto escrito
+por gente.
+
+O detalhe que torna o caso instrutivo é que **o código está inteiro em português** — comentários,
+mensagens, documentação — e isso nunca foi problema. Comentário é para humano e morre no parser.
+`description` parece a mesma coisa, tem a mesma cara de prosa, e é o único desses campos que
+**atravessa a fronteira do processo** e vira argumento de chamada de API.
+
+> **O-24 — Texto para humano e texto para máquina são indistinguíveis na superfície.** Num arquivo
+> `.tf`, comentário, `description` de variável e `description` de recurso têm a mesma aparência e
+> destinos completamente diferentes: o primeiro morre no parser, o segundo fica no state, o terceiro
+> vai para a AWS e obedece à gramática dela. A revisão humana não separa esses três porque a
+> distinção não é visual — e a validação também não pega, porque `terraform validate` valida
+> sintaxe, não as regras de conteúdo de cada serviço.
+
+O erro só apareceu no `apply`. O `plan` da mesma configuração passou limpo, `33 to add, 0 to change,
+0 to destroy` — porque o valor de uma descrição é sintaticamente válido; ele só é *inaceitável*, e
+quem decide isso é o serviço, na hora de criar.
+
+> **O-25 — Há uma classe de defeito que nenhum plan captura.** O `plan` é uma promessa negociada
+> entre o Terraform e o state, não entre o Terraform e a API. Tudo que depende de validação do lado
+> do serviço — formato de descrição, cota de recurso, disponibilidade de tipo de instância na AZ,
+> nome já usado — atravessa o plan intacto e só falha na execução. Isso limita estruturalmente o que
+> o gate de revisão do plan pode prometer, e vale saber disso antes de confiar nele como se fosse
+> uma verificação completa.
+
+Varredura preventiva no resto da árvore encontrou mais uma ocorrência, em `outputs.tf` — mas
+descrição de output é local ao Terraform e nunca vai para a AWS. Ficou como está: corrigir seria
+obedecer a uma regra que não se aplica ali.
+
+**Sobre o apply parcial**: os recursos criados antes da falha permaneceram, e o state no S3 os
+registra. Reaplicar continua de onde parou, sem recriar nada — que é exatamente o comportamento que
+o passo *Guardar o state* com `if: always()` (3.31) existe para garantir.
+
 ---
 
 ## 4. Dados quantitativos do processo

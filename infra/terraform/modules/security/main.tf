@@ -29,7 +29,9 @@ resource "aws_vpc_security_group_ingress_rule" "https" {
 
 resource "aws_vpc_security_group_ingress_rule" "http" {
   security_group_id = aws_security_group.app.id
-  description       = "HTTP: redirect para 443 e validacao HTTP-01 do Let's Encrypt"
+  # Sem apostrofo: a EC2 so aceita nesta descricao o conjunto
+  # a-zA-Z0-9. _-:/()#,@[]+=&;{}!$* — e a aspa simples esta fora dele.
+  description = "HTTP: redirect para 443 e validacao HTTP-01 do Lets Encrypt"
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 80
   to_port           = 80
@@ -38,7 +40,7 @@ resource "aws_vpc_security_group_ingress_rule" "http" {
 
 resource "aws_vpc_security_group_egress_rule" "app_all" {
   security_group_id = aws_security_group.app.id
-  description       = "Saida liberada: ECR, Let's Encrypt, agente SSM, banco"
+  description = "Saida liberada: ECR, Lets Encrypt, agente SSM, banco"
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
