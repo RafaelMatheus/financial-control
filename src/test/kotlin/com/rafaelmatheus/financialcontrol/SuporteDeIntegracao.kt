@@ -54,7 +54,7 @@ abstract class SuporteDeIntegracao {
         tentativas.limparTudo()
         dataSource.connection.use { conexao ->
             conexao.createStatement().use {
-                it.execute("TRUNCATE TABLE membro_grupo, grupo, usuario CASCADE")
+                it.execute("TRUNCATE TABLE gasto, categoria, membro_grupo, grupo, usuario CASCADE")
             }
         }
     }
@@ -81,4 +81,71 @@ abstract class SuporteDeIntegracao {
 
     protected fun comToken(acao: org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder, token: String) =
         acao.header("Authorization", "Bearer $token")
+
+    // --- U2 Lancamentos ---
+
+    protected fun criarGrupoDe(token: String, nome: String): String {
+        val resposta = mvc.perform(
+            comToken(post("/grupos"), token).contentType(MediaType.APPLICATION_JSON)
+                .content("""{"nome":"$nome"}"""),
+        ).andReturn().response.contentAsString
+        return json.readTree(resposta).get("id").asText()
+    }
+
+    protected fun adicionarMembroAoGrupo(token: String, grupoId: String, usuarioId: String) {
+        mvc.perform(
+            comToken(post("/grupos/$grupoId/membros"), token).contentType(MediaType.APPLICATION_JSON)
+                .content("""{"usuarioId":"$usuarioId"}"""),
+        ).andReturn()
+    }
+
+    protected fun criarCategoria(
+        token: String,
+        nome: String,
+        escopo: String = "PESSOAL",
+        grupoId: String? = null,
+    ): String {
+        val grupo = if (grupoId == null) "null" else "\"$grupoId\""
+        val resposta = mvc.perform(
+            comToken(post("/categorias"), token).contentType(MediaType.APPLICATION_JSON)
+                .content("""{"nome":"$nome","escopo":"$escopo","grupoId":$grupo}"""),
+        ).andReturn().response.contentAsString
+        return json.readTree(resposta).get("id").asText()
+    }
+
+    protected fun lancarGasto(
+        token: String,
+        categoriaId: String,
+        valor: String,
+        data: String = "2026-08-10",
+        escopo: String = "PESSOAL",
+        grupoId: String? = null,
+        descricao: String = "Compra",
+    ): ResultActions {
+        val grupo = if (grupoId == null) "null" else "\"$grupoId\""
+        return mvc.perform(
+            comToken(post("/gastos"), token).contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """{"descricao":"$descricao","valor":$valor,"data":"$data",
+                       "categoriaId":"$categoriaId","escopo":"$escopo","grupoId":$grupo}""",
+                ),
+        )
+    }
+
+    protected fun idDe(acao: ResultActions): String =
+        json.readTree(acao.andReturn().response.contentAsString).get("id").asText()
+
+    protected fun consultarGastos(
+        token: String,
+        de: String = "2026-08-01",
+        ate: String = "2026-08-31",
+        extra: String = "",
+    ): ResultActions = mvc.perform(comToken(get("/gastos?de=$de&ate=$ate$extra"), token))
+
+    protected fun totais(
+        token: String,
+        de: String = "2026-08-01",
+        ate: String = "2026-08-31",
+        extra: String = "",
+    ): ResultActions = mvc.perform(comToken(get("/gastos/totais?de=$de&ate=$ate$extra"), token))
 }

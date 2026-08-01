@@ -32,6 +32,15 @@ value class Dinheiro private constructor(val valor: BigDecimal) : Comparable<Din
     fun ehNegativo(): Boolean = valor.signum() < 0
 
     /**
+     * Adicionado por U2 (RN-L01): gasto exige valor estritamente positivo.
+     *
+     * Existe para que a invariante seja lida como afirmacao e nao como negacao
+     * dupla — `!ehZero() && !ehNegativo()` diz a mesma coisa e ninguem le certo
+     * na primeira passada.
+     */
+    fun ehPositivo(): Boolean = valor.signum() > 0
+
+    /**
      * Divide em [n] partes cuja soma e **exatamente** este valor, com as partes
      * diferindo entre si em no maximo um centavo.
      *

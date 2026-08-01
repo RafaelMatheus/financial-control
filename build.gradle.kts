@@ -27,6 +27,7 @@ repositories {
 val jjwtVersion = "0.12.5"
 val kotestVersion = "5.9.1"
 val springdocVersion = "2.8.6"
+val archunitVersion = "1.3.0"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -63,6 +64,11 @@ dependencies {
     testImplementation("io.kotest:kotest-property:$kotestVersion")
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
+
+    // Imposicao estrutural do isolamento (D-66). O teste de arquitetura reprova
+    // o build quando uma entidade com dono nasce fora do padrao — em U3 sao seis
+    // entidades novas, e a garantia deixa de caber na disciplina de quem escreve.
+    testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

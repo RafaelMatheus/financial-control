@@ -14,6 +14,34 @@ enum class CodigoErro(val status: HttpStatus, val mensagem: String) {
     NOME_OBRIGATORIO(HttpStatus.BAD_REQUEST, "Informe um nome."),
     DADOS_INVALIDOS(HttpStatus.BAD_REQUEST, "Verifique os campos informados."),
 
+    // --- U2 Lancamentos ---
+
+    VALOR_INVALIDO(HttpStatus.BAD_REQUEST, "O valor precisa ser maior que zero."),
+    CATEGORIA_OBRIGATORIA(HttpStatus.BAD_REQUEST, "Informe uma categoria."),
+    REALOCACAO_INVALIDA(HttpStatus.BAD_REQUEST, "Escolha outra categoria para receber os lancamentos."),
+
+    /** Bicondicional escopo-grupo: escopo GRUPO exige grupo, PESSOAL o proibe. */
+    GRUPO_INVALIDO(HttpStatus.BAD_REQUEST, "Escopo de grupo exige um grupo, e escopo pessoal nao aceita um."),
+
+    /**
+     * RN-T05, D-55. Com o usuario em mais de um grupo, somar todos daria um
+     * numero que nao descreve nenhum deles — a casa somada com a viagem.
+     */
+    GRUPO_OBRIGATORIO(HttpStatus.BAD_REQUEST, "Informe de qual grupo voce quer os totais."),
+
+    /** 404 e nao 403, pela mesma razao de GRUPO_NAO_ENCONTRADO (RN-C03, RN-L06). */
+    CATEGORIA_NAO_ENCONTRADA(HttpStatus.NOT_FOUND, "Categoria nao encontrada."),
+    LANCAMENTO_NAO_ENCONTRADO(HttpStatus.NOT_FOUND, "Lancamento nao encontrado."),
+
+    CATEGORIA_DUPLICADA(HttpStatus.CONFLICT, "Ja existe uma categoria com este nome."),
+
+    /**
+     * A contagem de lancamentos vinculados vai nos `detalhes` (RN-C05). E o
+     * numero com que o usuario decide se realoca ou desiste — H-34 pede isso
+     * explicitamente, entao a contagem e parte da regra e nao enfeite.
+     */
+    CATEGORIA_EM_USO(HttpStatus.CONFLICT, "Esta categoria tem lancamentos vinculados."),
+
     NAO_AUTENTICADO(HttpStatus.UNAUTHORIZED, "Autentique-se para continuar."),
 
     /**

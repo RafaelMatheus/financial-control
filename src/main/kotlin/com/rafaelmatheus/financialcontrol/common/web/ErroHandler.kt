@@ -36,6 +36,28 @@ class ErroHandler {
         return responder(CodigoErro.DADOS_INVALIDOS, detalhes)
     }
 
+    /**
+     * Invariante de construcao violada — `require` em value object, filtro ou
+     * paginacao. **Acrescentado por U2.**
+     *
+     * Sem isto, `?tamanho=1000000` cairia no handler generico e viraria 500: um
+     * erro de cliente respondido como falha do servidor, que e enganoso para
+     * quem consome e ruido para quem opera.
+     *
+     * O escopo e estreito de proposito. Os servicos validam antes e lancam
+     * `ErroDeNegocio` com codigo especifico; o `require` do construtor e a
+     * ultima linha de defesa, e toda violacao dele nesta aplicacao vem de dado
+     * que entrou pela borda.
+     */
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun invariante(erro: IllegalArgumentException): ResponseEntity<RespostaErro> {
+        log.info("Invariante violada na entrada: {}", erro.message)
+        return responder(
+            CodigoErro.DADOS_INVALIDOS,
+            listOf(DetalheErro("requisicao", erro.message ?: "invalido")),
+        )
+    }
+
     /** Banco indisponivel — o unico modo de falha externo de U1. */
     @ExceptionHandler(DataAccessResourceFailureException::class)
     fun bancoIndisponivel(erro: DataAccessResourceFailureException): ResponseEntity<RespostaErro> {
