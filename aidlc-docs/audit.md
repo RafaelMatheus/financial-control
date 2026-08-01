@@ -643,3 +643,11 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U1: Swagger UI por perfil
+**Timestamp**: 2026-08-01T19:10:00Z
+**User Input**: "tem um /swagger no servidor já?"; escolha "Habilitar tudo em dev (Recomendado)"
+**AI Response**: "Verificado contra o servidor: /swagger-ui/index.html devolvia 500, /swagger-ui.html devolvia 401 e /v3/api-docs devolvia 200. O 500 era defeito meu — liberei /swagger-ui/** na cadeia de filtros mas deixei springdoc.swagger-ui.enabled: false, então a rota passava pela segurança e quebrava por não achar os recursos. Sinalizado ao usuário que a justificativa original de desligar a UI (a especificação completa é um mapa da superfície de ataque) já não valia na prática, porque o /v3/api-docs estava público do mesmo jeito: quem quisesse o mapa já tinha, só não tinha a interface. Decisão: habilitar em dev por perfil. Criado application-dev.yml com a UI ligada; o default em application.yml continua desligado, e o docker-compose usa SPRING_PROFILES_ACTIVE: ${APP_PROFILE:-prod} — se a variável faltar, cai no perfil restritivo e não no permissivo, falhando para o lado seguro. APP_PROFILE propagado por write-env.sh e user-data.sh. ACHADO: o user-data.sh não recebia `environment` no templatefile, então usar ${environment} lá quebraria o terraform plan; adicionada a variável ao módulo compute e ao root em vez de contornar com expansão de shell escapada. Incluída /swagger-ui.html no permitAll, que estava de fora."
+**Context**: CONSTRUCTION PHASE - U1 - Swagger por perfil
+
+---
+
