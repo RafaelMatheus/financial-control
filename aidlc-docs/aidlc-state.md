@@ -15,7 +15,7 @@ Testcontainers que não rodam nesta máquina.
 | Functional Design | ✅ Aprovada |
 | NFR Requirements | ✅ Aprovada |
 | NFR Design | ✅ Aprovada |
-| Code Generation | ✅ Código gerado, CI verde — **gate de aprovação pendente** |
+| Code Generation | ✅ Código gerado, CI verde — **aprovado** |
 
 **Três defeitos encontrados pelo CI e corrigidos** (`cd310cb`), todos invisíveis sem banco real:
 
@@ -27,12 +27,25 @@ Testcontainers que não rodam nesta máquina.
 
 **Gate aprovado em 2026-08-01T19:10:00Z.** U1 encerrada.
 
-## 🔵 U2 — LANÇAMENTOS: Functional Design gerada, gate pendente
+## 🔵 U2 — LANÇAMENTOS: NFR Design gerada, gate pendente
 
-`categoria` e `gasto` (à vista). 9 questões respondidas em 3 rodadas, 9 decisões fechadas
-(D-54 a D-62), 23 regras de negócio, 5 alvos de property-based testing.
+`categoria` e `gasto` (à vista).
 
-**Próximo passo**: aprovar a Functional Design de U2 e seguir para a NFR Design da unidade.
+| Stage de U2 | Situação |
+|---|---|
+| Functional Design | ✅ Aprovada — 9 questões, 9 decisões (D-54 a D-62), 23 regras |
+| NFR Design | ✅ Gerada — 4 questões, 4 decisões (D-63 a D-66) — **gate pendente** |
+| Code Generation | ⬜ Não iniciada |
+
+**O achado da NFR Design**: a porta `RepositorioComVisibilidade`, escrita em U1, só tem
+`listarVisiveis()` **sem filtro**. U2 é a primeira unidade a implementá-la e a primeira a esbarrar
+nesse limite. D-63 resolve fazendo a porta crescer por feature, com o período obrigatório no tipo —
+não existe forma de pedir "todos os gastos".
+
+**Functional Design aprovada** em 2026-08-01T19:55:00Z.
+
+**Próximo passo**: aprovar a NFR Design de U2 e seguir para a Code Generation da unidade — a
+primeira que vai efetivamente implementar a porta de visibilidade.
 
 ---
 
@@ -226,7 +239,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U2 Lançamentos · Functional Design gerada, gate pendente**
+- **Current Stage**: CONSTRUCTION — **U2 Lançamentos · NFR Design gerada, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -331,13 +344,31 @@ Consulta sem filtro de visibilidade não vira bug — vira erro de compilação.
 em memória. É o único componente com estado da unidade, e o CI confirmou a propriedade em teste.
 
 #### U2 — Lançamentos (EM ANDAMENTO)
-- [x] Functional Design — GERADO (2026-08-01T19:40:00Z), **aguardando aprovação**
+- [x] Functional Design — COMPLETED e **APROVADO** (2026-08-01T19:55:00Z)
       Plano: `aidlc-docs/construction/plans/u2-lancamentos-functional-design-plan.md` (14 passos)
       Artefatos: `aidlc-docs/construction/u2-lancamentos/functional-design/`
       2 entidades · **23 regras** (RN-C01 a C08, RN-L01 a L10, RN-T01 a T07) · 5 alvos de PBT ·
       5 diagramas Mermaid · 9 decisões (D-54 a D-62)
-- [ ] NFR Design
+- [x] NFR Design — GERADO (2026-08-01T20:15:00Z), **aguardando aprovação**
+      Plano: `aidlc-docs/construction/plans/u2-lancamentos-nfr-design-plan.md` (10 passos)
+      Artefatos: `aidlc-docs/construction/u2-lancamentos/nfr-design/`
+      4 decisões (D-63 a D-66) · 5 categorias avaliadas · 2 diagramas Mermaid
+      **Nota de pré-requisito**: U2 não tem NFR Requirements própria — ela roda uma vez, em U1,
+      porque fecha decisões de stack da aplicação. Insumo: os 14 NFRs de U1
 - [ ] Code Generation
+
+**Decisões de NFR Design de U2**: D-63 (porta de visibilidade cresce **por feature**, com filtro
+obrigatório no tipo e critério nunca parametrizável), D-64 (totais somados com `SUM` no banco —
+duas aritméticas monetárias, **sem teste de comparação**, risco aceito por decisão), D-65 (leitura
+de listagem por projeção direta para DTO; **refinamento de D-29, não revogação**), D-66 (teste de
+arquitetura reprova o build quando uma entidade com dono escapa do padrão).
+
+**Regra que atravessa para U3**: *o banco pode somar; dividir, nunca.* Divisão monetária tem
+resíduo, e o resíduo mora em `Dinheiro`, que tem os testes de propriedade.
+
+**Correção estrutural do processo**: o plano de NFR Design nasceu **sem seção de respostas** — ela
+só foi criada depois de as respostas existirem. É a resposta a O-32: o deslize de pré-escrever
+respostas do usuário se repetiu em duas stages seguidas, e registro não é mecanismo.
 
 **Decisões de U2**: D-54 (categoria tem escopo), D-55 (filtro de grupo obrigatório com mais de um
 grupo), D-56 (categorias iniciais na primeira listagem), D-57 (listagem paginada + totais em

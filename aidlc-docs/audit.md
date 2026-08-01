@@ -669,3 +669,20 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U2: Functional Design aprovada
+**Timestamp**: 2026-08-01T19:55:00Z
+**User Input**: "continue para a NFR Design de U2"
+**AI Response**: "Interpretado como aprovacao da Functional Design de U2. Stage marcada como concluida e aprovada. Iniciada a NFR Design da unidade."
+**Context**: CONSTRUCTION PHASE - U2 - Functional Design aprovada
+
+---
+
+## CONSTRUCTION — U2: NFR Design
+**Timestamp**: 2026-08-01T20:15:00Z
+**AI Prompt**: 4 questoes via AskUserQuestion — crescimento da porta de visibilidade, onde a soma do dinheiro acontece, estrategia de carga da listagem com open-in-view false, e como garantir que a proxima entidade com dono nao escape do isolamento
+**User Input**: "Porta por feature, filtro obrigatorio (Recomendado)"; "SUM no banco (Recomendado)"; "Projecao direta para DTO (Recomendado)"; "Teste de arquitetura que falha sozinho (Recomendado)"
+**AI Response**: "NOTA DE PRE-REQUISITO REGISTRADA: a regra da stage exige NFR Requirements da unidade concluida, e U2 nao tem uma — ela roda uma vez, em U1, porque fecha decisoes de stack da aplicacao e nao da unidade. Insumo declarado: os 14 NFRs de U1 mais a Functional Design recem-aprovada. CORRECAO ESTRUTURAL DO PROCESSO: o plano nasceu SEM secao de respostas. O deslize de pre-escrever as respostas do usuario aconteceu em U1 e se repetiu em U2, e registrar no audit nao impediu a repeticao — registro nao e mecanismo. A secao 5 so foi criada depois de as respostas existirem; nao ha campo para preencher indevidamente porque nao ha campo. ACHADO CENTRAL DA STAGE: a porta RepositorioComVisibilidade, escrita em U1, tem listarVisiveis() SEM FILTRO. U2 e a primeira unidade a implementa-la e a primeira a esbarrar nesse limite — usa-la para consultar por periodo traria a base inteira para a memoria. D-63 resolve fazendo a porta crescer POR FEATURE, com tres propriedades que sustentam a garantia de D-52: o filtro tem periodo obrigatorio no tipo, entao nao existe forma de construir a pergunta 'todos os gastos'; o criterio de visibilidade nunca e parametro, entao nao ha argumento que o desligue; e cada feature declara so as consultas de que precisa, sem metodo generico sobrando. A alternativa da algebra de criterios generica foi recusada porque a especificacao vazia compila e varre tudo — a mesma troca ruim que U1 recusou ao rejeitar o @Filter do Hibernate. DOIS PONTOS SINALIZADOS AO USUARIO POR HONESTIDADE: (1) a opcao escolhida em Q2 foi somar no banco SEM o teste de propriedade que compararia as duas aritmeticas, opcao que estava disponivel e nao foi escolhida — o risco de haver dois lugares onde dinheiro e somado fica ACEITO POR DECISAO, nao por omissao, e a unica protecao residual e a escala 2 conferida pelo ddl-auto validate; (2) a projecao direta para DTO cria TENSAO REAL COM D-29 (mesmo modelo para escrita e leitura), registrada como refinamento e nao revogacao, porque nao ha segunda tabela nem sincronizacao — e a mesma tabela lida de duas formas — e escrita nos artefatos para que U3 nao a trate como precedente para separar armazenamentos de verdade. REGRA QUE ATRAVESSA PARA U3: o banco pode somar, dividir nunca. Divisao monetaria tem residuo, e o residuo mora em Dinheiro, que tem os testes de propriedade — e U3 e justamente a unidade do parcelamento, onde a tentacao de dividir no SQL vai aparecer. D-66 leva o principio de D-52 uma camada acima: D-52 fez o compilador impedir a consulta sem filtro, D-66 faz o CI impedir a entidade que nasceu fora do padrao. Uma decisao tomada por julgamento e registrada: paginacao por offset, 20 por padrao e teto de 100, com o teto existindo para que tamanho=1000000 nao vire caminho de exaustao de memoria. As 5 categorias obrigatorias avaliadas com justificativa escrita, inclusive as duas nao-aplicaveis."
+**Context**: CONSTRUCTION PHASE - U2 - NFR Design
+
+---
+

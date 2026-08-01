@@ -1300,6 +1300,69 @@ ficaram continuam vendo dos lançamentos do que saiu.
 > espaço de decisão novo. Planejar o esclarecimento como uma rodada única presume que o espaço de
 > perguntas é conhecido de antemão — e ele não é.
 
+### 3.39 A porta que só a segunda unidade descobriu ser estreita
+
+`RepositorioComVisibilidade` é o artefato mais celebrado deste projeto. Nasceu em U1 como resposta a
+D-52, e a sua propriedade é a de não ter método cru: quem escrever consulta sem filtro de
+visibilidade não produz um bug, produz um erro de compilação. Está documentada em três artefatos e
+tem um comentário de vinte linhas no código explicando por que o `@Filter` do Hibernate foi
+recusado.
+
+Ela tem dois métodos:
+
+```kotlin
+fun buscarVisivel(id: UUID): T?
+fun listarVisiveis(): List<T>
+```
+
+U1 a escreveu **sem nenhum implementador** — e isso está registrado no próprio código: *"Nenhuma
+entidade de U1 o implementa. A porta nasce aqui porque `common` é de U1, e porque U2 em diante a
+implementam"*. A decisão de escrevê-la cedo foi deliberada e defensável.
+
+O que a primeira implementação revelou: **`listarVisiveis()` não recebe filtro nenhum**. U2 precisa
+consultar por intervalo de datas, com filtros de categoria, grupo, escopo e dono, paginado. Pela
+porta como estava, o único caminho seria trazer a base inteira para a memória e filtrar lá.
+
+O problema não é a porta estar errada. É que a garantia que ela oferece — *não existe consulta sem
+filtro de visibilidade* — foi projetada contra o esquecimento, e o que apareceu foi outra coisa: uma
+consulta que **precisa** de filtros que a porta não sabe expressar. A pressão para contorná-la não
+vem da preguiça de quem escreve; vem do requisito.
+
+> **O-34 — Uma interface sem implementador é uma hipótese, não um contrato.** `RepositorioComVisibilidade`
+> passou por uma stage inteira de design, uma de código e uma revisão, com testes e documentação, sem
+> que ninguém percebesse que ela não comportava a primeira consulta real do sistema. Não havia como
+> perceber: uma interface só é exercitada por quem a implementa, e ninguém a implementava. O que
+> parecia contrato validado era uma suposição bem escrita sobre o que as unidades seguintes iriam
+> querer.
+
+A correção (D-63) preserva a propriedade original mudando **onde** a porta cresce: cada feature
+declara as suas consultas, e o tipo do filtro tem período obrigatório. Continua não existindo forma
+de pedir "todos os gastos" — só que agora por impossibilidade de **construir a pergunta**, e não por
+ausência do método.
+
+A alternativa recusada é instrutiva: uma álgebra de critérios genérica na porta base, reutilizável
+por todas as features. Menos repetição, e a especificação vazia — `listarVisiveis(Spec.of())` —
+compila e varre tudo.
+
+> **O-35 — Generalizar um mecanismo de segurança costuma custar a propriedade que o tornava seguro.**
+> A forma genérica é melhor por todos os critérios habituais: menos código, menos repetição, um lugar
+> só para corrigir. E é pior no único critério que importava, porque um parâmetro que aceita "sem
+> restrição" reintroduz exatamente o estado que o design existia para tornar inexpressável. É a mesma
+> troca que U1 já havia recusado ao preferir a porta ao `@Filter` — e ela reapareceu numa forma
+> diferente uma unidade depois.
+
+**Um risco fica aberto por escolha explícita, e o registro disso importa.** A totalização passou a
+somar com `SUM` no banco, e a opção apresentada que incluía um teste de propriedade comparando o
+`SUM` com a soma de `Dinheiro` não foi a escolhida. A aplicação passa a ter duas aritméticas
+monetárias sem verificação de que concordam. Não é omissão do design — é decisão registrada, com a
+alternativa documentada ao lado.
+
+> **O-36 — Risco aceito e risco esquecido são indistinguíveis no artefato, a menos que a alternativa
+> recusada esteja escrita junto.** Um documento que diz apenas "soma no banco" não permite saber, seis
+> meses depois, se o teste de comparação foi considerado e dispensado ou se ninguém pensou nele. A
+> diferença não está no risco, que é o mesmo; está na possibilidade de revisar a decisão sabendo o que
+> ela custou.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -1537,8 +1600,8 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: CONSTRUCTION
-**Stage**: **U2 — Lançamentos**. Functional Design gerada, gate pendente. Faltam NFR Design e Code
-Generation.
+**Stage**: **U2 — Lançamentos**. Functional Design aprovada; NFR Design gerada, gate pendente.
+Falta a Code Generation.
 **U1 — Fundação encerrada** em 2026-08-01: as 4 stages aprovadas e a suíte de 69 testes verde no CI
 (run `30713102231`, commit `cd310cb`).
 **Próxima unidade**: U3 — Crédito, a mais complexa do sistema.
@@ -1557,7 +1620,7 @@ Design, Units Generation. Nenhuma pulada.
 (D-04, parcial), mecanismo de recorrência (D-19), mecanismo de fechamento de fatura (D-20), base de
 cálculo do "realizado" do orçamento (J-02), `Fatura.status` persistido ou derivado (D-33).
 Fechadas na Construction: D-11, D-12, D-34 a D-39 (U5), **D-02, D-05, D-06, D-42 a D-53** (U1) e
-**D-54 a D-62** (U2).
+**D-54 a D-66** (U2).
 
 **Riscos e pendências ativos**:
 
