@@ -1,0 +1,19 @@
+# Perfil `dev`. Ativado por SPRING_PROFILES_ACTIVE, que o docker-compose recebe
+# do .env, que por sua vez recebe o ambiente do write-env.sh.
+#
+# O default em application.yml continua sendo o seguro: Swagger UI DESLIGADO.
+# Aqui ele e ligado de proposito, e a justificativa e que `dev` nao tem dado
+# real. Em `prod` este arquivo nao e carregado, e a protecao volta a valer.
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    # Ordena as operacoes de forma estavel, senao a pagina muda de ordem a cada
+    # restart e fica dificil achar a rota de novo.
+    operations-sorter: method
+    tags-sorter: alpha
+
+logging:
+  level:
+    com.rafaelmatheus.financialcontrol: DEBUG

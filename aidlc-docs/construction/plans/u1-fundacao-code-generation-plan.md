@@ -127,7 +127,9 @@ src/test/kotlin/...  espelhando a estrutura
 
 ### Fechamento
 
-- [~] **Passo 26** — **Parcial**: compila, e os 37 testes que não dependem de Docker passam. Os de integração (Testcontainers) não rodaram localmente — não há Docker nesta máquina. Rodam no CI
+- [x] **Passo 26** — **Concluído**: suíte completa verde no CI (run `30713102231`, commit `cd310cb`,
+      2026-08-01). Localmente só rodaram os 37 testes sem Docker; os de integração rodaram no
+      `ci-app.yml`. A primeira execução no CI **reprovou 3 de 69** — os três defeitos estão em §7
 - [x] **Passo 27** — Verificação final: nenhum `Double`/`Float` em caminho monetário; nenhum
       repositório de domínio com método sem filtro; nenhum segredo no repositório; nenhuma senha
       ou token em log; as 21 regras com teste que falha se a regra sair
@@ -178,8 +180,32 @@ auditar nada.
 | Passo | Desvio | Motivo |
 |---|---|---|
 | 9, 15, 20 | Um `code-summary.md` consolidado em vez de três resumos por componente | Três arquivos repetiriam o mesmo contexto; a rastreabilidade por componente está preservada dentro do consolidado |
-| 26 | Suíte completa **não** rodou localmente | Sem Docker nesta máquina. Rodam no `ci-app.yml`, em runner com Docker. Local: 24 testes de propriedade + 13 de unidade, todos passando |
+| 26 | Suíte completa **não** rodou localmente | Sem Docker nesta máquina. Rodou no `ci-app.yml`, em runner com Docker. Local: 24 testes de propriedade + 13 de unidade. **Desvio encerrado em 2026-08-01** — ver §7 |
 
-**Consequência do desvio no Passo 26**: os testes de integração — inclusive o de isolamento de
-dados, que é o mais importante da unidade — estão escritos e compilam, mas ainda **não foram
-observados passando**. A aprovação desta stage deveria esperar o CI ficar verde.
+**Consequência do desvio no Passo 26** — *resolvida*: os testes de integração, inclusive o de
+isolamento de dados, ficaram escritos mas não observados por uma sessão inteira. Ao rodarem,
+reprovaram 3 de 69. O intervalo entre "escrito" e "observado" custou exatamente três defeitos.
+
+---
+
+## 7. Os três defeitos que só o CI encontrou
+
+Primeira execução dos testes de integração em runner com Docker: **3 falhas em 69 testes**.
+Nenhum deles é detectável sem banco real — os três moram na fronteira entre a aplicação e o
+PostgreSQL, ou entre dois testes.
+
+| # | Sintoma | Causa | Correção |
+|---|---|---|---|
+| 1 | Cadastros simultâneos davam `[201, 500, 500, …]` em vez de `409` | `jpa.save()` não envia o `INSERT`: o flush acontece no commit, **depois** de o `try/catch` do adaptador ter saído de cena. A `DataIntegrityViolationException` escapava crua | `saveAndFlush` em `UsuarioRepositorioAdaptador.salvar` e em `GrupoRepositorioAdaptador.salvarMembro` |
+| 2 | `"  Ana@Exemplo.COM  "` dava `400` em vez de `409` | `@Email` do Bean Validation roda **antes** da normalização e rejeita os espaços que RN-U01 manda remover — dois validadores discordando sobre o mesmo campo | `@Email` removido do DTO; quem valida formato é o domínio (RN-U02), depois de normalizar |
+| 3 | `NullPointerException` ao autenticar nos testes seguintes ao de bloqueio | `RegistroDeTentativas` é singleton com estado **em memória**, e o `TRUNCATE` entre testes não o alcança: o teste de bloqueio deixava a conta travada por 15 minutos | `limparTudo()` chamado no `SuporteDeIntegracao` |
+
+**O defeito 1 é o mais grave dos três**: sem `saveAndFlush`, o padrão
+*verificar-para-mensagem, restringir-no-banco-para-garantia* — desenhado na Functional Design e
+descrito em `business-rules.md` — tinha a metade da garantia inoperante. A restrição do banco
+disparava, mas fora do alcance de quem sabia traduzi-la.
+
+**O defeito 3 confirmou em teste o que a NFR Requirements já havia registrado em texto**: o contador
+em memória é o componente que quebra com mais de uma instância. A suíte encontrou a mesma
+propriedade por outro caminho — dois testes no mesmo processo são, para esse componente,
+indistinguíveis de duas requisições na mesma instância.

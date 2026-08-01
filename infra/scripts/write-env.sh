@@ -59,6 +59,8 @@ DB_PASSWORD=$(get "$PREFIX/db/password")
 JWT_SECRET=$(get "$PREFIX/auth/jwt-secret")
 DOMAIN_NAME=$DOMINIO
 ENABLE_TLS=$TLS
+# Perfil do Spring: ativa application-dev.yml em dev (Swagger UI ligado).
+APP_PROFILE=$ENVIRONMENT
 ENVFILE
 chmod 600 "$APP_DIR/.env"
 

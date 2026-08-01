@@ -39,3 +39,14 @@ variable "enable_tls" {
   type        = bool
   default     = false
 }
+
+variable "environment" {
+  description = <<-EOT
+    Ambiente (dev, prod). Vira SPRING_PROFILES_ACTIVE no container.
+
+    Em `dev` isso ativa application-dev.yml, que liga o Swagger UI. Em `prod` o
+    arquivo nao e carregado e a UI continua desligada — a especificacao completa
+    e um mapa da superficie de ataque.
+  EOT
+  type        = string
+}

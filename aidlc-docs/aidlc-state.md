@@ -4,7 +4,33 @@
 
 # 🔖 RETOMAR AQUI
 
-## ✅ AMBIENTE `dev` PROVISIONADO — 2026-07-31
+## ✅ U1 — FUNDAÇÃO: CÓDIGO ENTREGUE E VERDE NO CI — 2026-08-01
+
+As 4 stages de U1 executadas. Code Generation com os **28 passos concluídos** e a suíte completa
+verde no CI — run `30713102231`, commit `cd310cb`, **69 testes**, incluindo os de integração com
+Testcontainers que não rodam nesta máquina.
+
+| Stage de U1 | Situação |
+|---|---|
+| Functional Design | ✅ Aprovada |
+| NFR Requirements | ✅ Aprovada |
+| NFR Design | ✅ Aprovada |
+| Code Generation | ✅ Código gerado, CI verde — **gate de aprovação pendente** |
+
+**Três defeitos encontrados pelo CI e corrigidos** (`cd310cb`), todos invisíveis sem banco real:
+
+| # | Sintoma | Causa | Correção |
+|---|---|---|---|
+| 1 | Cadastros simultâneos: `[201, 500, 500…]` em vez de `409` | `jpa.save()` só envia o `INSERT` no commit, depois de o `try/catch` sair de cena | `saveAndFlush` no adaptador de `usuario` e no de `grupo` |
+| 2 | `"  Ana@Exemplo.COM  "` dava `400` em vez de `409` | `@Email` roda antes da normalização e rejeita os espaços que RN-U01 manda remover | `@Email` fora do DTO; o domínio valida depois de normalizar |
+| 3 | `NPE` nos testes após o de bloqueio | `RegistroDeTentativas` tem estado em memória; `TRUNCATE` não o alcança | `limparTudo()` no `SuporteDeIntegracao` |
+
+**Próximo passo**: aprovar o gate de Code Generation de U1 e seguir para **U2 — Lançamentos**
+(`categoria`, `gasto` à vista).
+
+---
+
+## 🗄️ AMBIENTE `dev` PROVISIONADO — 2026-07-31
 
 Bootstrap e stack principal aplicados pelo CI. **U5 entregue na prática.**
 
@@ -194,7 +220,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — U5 Infraestrutura · **bootstrap manual em andamento** (bloqueado)
+- **Current Stage**: CONSTRUCTION — **U1 Fundação · Code Generation concluída, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -272,8 +298,31 @@ configurada para `490490484770` — confirmar com `aws sts get-caller-identity` 
 
 **Insumo pendente**: `domain_name` — sem ele não há TLS; a API responde por HTTP no IP elástico.
 
-#### U1 — Fundação
-- [ ] Functional Design · NFR Requirements · NFR Design · Code Generation
+#### U1 — Fundação (CÓDIGO ENTREGUE — gate pendente)
+- [x] Functional Design — COMPLETED e APROVADO (2026-07-31T16:20:00Z)
+      3 artefatos · 6 decisões (D-42 a D-47) · 21 regras de negócio · 5 diagramas Mermaid
+- [x] NFR Requirements — COMPLETED e APROVADO (2026-07-31T16:40:00Z)
+      14 NFRs · **D-02 fechada** (JWT stateless, 24h, sem refresh) · D-05, D-06, D-48 a D-50
+- [x] NFR Design — COMPLETED e APROVADO (2026-07-31T17:00:00Z)
+      D-51 (hexagonal) · D-52 (Visibilidade por porta sem método cru) · D-53 (log com correlação)
+- [x] Code Generation — **28/28 passos · CI VERDE** (2026-08-01T18:43:00Z), aguardando aprovação
+      Plano: `aidlc-docs/construction/plans/u1-fundacao-code-generation-plan.md`
+      Resumo: `aidlc-docs/construction/u1-fundacao/code/code-summary.md`
+      Commits: `9cf27a1` · `f3c2aef` · `f3910fc` · `cd310cb`
+      Suíte: **69 testes**, run `30713102231`. Primeira execução no CI reprovou 3 — §7 do plano
+
+**Decisões fechadas em U1**: D-02 (JWT stateless 24h), D-05 (Kotest Property), D-06 (springdoc gera
+do código), D-42 (autenticação própria com `senhaHash`), D-43 (`Dinheiro` HALF_UP escala 2), D-44
+(ex-membro sofre corte total de visibilidade), D-45 (reentrada cria nova linha de `MembroGrupo`),
+D-46 (e-mail normalizado), D-47 (grupo vazio permitido), D-48 (BCrypt força 12), D-49 (bloqueio de
+5 tentativas por 15 min, contador em memória), D-50 (validade 24h), D-51 (hexagonal), D-52 (porta
+sem método cru), D-53 (log em texto com id de correlação).
+
+**Padrão central da unidade**: `RepositorioComVisibilidade` não expõe `findAll` nem `findById`.
+Consulta sem filtro de visibilidade não vira bug — vira erro de compilação.
+
+**Dívida conhecida, a revisitar se houver escala horizontal**: `RegistroDeTentativas` guarda estado
+em memória. É o único componente com estado da unidade, e o CI confirmou a propriedade em teste.
 
 #### U2 — Lançamentos
 - [ ] Functional Design · NFR Design · Code Generation

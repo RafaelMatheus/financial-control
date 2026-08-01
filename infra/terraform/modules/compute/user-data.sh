@@ -44,6 +44,7 @@ DB_PASSWORD=$${DB_PASSWORD}
 JWT_SECRET=$${JWT_SECRET}
 DOMAIN_NAME=${domain_name}
 ENABLE_TLS=${enable_tls}
+APP_PROFILE=${environment}
 ENVFILE
 chmod 600 "$${APP_DIR}/.env"
 

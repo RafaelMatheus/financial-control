@@ -627,3 +627,19 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U1: Code Generation, Parte 2 (geracao) e correcao dos defeitos do CI
+**Timestamp**: 2026-08-01T18:45:00Z
+**User Input**: (sessao anterior, sem registro no audit no momento da execucao)
+**AI Response**: "Os 28 passos do plano executados. Codigo em 4 commits: 9cf27a1 (Dinheiro, Competencia, Escopo e o wrapper do Gradle), f3c2aef (camada common — erros, correlacao, porta de visibilidade e seguranca), f3910fc (usuario, grupo e persistencia), cd310cb (correcao dos defeitos do CI). ACHADO NA GERACAO: o property-based testing de Dinheiro falhou no primeiro caso gerado. A regra 'residuo na ultima parte', escrita na Functional Design, estava errada — o residuo de uma divisao em n partes vale ate n-1 centavos, e o exemplo canonico de R$ 100,00 em 3 tem residuo de exatamente um centavo, ou seja, ilustrava a regra errada com o resultado certo. Corrigido para aritmetica em centavos inteiros com os centavos que sobram distribuidos um por parte, nas ultimas. Registrado como 3.36 e O-28. DESVIO DECLARADO NO PASSO 26: sem Docker nesta maquina, os testes de integracao — inclusive o de isolamento de dados, o mais importante da unidade — foram escritos e nao executados. O plano registrou que a aprovacao da stage deveria esperar o CI ficar verde. O CI reprovou 3 de 69: (1) jpa.save nao envia o INSERT, o flush acontece no commit, depois de o try/catch do adaptador ter saido de cena, entao a violacao de unicidade escapava crua e virava 500 em vez de 409 — corrigido com saveAndFlush no adaptador de usuario e no de grupo; (2) o @Email do Bean Validation roda antes da normalizacao e rejeitava os espacos que RN-U01 manda remover, dois validadores discordando sobre o mesmo campo — @Email removido do DTO, quem valida formato e o dominio depois de normalizar; (3) RegistroDeTentativas e singleton com estado em memoria e o TRUNCATE entre testes nao o alcanca, deixando a conta travada por 15 minutos para os testes seguintes — corrigido com limparTudo no SuporteDeIntegracao, e e a mesma propriedade que quebraria o bloqueio com duas instancias. Suite verde no run 30713102231."
+**Context**: CONSTRUCTION PHASE - U1 - Code Generation Parte 2
+
+---
+
+## CONSTRUCTION — U1: retomada e atualizacao dos artefatos
+**Timestamp**: 2026-08-01T19:00:00Z
+**User Input**: "continue a implementacao das fases usando dlc"
+**AI Response**: "Levantado o estado real antes de agir: o plano de Code Generation de U1 estava com os 28 passos marcados, mas os artefatos do metodo — aidlc-state.md, audit.md e research-log.md — nao haviam sido atualizados pela sessao que gerou o codigo e corrigiu os defeitos do CI. O aidlc-state.md ainda descrevia U5 como stage corrente e bootstrap bloqueado, situacao superada desde 2026-07-31. Verificado pelo gh CLI que o run 30713102231 (commit cd310cb) esta verde, incluindo o job de deploy, o que encerra o desvio do Passo 26. ATUALIZACOES: (1) Passo 26 do plano marcado como concluido, com a referencia do run, e adicionada a secao 7 com os tres defeitos encontrados pelo CI; (2) aidlc-state.md com a secao RETOMAR AQUI reescrita para U1, as 4 stages marcadas, as 15 decisoes de U1 listadas e a divida do RegistroDeTentativas registrada; (3) research-log com a secao 3.37 (O intervalo entre escrito e observado), O-29 (um teste escrito e nao executado e documentacao, nao verificacao) e O-30 (falhas de integracao se concentram nas fronteiras que o design nao modela — nenhum dos tres defeitos contradiz regra de negocio, os tres contradizem o MOMENTO em que as coisas acontecem, e nenhum artefato de design deste ciclo tem eixo temporal), mais o estado atual reescrito. Apresentado o gate de Code Generation de U1."
+**Context**: CONSTRUCTION PHASE - U1 - Retomada de sessao
+
+---
+

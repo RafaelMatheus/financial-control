@@ -41,6 +41,7 @@ module "compute" {
   ecr_repository        = var.ecr_repository
   domain_name           = var.domain_name
   enable_tls            = var.enable_tls
+  environment           = var.environment
 
   # O user-data le o Parameter Store logo no boot e roda com `set -e`. Sem esta
   # dependencia explicita, a instancia pode subir antes de os parametros

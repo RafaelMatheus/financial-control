@@ -82,7 +82,10 @@ class ConfiguracaoSeguranca(private val filtroJwt: FiltroJwt, private val jackso
                     // O healthcheck do container e o do nginx batem aqui SEM
                     // credencial. Exigir token derruba o deploy — verificado.
                     .requestMatchers("/health", "/actuator/health", "/actuator/health/**").permitAll()
-                    .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                    // /swagger-ui.html estava de fora e dava 401; /swagger-ui/** estava
+                    // dentro e dava 500, porque a UI vinha desligada. Agora as tres
+                    // rotas sao coerentes, e quem decide se existem e o perfil.
+                    .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                     .anyRequest().authenticated()
             }
             .addFilterBefore(filtroJwt, UsernamePasswordAuthenticationFilter::class.java)

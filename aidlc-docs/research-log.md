@@ -1206,6 +1206,47 @@ parte, nas últimas**. Preserva o exemplo do design — 100,00 em 3 continua dan
 > antes disso: o defeito foi encontrado num arquivo de 60 linhas, e não no meio de faturas,
 > competências e contas a pagar.
 
+### 3.37 O intervalo entre escrito e observado
+
+A Code Generation de U1 fechou com um desvio declarado no Passo 26: a máquina de desenvolvimento não
+tem Docker, então os testes de integração — **inclusive o de isolamento de dados, o mais importante
+da unidade** — foram escritos, compilaram, e não foram executados. O plano registrou a consequência
+com todas as letras: *"a aprovação desta stage deveria esperar o CI ficar verde"*.
+
+O CI rodou. **3 falhas em 69 testes.**
+
+| # | Sintoma | Causa |
+|---|---|---|
+| 1 | Cadastros simultâneos davam `[201, 500, 500, …]` em vez de `409` | `jpa.save()` não envia o `INSERT`; o flush acontece no commit, depois de o `try/catch` do adaptador ter saído de cena |
+| 2 | `"  Ana@Exemplo.COM  "` dava `400` em vez de `409` | `@Email` do Bean Validation roda antes da normalização e rejeita os espaços que RN-U01 manda remover |
+| 3 | `NullPointerException` em testes posteriores ao de bloqueio | `RegistroDeTentativas` guarda estado em memória, e o `TRUNCATE` entre testes não o alcança |
+
+Os três têm a mesma forma: **nenhum é visível sem um banco de verdade e um segundo participante**.
+O defeito 1 precisa de duas requisições simultâneas; o 2, de um dado que atravessa duas camadas de
+validação; o 3, de um teste que roda depois de outro. Um mock de repositório passaria nos três.
+
+O defeito 1 merece nota própria. O padrão *verificar-para-mensagem, restringir-no-banco-para-garantia*
+foi desenhado na Functional Design justamente para a corrida de e-mail duplicado, e está descrito em
+`business-rules.md`. Ele estava lá, e estava inoperante: a restrição do banco disparava, mas fora do
+alcance do `catch` que sabia traduzi-la em `409`. O design estava certo; o que faltava era um
+detalhe do ciclo de vida da transação do JPA, invisível em qualquer leitura do código de domínio.
+
+> **O-29 — Um teste escrito e não executado é documentação, não verificação.** Ele registra a
+> intenção com a mesma precisão do teste que roda, e é por isso que engana: passa na revisão, entra
+> no commit e conta no total. A distância entre as duas coisas foi medida aqui em três defeitos —
+> nenhum deles no código que os testes descrevem, todos na cola entre esse código e a infraestrutura.
+
+> **O-30 — Falhas de integração se concentram nas fronteiras que o design não modela.** Nenhum dos
+> três defeitos contradiz uma regra de negócio. Contradizem, respectivamente, o momento do flush do
+> JPA, a ordem entre Bean Validation e domínio, e o escopo de vida de um singleton. São todos fatos
+> sobre *quando* as coisas acontecem — e nenhum artefato de design deste ciclo tem eixo temporal.
+
+O defeito 3 tem valor de confirmação. A NFR Requirements já havia registrado, em texto, que o
+contador em memória é o componente que quebra com escala horizontal (§3 de `nfr-requirements.md`).
+A suíte encontrou a mesma propriedade por outro caminho: dois testes no mesmo processo são, para
+esse componente, indistinguíveis de duas requisições na mesma instância. A observação escrita e a
+falha observada descrevem o mesmo defeito latente — mas só a segunda produziu uma correção.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -1442,27 +1483,35 @@ evita reinterpretação em stages posteriores.
 
 ## 6. Estado atual
 
-**Fase**: INCEPTION
-**Stage**: CONSTRUCTION — **U5 Infraestrutura**. Infrastructure Design aprovada; Code Generation com
-o código gerado e o gate de aprovação pendente; **bootstrap manual em andamento, bloqueado no OIDC**.
-**Próxima unidade**: U1 — Fundação (`common`, `usuario`, `grupo`).
+**Fase**: CONSTRUCTION
+**Stage**: **U1 — Fundação**. Functional Design, NFR Requirements e NFR Design aprovadas; Code
+Generation com os 28 passos executados e a suíte de 69 testes **verde no CI** (run `30713102231`,
+commit `cd310cb`). Gate de aprovação de Code Generation pendente.
+**Próxima unidade**: U2 — Lançamentos (`categoria`, `gasto` à vista).
+
+**U5 — Infraestrutura encerrada** em 2026-07-31: Infrastructure Design e Code Generation aprovadas,
+e o ambiente `dev` efetivamente provisionado na AWS — `api_url=http://52.73.89.203`,
+`instance_id=i-0151f919886de23ca`, RDS PostgreSQL de pé. O bloqueio do OIDC foi resolvido: a causa
+raiz era o ARN no campo `role-session-name` em vez de `role-to-assume`, e nenhuma das duas hipóteses
+originais (thumbprint, capitalização do `sub`).
 
 **Fase de Inception encerrada**: 7 stages concluídas e aprovadas — Workspace Detection, Reverse
 Engineering, Requirements Analysis (9 revisões), User Stories, Workflow Planning, Application
 Design, Units Generation. Nenhuma pulada.
 
-**Bloqueio ativo**: o GitHub Actions falha em `sts:AssumeRoleWithWebIdentity` —
-*"The web identity token provided could not be validated"*. Duas correções aguardando um único
-`terraform apply` do bootstrap: thumbprint lido via `data.tls_certificate` (3.26) e permissões de
-`rds` na policy do CI (3.27). Hipótese ainda não descartada: capitalização do owner no claim `sub`.
+**Decisões ainda em aberto** (adiadas para stages posteriores): fronteira do fechamento em dia 29–31
+(D-04, parcial), mecanismo de recorrência (D-19), mecanismo de fechamento de fatura (D-20), base de
+cálculo do "realizado" do orçamento (J-02), `Fatura.status` persistido ou derivado (D-33).
+Fechadas na Construction: D-11, D-12, D-34 a D-39 (U5) e **D-02, D-05, D-06, D-42 a D-53** (U1).
 
-**Decisões ainda em aberto** (adiadas para stages posteriores): mecanismo de autenticação (D-02),
-fronteira do fechamento em dia 29–31 (D-04, parcial), mecanismo de recorrência (D-19), mecanismo de
-fechamento de fatura (D-20), base de cálculo do "realizado" do orçamento (J-02), `Fatura.status`
-persistido ou derivado (D-33). Fechadas na Construction: D-11, D-12, D-34 a D-39.
+**Riscos e pendências ativos**:
 
-**Insumo pendente do usuário**: `domain_name` — sem ele não há TLS e a API responde por HTTP no IP
-elástico.
+- **R-01 reaberto para `prod`** — a conta está no plano Free Tier, que recusou 7 dias de retenção de
+  backup. Em `dev` caiu para 1 dia. Decisão adiada até `prod` existir.
+- **`domain_name`** — sem ele não há TLS e a API responde por HTTP no IP elástico.
+- **Passo 5b do runbook** — criar o usuário `financial_app` no banco, por SQL via SSM.
+- **R-05 amplificado** — a role do CI está com `AdministratorAccess`; a inline policy de privilégio
+  mínimo existe mas é um subconjunto inoperante enquanto a outra estiver anexada.
 
 **Questões abertas pelas jornadas transversais**: J-02 (base de cálculo do "realizado" do orçamento)
 segue aberta, destino Functional Design de U4. J-01 (rateio por parcela) foi **extinta** na revisão 8

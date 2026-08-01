@@ -43,6 +43,7 @@ locals {
     ecr_repository = var.ecr_repository
     domain_name    = var.domain_name
     enable_tls     = var.enable_tls
+    environment    = var.environment
   })
 }
 
