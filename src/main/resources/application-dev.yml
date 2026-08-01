@@ -17,3 +17,10 @@ springdoc:
 logging:
   level:
     com.rafaelmatheus.financialcontrol: DEBUG
+
+app:
+  seed:
+    # Usuario de testes, criado na subida por SeedDeDesenvolvimento.
+    # So existe neste perfil: em prod o bean nem e instanciado.
+    email: admin@financial-control.com
+    senha: admin12345

@@ -305,7 +305,7 @@ configurada para `490490484770` — confirmar com `aws sts get-caller-identity` 
       14 NFRs · **D-02 fechada** (JWT stateless, 24h, sem refresh) · D-05, D-06, D-48 a D-50
 - [x] NFR Design — COMPLETED e APROVADO (2026-07-31T17:00:00Z)
       D-51 (hexagonal) · D-52 (Visibilidade por porta sem método cru) · D-53 (log com correlação)
-- [x] Code Generation — **28/28 passos · CI VERDE** (2026-08-01T18:43:00Z), aguardando aprovação
+- [x] Code Generation — **28/28 passos · CI VERDE · APROVADO** (2026-08-01T19:10:00Z)
       Plano: `aidlc-docs/construction/plans/u1-fundacao-code-generation-plan.md`
       Resumo: `aidlc-docs/construction/u1-fundacao/code/code-summary.md`
       Commits: `9cf27a1` · `f3c2aef` · `f3910fc` · `cd310cb`
