@@ -32,6 +32,7 @@ get_param() {
 DB_URL=$(get_param "/${project_name}/db/url")
 DB_USER=$(get_param "/${project_name}/db/user")
 DB_PASSWORD=$(get_param "/${project_name}/db/password")
+JWT_SECRET=$(get_param "/${project_name}/auth/jwt-secret")
 
 cat > "$${APP_DIR}/.env" <<ENVFILE
 AWS_REGION=${aws_region}
@@ -40,6 +41,7 @@ IMAGE_TAG=latest
 DB_URL=$${DB_URL}
 DB_USER=$${DB_USER}
 DB_PASSWORD=$${DB_PASSWORD}
+JWT_SECRET=$${JWT_SECRET}
 DOMAIN_NAME=${domain_name}
 ENABLE_TLS=${enable_tls}
 ENVFILE

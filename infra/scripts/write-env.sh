@@ -56,6 +56,7 @@ IMAGE_TAG=$TAG_ATUAL
 DB_URL=$(get "$PREFIX/db/url")
 DB_USER=$(get "$PREFIX/db/user")
 DB_PASSWORD=$(get "$PREFIX/db/password")
+JWT_SECRET=$(get "$PREFIX/auth/jwt-secret")
 DOMAIN_NAME=$DOMINIO
 ENABLE_TLS=$TLS
 ENVFILE

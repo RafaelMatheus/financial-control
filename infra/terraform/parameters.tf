@@ -60,3 +60,26 @@ resource "aws_ssm_parameter" "db_url" {
   value       = module.database.jdbc_url
   description = "URL JDBC com sslmode=require"
 }
+
+# Segredo de assinatura do JWT (D-02, NFR-U1-02).
+#
+# Girar este valor invalida TODOS os tokens em circulacao. E o comportamento
+# correto, e a unica revogacao disponivel: D-50 dispensou refresh token e lista
+# de bloqueio, entao nao ha como invalidar um token isolado antes das 24h.
+# Vale como procedimento de emergencia — se um token vazar, gire o segredo.
+resource "random_password" "jwt_secret" {
+  length  = 64
+  special = false # base64url-safe: o segredo atravessa .env e variavel de ambiente
+}
+
+resource "aws_ssm_parameter" "jwt_secret" {
+  name  = "/${local.name}/auth/jwt-secret"
+  type  = "SecureString"
+  value = random_password.jwt_secret.result
+
+  lifecycle {
+    # Mesma razao das senhas do banco: regenerar em apply futuro deslogaria todo
+    # mundo sem que ninguem tivesse pedido.
+    ignore_changes = [value]
+  }
+}

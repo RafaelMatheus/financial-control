@@ -61,77 +61,77 @@ src/test/kotlin/...  espelhando a estrutura
 
 ### Preparação
 
-- [ ] **Passo 1** — `build.gradle.kts`: adicionar Spring Security, jjwt (api/impl/jackson), Flyway
+- [x] **Passo 1** — `build.gradle.kts`: adicionar Spring Security, jjwt (api/impl/jackson), Flyway
       core + `flyway-database-postgresql`, springdoc, Kotest property + runner, spring-security-test
-- [ ] **Passo 2** — `application.yml`: bloco `app.auth`, Flyway, springdoc com Swagger UI desligado;
+- [x] **Passo 2** — `application.yml`: bloco `app.auth`, Flyway, springdoc com Swagger UI desligado;
       `application-test.yml` com segredo fixo de teste
 
 ### `common` — o que todas as unidades herdam
 
-- [ ] **Passo 3** — `dominio/`: `Dinheiro` (escala 2, HALF_UP, `dividirEm` com resíduo na última),
+- [x] **Passo 3** — `dominio/`: `Dinheiro` (escala 2, HALF_UP, `dividirEm` com resíduo na última),
       `Competencia` (ano-mês, `proxima`/`anterior`), `Escopo` — *NFR-U1-06, D-43*
-- [ ] **Passo 4** — 🔬 **Testes de propriedade** de `Dinheiro` e `Competencia` com Kotest:
+- [x] **Passo 4** — 🔬 **Testes de propriedade** de `Dinheiro` e `Competencia` com Kotest:
       soma exata da divisão, partes diferindo no máximo 0,01, round-trip, associatividade,
       virada de ano — *PBT-02, PBT-03, PBT-07, PBT-08*
-- [ ] **Passo 5** — `web/`: `CodigoErro` (8 códigos), `RespostaErro`, `ErroHandler`,
+- [x] **Passo 5** — `web/`: `CodigoErro` (8 códigos), `RespostaErro`, `ErroHandler`,
       `FiltroCorrelacao` — *NFR-U1-09, RNF-09, D-53*
-- [ ] **Passo 6** — `persistencia/`: `RepositorioComVisibilidade` (porta **sem método cru**) e o
+- [x] **Passo 6** — `persistencia/`: `RepositorioComVisibilidade` (porta **sem método cru**) e o
       suporte que aplica o predicado — *D-52, RN-V01, o padrão central da unidade*
-- [ ] **Passo 7** — `seguranca/`: `ContextoUsuario` (escopo de requisição), `EmissorDeToken`,
+- [x] **Passo 7** — `seguranca/`: `ContextoUsuario` (escopo de requisição), `EmissorDeToken`,
       `FiltroJwt`, `RegistroDeTentativas`, `CodificadorDeSenha`, `ConfiguracaoSeguranca` com as
       rotas públicas incluindo `/health` — *D-02, D-48, D-49, D-50, NFR-U1-02 a 05*
-- [ ] **Passo 8** — Testes de `common`: `RegistroDeTentativas` (bloqueio e expiração),
+- [x] **Passo 8** — Testes de `common`: `RegistroDeTentativas` (bloqueio e expiração),
       `EmissorDeToken` (emite, valida, recusa expirado e assinatura errada)
-- [ ] **Passo 9** — Resumo em `aidlc-docs/construction/u1-fundacao/code/common-summary.md`
+- [~] **Passo 9** — Resumo — **desvio**: consolidado em `code/code-summary.md` em vez de arquivo próprio
 
 ### `usuario` — H-01 a H-04
 
-- [ ] **Passo 10** — `dominio/`: `Usuario` puro (sem JPA) e a porta `UsuarioRepositorio` —
+- [x] **Passo 10** — `dominio/`: `Usuario` puro (sem JPA) e a porta `UsuarioRepositorio` —
       *RN-U01 a U07*
-- [ ] **Passo 11** — `aplicacao/`: `UsuarioService` (cadastrar, consultarPerfil, atualizarPerfil) e
+- [x] **Passo 11** — `aplicacao/`: `UsuarioService` (cadastrar, consultarPerfil, atualizarPerfil) e
       `AutenticacaoService` (login com tempo constante) — *H-01, H-02, H-04*
-- [ ] **Passo 12** — `adaptador/persistencia/`: `UsuarioJpa`, Spring Data, mapeador, adaptador
-- [ ] **Passo 13** — `adaptador/web/`: `UsuarioController`, `AutenticacaoController`, DTOs com
+- [x] **Passo 12** — `adaptador/persistencia/`: `UsuarioJpa`, Spring Data, mapeador, adaptador
+- [x] **Passo 13** — `adaptador/web/`: `UsuarioController`, `AutenticacaoController`, DTOs com
       Bean Validation — *RNF-10*
-- [ ] **Passo 14** — Testes de `usuario`: unidade para o serviço; integração com Testcontainers para
+- [x] **Passo 14** — Testes de `usuario`: unidade para o serviço; integração com Testcontainers para
       e-mail duplicado (inclusive a corrida que só a restrição do banco pega), normalização,
       tempo constante no login, bloqueio após 5 falhas
-- [ ] **Passo 15** — Resumo em `code/usuario-summary.md`
+- [~] **Passo 15** — Resumo — **desvio**: consolidado em `code/code-summary.md`
 
 ### `grupo` — H-05 a H-08
 
-- [ ] **Passo 16** — `dominio/`: `Grupo`, `MembroGrupo` (histórico de participações), porta
+- [x] **Passo 16** — `dominio/`: `Grupo`, `MembroGrupo` (histórico de participações), porta
       `GrupoRepositorio` — *RN-G01 a G09*
-- [ ] **Passo 17** — `aplicacao/`: `GrupoService` — criar (grupo + associação do criador na mesma
+- [x] **Passo 17** — `aplicacao/`: `GrupoService` — criar (grupo + associação do criador na mesma
       transação), renomear, listar, consultar, adicionar, remover, sair — *H-05 a H-08*
-- [ ] **Passo 18** — `adaptador/persistencia/` e `adaptador/web/`
-- [ ] **Passo 19** — Testes de `grupo`: 404 e não 403 para não-membro, reentrada criando linha nova,
+- [x] **Passo 18** — `adaptador/persistencia/` e `adaptador/web/`
+- [x] **Passo 19** — Testes de `grupo`: 404 e não 403 para não-membro, reentrada criando linha nova,
       grupo vazio permitido, ex-membro perdendo visibilidade, membro novo vendo todo o histórico
-- [ ] **Passo 20** — Resumo em `code/grupo-summary.md`
+- [~] **Passo 20** — Resumo — **desvio**: consolidado em `code/code-summary.md`
 
 ### Persistência e isolamento
 
-- [ ] **Passo 21** — `V1__fundacao.sql`: 3 tabelas, PKs, FKs, único em `usuario.email`, **índice
+- [x] **Passo 21** — `V1__fundacao.sql`: 3 tabelas, PKs, FKs, único em `usuario.email`, **índice
       único parcial** em `membro_grupo(grupo_id, usuario_id) WHERE saiu_em IS NULL`, índice em
       `membro_grupo(usuario_id)` — *RNF-04, D-01*
-- [ ] **Passo 22** — 🔒 **Teste de isolamento de dados** — o mais importante da unidade: dois
+- [x] **Passo 22** — 🔒 **Teste de isolamento de dados** — o mais importante da unidade: dois
       usuários, um grupo, cobrindo os três casos de H-03 — *RN-V01 a V04, NFR-U1-04*
-- [ ] **Passo 23** — Teste de integração da invariante de associação única, com inserção concorrente
+- [x] **Passo 23** — Teste de integração da invariante de associação única, com inserção concorrente
 
 ### Infraestrutura decorrente
 
-- [ ] **Passo 24** — `parameters.tf`: sexto parâmetro `/{nome}/auth/jwt-secret` como `SecureString`
+- [x] **Passo 24** — `parameters.tf`: sexto parâmetro `/{nome}/auth/jwt-secret` como `SecureString`
       com valor gerado; `user-data.sh` e `write-env.sh` exportando `JWT_SECRET`;
       `docker-compose.prod.yml` repassando ao container
-- [ ] **Passo 25** — `README.md`: como rodar local, como rodar os testes, como autenticar
+- [x] **Passo 25** — `README.md`: como rodar local, como rodar os testes, como autenticar
 
 ### Fechamento
 
-- [ ] **Passo 26** — Compilar e rodar a suíte inteira localmente
-- [ ] **Passo 27** — Verificação final: nenhum `Double`/`Float` em caminho monetário; nenhum
+- [~] **Passo 26** — **Parcial**: compila, e os 37 testes que não dependem de Docker passam. Os de integração (Testcontainers) não rodaram localmente — não há Docker nesta máquina. Rodam no CI
+- [x] **Passo 27** — Verificação final: nenhum `Double`/`Float` em caminho monetário; nenhum
       repositório de domínio com método sem filtro; nenhum segredo no repositório; nenhuma senha
       ou token em log; as 21 regras com teste que falha se a regra sair
-- [ ] **Passo 28** — Resumo consolidado em `code/code-summary.md`
+- [x] **Passo 28** — Resumo consolidado em `code/code-summary.md`
 
 ---
 
@@ -166,3 +166,20 @@ src/test/kotlin/...  espelhando a estrutura
 
 **O que este plano não faz**: nenhum endpoint de U2, U3 ou U4; nenhuma troca de e-mail ou de senha
 (sem requisito); nenhum front-end.
+
+
+---
+
+## 6. Desvios de execução
+
+Registrados porque o plano é a fonte de verdade, e um plano que só registra sucesso não serve para
+auditar nada.
+
+| Passo | Desvio | Motivo |
+|---|---|---|
+| 9, 15, 20 | Um `code-summary.md` consolidado em vez de três resumos por componente | Três arquivos repetiriam o mesmo contexto; a rastreabilidade por componente está preservada dentro do consolidado |
+| 26 | Suíte completa **não** rodou localmente | Sem Docker nesta máquina. Rodam no `ci-app.yml`, em runner com Docker. Local: 24 testes de propriedade + 13 de unidade, todos passando |
+
+**Consequência do desvio no Passo 26**: os testes de integração — inclusive o de isolamento de
+dados, que é o mais importante da unidade — estão escritos e compilam, mas ainda **não foram
+observados passando**. A aprovação desta stage deveria esperar o CI ficar verde.

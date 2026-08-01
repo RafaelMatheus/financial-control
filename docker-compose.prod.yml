@@ -39,6 +39,8 @@ services:
       DB_URL: ${DB_URL}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      # Sem default: a aplicacao NAO deve subir sem segredo de assinatura.
+      JWT_SECRET: ${JWT_SECRET}
       SERVER_PORT: 8080
     # Sem "ports": so acessivel pela rede interna, via nginx.
     healthcheck:
