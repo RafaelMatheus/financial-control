@@ -27,15 +27,15 @@ Testcontainers que não rodam nesta máquina.
 
 **Gate aprovado em 2026-08-01T19:10:00Z.** U1 encerrada.
 
-## 🔵 U2 — LANÇAMENTOS: NFR Design gerada, gate pendente
+## 🔵 U2 — LANÇAMENTOS: plano de Code Generation pronto, gate pendente
 
 `categoria` e `gasto` (à vista).
 
 | Stage de U2 | Situação |
 |---|---|
 | Functional Design | ✅ Aprovada — 9 questões, 9 decisões (D-54 a D-62), 23 regras |
-| NFR Design | ✅ Gerada — 4 questões, 4 decisões (D-63 a D-66) — **gate pendente** |
-| Code Generation | ⬜ Não iniciada |
+| NFR Design | ✅ Aprovada — 4 questões, 4 decisões (D-63 a D-66) |
+| Code Generation | 🔵 Plano pronto (24 passos) — **gate do plano pendente** |
 
 **O achado da NFR Design**: a porta `RepositorioComVisibilidade`, escrita em U1, só tem
 `listarVisiveis()` **sem filtro**. U2 é a primeira unidade a implementá-la e a primeira a esbarrar
@@ -44,8 +44,11 @@ não existe forma de pedir "todos os gastos".
 
 **Functional Design aprovada** em 2026-08-01T19:55:00Z.
 
-**Próximo passo**: aprovar a NFR Design de U2 e seguir para a Code Generation da unidade — a
-primeira que vai efetivamente implementar a porta de visibilidade.
+**Próximo passo**: aprovar o plano de Code Generation de U2 e executá-lo. É a unidade que
+efetivamente implementa a porta de visibilidade — em U1 ela nasceu sem implementador.
+
+⚠️ **O passo mais interessante do plano é o 20**: rodar o `ArquiteturaTest` novo **contra o código
+de U1 já entregue**. Se ele reprovar algo, o achado vale mais que a regra.
 
 ---
 
@@ -349,13 +352,15 @@ em memória. É o único componente com estado da unidade, e o CI confirmou a pr
       Artefatos: `aidlc-docs/construction/u2-lancamentos/functional-design/`
       2 entidades · **23 regras** (RN-C01 a C08, RN-L01 a L10, RN-T01 a T07) · 5 alvos de PBT ·
       5 diagramas Mermaid · 9 decisões (D-54 a D-62)
-- [x] NFR Design — GERADO (2026-08-01T20:15:00Z), **aguardando aprovação**
+- [x] NFR Design — COMPLETED e **APROVADO** (2026-08-01T20:30:00Z)
       Plano: `aidlc-docs/construction/plans/u2-lancamentos-nfr-design-plan.md` (10 passos)
       Artefatos: `aidlc-docs/construction/u2-lancamentos/nfr-design/`
       4 decisões (D-63 a D-66) · 5 categorias avaliadas · 2 diagramas Mermaid
       **Nota de pré-requisito**: U2 não tem NFR Requirements própria — ela roda uma vez, em U1,
       porque fecha decisões de stack da aplicação. Insumo: os 14 NFRs de U1
-- [ ] Code Generation
+- [~] Code Generation — **Parte 1 (planejamento) concluída**, aguardando aprovação do plano
+      `aidlc-docs/construction/plans/u2-lancamentos-code-generation-plan.md` — 24 passos,
+      ~12 arquivos novos e 2 modificados
 
 **Decisões de NFR Design de U2**: D-63 (porta de visibilidade cresce **por feature**, com filtro
 obrigatório no tipo e critério nunca parametrizável), D-64 (totais somados com `SUM` no banco —

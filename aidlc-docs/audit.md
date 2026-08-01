@@ -686,3 +686,11 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U2: NFR Design aprovada; Code Generation Parte 1 (planejamento)
+**Timestamp**: 2026-08-01T20:30:00Z
+**User Input**: "continue para a Code Generation de U2"
+**AI Response**: "Interpretado como aprovacao da NFR Design de U2. Criado o plano de Code Generation em aidlc-docs/construction/plans/u2-lancamentos-code-generation-plan.md, com 24 passos numerados e checkboxes, agrupados em preparacao, categoria, gasto, persistencia, os dois totais, imposicao estrutural e fechamento. Estimados ~12 arquivos novos e 2 modificados — Erros.kt ganha 9 codigos e build.gradle.kts ganha o ArchUnit. Rastreabilidade das 9 historias mapeada passo a passo. Destacados os passos mais importantes: o 14 (isolamento de gastos, o mais importante da unidade), o 18 (propriedade da bicondicional de visibilidade, o alvo mais valioso e mais caro de gerar), o 19 (ArquiteturaTest, que materializa D-66) e o 20. O PASSO 20 E O MAIS INTERESSANTE DO PLANO: rodar o teste de arquitetura novo CONTRA O CODIGO DE U1 JA ENTREGUE E APROVADO. Registrado no plano que, se ele reprovar algo, o achado vale mais que a regra — pode ser que U1 tenha um desvio real, ou que a regra esteja mal escrita, e a analise precisa vir antes de ajustar qualquer um dos dois. O PASSO 22 EXISTE POR CAUSA DA LICAO DE U1: a stage nao se declara concluida antes do CI verde, porque teste escrito e nao executado e documentacao e nao verificacao (O-29) — e em U1 esse intervalo custou tres defeitos. Duas licoes de cd310cb viraram passo explicito: saveAndFlush onde a garantia depende de restricao do banco (passo 5) e nada de validacao de formato no DTO que duplique regra de dominio (passo 6). Aguardando aprovacao do plano antes de gerar codigo."
+**Context**: CONSTRUCTION PHASE - U2 - Code Generation Parte 1
+
+---
+
