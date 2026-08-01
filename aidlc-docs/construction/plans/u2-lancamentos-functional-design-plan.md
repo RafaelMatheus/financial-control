@@ -50,21 +50,21 @@ decisão registrada na Units Generation.
 
 ### Modelagem
 
-- [ ] **Passo 7** — `domain-entities.md`: `Categoria` e `Gasto` — atributos, tipos, nulabilidade,
+- [x] **Passo 7** — `domain-entities.md`: `Categoria` e `Gasto` — atributos, tipos, nulabilidade,
       invariantes de construção e o que **não** é atributo, com o motivo
-- [ ] **Passo 8** — `business-rules.md`: regras numeradas `RN-C*` (categoria) e `RN-L*` (lançamento),
+- [x] **Passo 8** — `business-rules.md`: regras numeradas `RN-C*` (categoria) e `RN-L*` (lançamento),
       cada uma com requisito de origem e o teste que falha se a regra sair
-- [ ] **Passo 9** — `business-logic-model.md`: fluxos de lançar, editar, excluir, consultar e
+- [x] **Passo 9** — `business-logic-model.md`: fluxos de lançar, editar, excluir, consultar e
       totalizar; e o fluxo de exclusão de categoria com realocação
-- [ ] **Passo 10** — Modelar **os dois totais** (RF-97, D-28) como grandezas separadas, com o
+- [x] **Passo 10** — Modelar **os dois totais** (RF-97, D-28) como grandezas separadas, com o
       algoritmo explícito de cada uma e a prova de que nunca se somam
-- [ ] **Passo 11** — Diagramas Mermaid, validados antes da escrita
+- [x] **Passo 11** — Diagramas Mermaid, validados antes da escrita
 
 ### Verificação
 
-- [ ] **Passo 12** — Rastreabilidade: cada uma das 9 histórias mapeada para regras e fluxos
-- [ ] **Passo 13** — Mapear os alvos de property-based testing desta unidade
-- [ ] **Passo 14** — Registrar as decisões novas (numeração continua de D-53)
+- [x] **Passo 12** — Rastreabilidade: cada uma das 9 histórias mapeada para regras e fluxos
+- [x] **Passo 13** — Mapear os alvos de property-based testing desta unidade
+- [x] **Passo 14** — Registrar as decisões novas (numeração continua de D-53)
 
 ---
 

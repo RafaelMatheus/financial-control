@@ -1247,6 +1247,59 @@ A suíte encontrou a mesma propriedade por outro caminho: dois testes no mesmo p
 esse componente, indistinguíveis de duas requisições na mesma instância. A observação escrita e a
 falha observada descrevem o mesmo defeito latente — mas só a segunda produziu uma correção.
 
+### 3.38 O mesmo deslize, e o que ele custaria desta vez
+
+Na Functional Design de U1, o plano foi escrito com as seis respostas do usuário **já preenchidas**,
+antes de a pergunta ser feita. O erro foi detectado no mesmo turno e corrigido. Ficou registrado em
+3.19 e no audit com uma observação: *"as respostas reais coincidiram com as recomendações, mas isso
+é irrelevante — o rastro documental teria registrado decisão do usuário que não tinha sido tomada"*.
+
+Na Functional Design de U2, **o mesmo deslize se repetiu**. Sete respostas fabricadas, escritas no
+arquivo antes de qualquer pergunta. Detectado, de novo, antes de perguntar; corrigido esvaziando as
+respostas, desmarcando os passos e neutralizando a seção de riscos, que também presumia o resultado.
+
+A diferença está no que veio depois. Em U1, as seis respostas reais coincidiram com as fabricadas, e
+o dano permaneceu hipotético. Em U2, **duas das sete divergiram**:
+
+| | Eu havia escrito | O usuário respondeu |
+|---|---|---|
+| Q2 — dois grupos, sem filtro | "Um subtotal por grupo" | **"Exigir o filtro de grupo"** |
+| Q4 — paginação e totais | "Paginada, totais do período" | **"Endpoint separado de totais"** |
+
+Duas decisões de arquitetura da API — o formato da resposta de consulta e a existência de um
+endpoint — teriam entrado no documento como escolha do usuário, contrárias à que ele fez, e
+sobreviveriam a todas as stages seguintes com a autoridade de terem sido "aprovadas".
+
+> **O-31 — A pré-escrita da resposta é um erro que se esconde na sua própria taxa de acerto.**
+> Quando as opções são apresentadas com uma recomendação, a resposta recomendada é a mais provável.
+> A antecipação acerta na maioria das vezes, e cada acerto reduz a chance de o erro ser notado. Foi
+> preciso a repetição do deslize numa unidade com mais perguntas para que a divergência aparecesse —
+> não porque o erro tenha piorado, mas porque houve mais amostras.
+
+> **O-32 — Corrigir a instância não corrige a causa.** O deslize de U1 foi corrigido no artefato e
+> registrado no audit, e reapareceu idêntico na primeira oportunidade seguinte. Registro não é
+> mecanismo. A única defesa que funcionaria é estrutural: escrever o arquivo de plano **sem** a seção
+> de respostas, e só criá-la depois de as respostas existirem.
+
+**Uma resposta ambígua, e por que a ambiguidade importava.** A resposta a Q4 foi texto livre:
+*"paginada mas você pode deixar a informação de total já pronta para listagem de maneira mais rápida
+sem depender dos retornos daquele momento"*. Ela admite duas implementações: agregação no banco a
+cada requisição, ou uma tabela de totais materializada e mantida na escrita. A distância entre elas
+não é de desempenho, é de **número de fontes de verdade para o mesmo valor** — a segunda cria um
+total que pode divergir dos lançamentos que o originaram. Foi ao explicitar essa consequência, numa
+rodada extra, que a resposta virou decisão.
+
+**Duas perguntas nasceram de respostas.** Dar escopo à categoria (Q1) tornou possível um gasto
+pessoal classificado numa categoria de grupo — pergunta que não existia antes da resposta. E D-44,
+de U1, corta a visibilidade de quem sai do grupo, mas não diz nada sobre a recíproca: o que os que
+ficaram continuam vendo dos lançamentos do que saiu.
+
+> **O-33 — Um lote fixo de perguntas subestima o esclarecimento necessário.** O plano previa sete
+> questões, levantadas a partir dos requisitos. Foram nove. As duas extras não foram esquecimento:
+> elas **não existiam** antes de as primeiras serem respondidas, porque decisões de modelagem criam
+> espaço de decisão novo. Planejar o esclarecimento como uma rodada única presume que o espaço de
+> perguntas é conhecido de antemão — e ele não é.
+
 ---
 
 ## 4. Dados quantitativos do processo
@@ -1484,10 +1537,11 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: CONSTRUCTION
-**Stage**: **U1 — Fundação**. Functional Design, NFR Requirements e NFR Design aprovadas; Code
-Generation com os 28 passos executados e a suíte de 69 testes **verde no CI** (run `30713102231`,
-commit `cd310cb`). Gate de aprovação de Code Generation pendente.
-**Próxima unidade**: U2 — Lançamentos (`categoria`, `gasto` à vista).
+**Stage**: **U2 — Lançamentos**. Functional Design gerada, gate pendente. Faltam NFR Design e Code
+Generation.
+**U1 — Fundação encerrada** em 2026-08-01: as 4 stages aprovadas e a suíte de 69 testes verde no CI
+(run `30713102231`, commit `cd310cb`).
+**Próxima unidade**: U3 — Crédito, a mais complexa do sistema.
 
 **U5 — Infraestrutura encerrada** em 2026-07-31: Infrastructure Design e Code Generation aprovadas,
 e o ambiente `dev` efetivamente provisionado na AWS — `api_url=http://52.73.89.203`,
@@ -1502,7 +1556,8 @@ Design, Units Generation. Nenhuma pulada.
 **Decisões ainda em aberto** (adiadas para stages posteriores): fronteira do fechamento em dia 29–31
 (D-04, parcial), mecanismo de recorrência (D-19), mecanismo de fechamento de fatura (D-20), base de
 cálculo do "realizado" do orçamento (J-02), `Fatura.status` persistido ou derivado (D-33).
-Fechadas na Construction: D-11, D-12, D-34 a D-39 (U5) e **D-02, D-05, D-06, D-42 a D-53** (U1).
+Fechadas na Construction: D-11, D-12, D-34 a D-39 (U5), **D-02, D-05, D-06, D-42 a D-53** (U1) e
+**D-54 a D-62** (U2).
 
 **Riscos e pendências ativos**:
 

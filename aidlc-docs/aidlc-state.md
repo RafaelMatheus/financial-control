@@ -25,8 +25,14 @@ Testcontainers que não rodam nesta máquina.
 | 2 | `"  Ana@Exemplo.COM  "` dava `400` em vez de `409` | `@Email` roda antes da normalização e rejeita os espaços que RN-U01 manda remover | `@Email` fora do DTO; o domínio valida depois de normalizar |
 | 3 | `NPE` nos testes após o de bloqueio | `RegistroDeTentativas` tem estado em memória; `TRUNCATE` não o alcança | `limparTudo()` no `SuporteDeIntegracao` |
 
-**Próximo passo**: aprovar o gate de Code Generation de U1 e seguir para **U2 — Lançamentos**
-(`categoria`, `gasto` à vista).
+**Gate aprovado em 2026-08-01T19:10:00Z.** U1 encerrada.
+
+## 🔵 U2 — LANÇAMENTOS: Functional Design gerada, gate pendente
+
+`categoria` e `gasto` (à vista). 9 questões respondidas em 3 rodadas, 9 decisões fechadas
+(D-54 a D-62), 23 regras de negócio, 5 alvos de property-based testing.
+
+**Próximo passo**: aprovar a Functional Design de U2 e seguir para a NFR Design da unidade.
 
 ---
 
@@ -220,7 +226,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U1 Fundação · Code Generation concluída, gate pendente**
+- **Current Stage**: CONSTRUCTION — **U2 Lançamentos · Functional Design gerada, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -324,8 +330,24 @@ Consulta sem filtro de visibilidade não vira bug — vira erro de compilação.
 **Dívida conhecida, a revisitar se houver escala horizontal**: `RegistroDeTentativas` guarda estado
 em memória. É o único componente com estado da unidade, e o CI confirmou a propriedade em teste.
 
-#### U2 — Lançamentos
-- [ ] Functional Design · NFR Design · Code Generation
+#### U2 — Lançamentos (EM ANDAMENTO)
+- [x] Functional Design — GERADO (2026-08-01T19:40:00Z), **aguardando aprovação**
+      Plano: `aidlc-docs/construction/plans/u2-lancamentos-functional-design-plan.md` (14 passos)
+      Artefatos: `aidlc-docs/construction/u2-lancamentos/functional-design/`
+      2 entidades · **23 regras** (RN-C01 a C08, RN-L01 a L10, RN-T01 a T07) · 5 alvos de PBT ·
+      5 diagramas Mermaid · 9 decisões (D-54 a D-62)
+- [ ] NFR Design
+- [ ] Code Generation
+
+**Decisões de U2**: D-54 (categoria tem escopo), D-55 (filtro de grupo obrigatório com mais de um
+grupo), D-56 (categorias iniciais na primeira listagem), D-57 (listagem paginada + totais em
+operação própria), D-58 (escopo alterável, com efeito retroativo), D-59 (realocação alcança gastos
+de qualquer dono), D-60 (escopo da categoria não precisa casar com o do lançamento), D-61 (data
+livre, inclusive futura), D-62 (lançamentos de ex-membros permanecem no total do grupo).
+
+⚠️ **Divergência deliberada do `openapi.yaml`** (D-57): o contrato desenhado na Application Design
+tem `PaginaGastos` com os totais embutidos; o design de U2 os separa em duas operações. O contrato
+escrito à mão é referência de design; a fonte é o springdoc gerado do código (D-06).
 
 #### U3 — Crédito
 - [ ] Functional Design · NFR Design · Code Generation
