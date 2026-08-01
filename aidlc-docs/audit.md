@@ -694,3 +694,19 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U2: plano de Code Generation aprovado
+**Timestamp**: 2026-08-01T19:45:00Z
+**AI Prompt**: "Aprova o plano de Code Generation de U2 (24 passos) para eu executar?" (via AskUserQuestion, 3 opcoes, incluindo trocar ArchUnit por Konsist)
+**User Input**: "Aprovar e executar (Recomendado)"
+**AI Response**: "Plano aprovado com ArchUnit. Iniciada a Parte 2 (geracao)."
+**Context**: CONSTRUCTION PHASE - U2 - Code Generation Parte 1 aprovada
+
+---
+
+## CONSTRUCTION — U2: Code Generation, Parte 2 (geracao)
+**Timestamp**: 2026-08-01T20:10:00Z
+**AI Response**: "24 passos executados. 12 arquivos criados, 5 modificados. Commits dae8227 e ed55e3c. CI VERDE no run 30715674722, 82 testes. CINCO DESVIOS REGISTRADOS: (1) tres arquivos modificados em vez de dois, porque o ErroHandler precisou de tratamento de IllegalArgumentException — sem ele, tamanho=1000000 caia no handler generico e virava 500, um erro de cliente respondido como falha de servidor, descoberto ao escrever o teste de paginacao; (2) Dinheiro ganhou ehPositivo(), adicao pura de tres linhas, porque repetir a negacao dupla em cada ponto e ilegivel; (3) duas classes de linha de projecao que o plano nao previa, porque Dinheiro e value class de construtor privado e a expressao new do JPQL so chama construtor publico — a conversao ficou na borda, num lugar so; (4) o ArquiteturaTest ganhou guarda contra vacuidade; (5) helper de teste renomeado para nao colidir com privados de U1. PASSO 20, o que o plano destacou como risco: o ArquiteturaTest rodado contra o codigo de U1 ja entregue NAO REPROVOU NADA nas quatro regras. Hipotese formulada, testada e recusada — registrado, porque risco que nao se materializa merece o mesmo registro que falha. PASSO 22: o CI reprovou 2 de 82 na primeira execucao, e as duas sao de naturezas diferentes. DEFEITO DE CODIGO: no ramo de corrida de listar(), eu capturava a violacao de unicidade e RELIA NA MESMA TRANSACAO; no PostgreSQL uma violacao aborta a transacao inteira (SQLSTATE 25P02) e a releitura acontecia de dentro de uma transacao morta. Corrigido com bean proprio e transacao propria — extrair metodo no mesmo servico nao resolveria, porque auto-invocacao nao passa pelo proxy do Spring. O QUE TORNA O DEFEITO INTERESSANTE e a assimetria com U1: o mesmo catch existe em UsuarioService e GrupoService desde U1 e funciona, porque ali ele LANCA em seguida e o rollback vem junto; o padrao so quebra quando se tenta continuar, e essa condicao nunca tinha sido escrita em nenhuma das tres descricoes do padrao. DEFEITO DE TESTE: afirmei totalPessoal = 0.00 para um gasto de escopo GRUPO cuja dona era a propria consultante, contradizendo RN-T02, que eu mesmo havia escrito tres arquivos antes no mesmo dia e que aparece em quatro artefatos. O codigo estava certo, o teste errado. GUARDA CONTRA VACUIDADE no ArquiteturaTest: ha duas razoes para um teste desses passar — nao existir violacao ou nao existir deteccao — e as duas produzem o mesmo verde silencioso. O teste agora falha se a deteccao nao encontrar Categoria e Gasto. Registrado no research-log como 3.40 e 3.41, com O-37 (um padrao documentado carrega o que ele faz e quase nunca as condicoes em que faz), O-38 (escrever a regra nao e o mesmo que te-la disponivel ao escrever o teste), O-39 (toda regra que opera sobre um conjunto encontrado precisa afirmar que encontrou algo)."
+**Context**: CONSTRUCTION PHASE - U2 - Code Generation Parte 2
+
+---
+

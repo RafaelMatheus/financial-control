@@ -27,7 +27,7 @@ Testcontainers que não rodam nesta máquina.
 
 **Gate aprovado em 2026-08-01T19:10:00Z.** U1 encerrada.
 
-## 🔵 U2 — LANÇAMENTOS: plano de Code Generation pronto, gate pendente
+## 🔵 U2 — LANÇAMENTOS: código entregue e verde no CI, gate pendente
 
 `categoria` e `gasto` (à vista).
 
@@ -35,7 +35,7 @@ Testcontainers que não rodam nesta máquina.
 |---|---|
 | Functional Design | ✅ Aprovada — 9 questões, 9 decisões (D-54 a D-62), 23 regras |
 | NFR Design | ✅ Aprovada — 4 questões, 4 decisões (D-63 a D-66) |
-| Code Generation | 🔵 Plano pronto (24 passos) — **gate do plano pendente** |
+| Code Generation | ✅ 24/24 passos, 82 testes verdes no CI — **gate pendente** |
 
 **O achado da NFR Design**: a porta `RepositorioComVisibilidade`, escrita em U1, só tem
 `listarVisiveis()` **sem filtro**. U2 é a primeira unidade a implementá-la e a primeira a esbarrar
@@ -44,11 +44,18 @@ não existe forma de pedir "todos os gastos".
 
 **Functional Design aprovada** em 2026-08-01T19:55:00Z.
 
-**Próximo passo**: aprovar o plano de Code Generation de U2 e executá-lo. É a unidade que
-efetivamente implementa a porta de visibilidade — em U1 ela nasceu sem implementador.
+**Plano aprovado e executado.** Dois defeitos encontrados pelo CI e corrigidos (`ed55e3c`):
 
-⚠️ **O passo mais interessante do plano é o 20**: rodar o `ArquiteturaTest` novo **contra o código
-de U1 já entregue**. Se ele reprovar algo, o achado vale mais que a regra.
+| # | Sintoma | Causa | Correção |
+|---|---|---|---|
+| 1 | Listagens simultâneas de usuário novo davam 500 | Capturei a violação e reli **na mesma transação**; no PostgreSQL uma violação aborta a transação inteira (`25P02`) | Criação do conjunto inicial em bean e transação próprios |
+| 2 | `totalPessoal` esperado 0.00, veio 150.00 | **Defeito no teste**: gasto de GRUPO cuja dona é a consultante entra nos dois totais, como RN-T02 diz | Expectativa corrigida |
+
+**Resultado do Passo 20**: o `ArquiteturaTest` **não reprovou nada** de U1. A estrutura entregue
+estava limpa nas quatro regras.
+
+**Próximo passo**: aprovar o gate de Code Generation de U2 e seguir para **U3 — Crédito**, a unidade
+mais complexa do sistema (6 entidades, 25 histórias + 2 jornadas).
 
 ---
 
@@ -242,7 +249,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U2 Lançamentos · NFR Design gerada, gate pendente**
+- **Current Stage**: CONSTRUCTION — **U2 Lançamentos · Code Generation concluída, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -358,9 +365,11 @@ em memória. É o único componente com estado da unidade, e o CI confirmou a pr
       4 decisões (D-63 a D-66) · 5 categorias avaliadas · 2 diagramas Mermaid
       **Nota de pré-requisito**: U2 não tem NFR Requirements própria — ela roda uma vez, em U1,
       porque fecha decisões de stack da aplicação. Insumo: os 14 NFRs de U1
-- [~] Code Generation — **Parte 1 (planejamento) concluída**, aguardando aprovação do plano
-      `aidlc-docs/construction/plans/u2-lancamentos-code-generation-plan.md` — 24 passos,
-      ~12 arquivos novos e 2 modificados
+- [x] Code Generation — **24/24 passos · CI VERDE** (2026-08-01T20:10:00Z), aguardando aprovação
+      Plano: `aidlc-docs/construction/plans/u2-lancamentos-code-generation-plan.md`
+      Resumo: `aidlc-docs/construction/u2-lancamentos/code/code-summary.md`
+      Commits: `dae8227` · `ed55e3c` · Suíte: **82 testes**, run `30715674722`
+      12 arquivos criados, 5 modificados. A primeira execução no CI reprovou 2 — §7 do plano
 
 **Decisões de NFR Design de U2**: D-63 (porta de visibilidade cresce **por feature**, com filtro
 obrigatório no tipo e critério nunca parametrizável), D-64 (totais somados com `SUM` no banco —

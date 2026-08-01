@@ -1365,6 +1365,75 @@ alternativa documentada ao lado.
 
 ---
 
+### 3.40 O padrao que so funciona nas condicoes em que nasceu
+
+`verificar para dar mensagem, restringir no banco para garantir` e o padrao mais reaproveitado deste
+projeto. Nasceu em U1 para o e-mail duplicado, foi estendido a associacao de grupo, esta escrito em
+`business-rules.md` das duas unidades e tem forma canonica:
+
+```kotlin
+try { repositorio.salvar(x) }
+catch (_: Duplicada) { throw ErroDeNegocio(CODIGO) }
+```
+
+Em U2 ele foi aplicado mais uma vez, ao conjunto inicial de categorias de RN-C08. Com uma diferenca
+que parecia menor: em vez de lancar, o `catch` **relia** — porque a regra ali nao e recusar, e sim
+descobrir que outra requisicao ja criou e devolver o que ela criou.
+
+O CI reprovou com `SQLSTATE 25P02`: *current transaction is aborted, commands ignored until end of
+transaction block*. No PostgreSQL, uma violacao de restricao **aborta a transacao inteira**. A
+releitura acontecia de dentro de uma transacao morta.
+
+O padrao nao estava errado. As condicoes em que ele funciona e que nunca tinham sido escritas: ele
+depende de o `catch` **terminar em rollback**. Nos dois usos de U1 isso acontecia por acidente da
+forma — lancar excecao rola atras de si. O terceiro uso manteve a forma e trocou o final.
+
+> **O-37 — Um padrao documentado carrega o que ele faz, e quase nunca as condicoes em que faz.**
+> As tres descricoes do padrao neste projeto dizem *o que* fazer e *por que* — verificar da mensagem
+> boa, o banco da a garantia. Nenhuma diz que o bloco de tratamento precisa encerrar a transacao. A
+> condicao era invisivel porque, nos dois primeiros usos, era impossivel viola-la sem sair da forma.
+
+A correcao — bean proprio com transacao propria — tem um detalhe que reforca o ponto: **nao bastaria
+extrair um metodo no mesmo servico**. Auto-invocacao nao passa pelo proxy do Spring, e a transacao
+continuaria sendo a mesma. A solucao correta depende de um fato sobre o framework que nada no
+enunciado do padrao sugere.
+
+**O segundo defeito do CI foi de outra natureza, e vale registrar por contraste.** Um teste afirmava
+`totalPessoal = 0,00` para um gasto de escopo GRUPO cuja dona era a propria consultante. RN-T02,
+escrita por mim tres arquivos antes no mesmo dia, diz o oposto: ele entra nos dois totais. O codigo
+implementava a regra corretamente; o teste a contradizia.
+
+> **O-38 — Escrever a regra nao e o mesmo que te-la disponivel ao escrever o teste.** O intervalo
+> entre os dois momentos foi de minutos, e a regra em questao e a mais enfatizada da unidade —
+> aparece em quatro artefatos com o aviso de que os dois totais se sobrepoem sem se somar. Ainda
+> assim, ao montar um caso concreto, prevaleceu a intuicao de que "pessoal" e "do grupo" sao
+> disjuntos. A verificacao pegou o erro; a documentacao, que era abundante e correta, nao pegou.
+
+### 3.41 O teste que nao pode passar por nao achar nada
+
+D-66 criou um teste de arquitetura que reprova o build quando uma entidade com campo `dono` tem
+repositorio fora da porta de visibilidade. Ele passou na primeira execucao — e passar era o
+resultado esperado, ja que `Categoria` e `Gasto` foram escritas sob a regra.
+
+Mas ha duas razoes distintas para um teste desses passar: nao existir violacao, ou **nao existir
+deteccao**. Se a varredura devolvesse conjunto vazio — nome de campo mudado, pacote renomeado,
+Kotlin gerando os campos de outra forma —, o resultado seria identico: verde, silencioso, para
+sempre.
+
+Foi acrescentada uma guarda: o teste falha se a deteccao **nao encontrar** `Categoria` e `Gasto`.
+
+> **O-39 — Toda regra que opera sobre um conjunto encontrado precisa afirmar que encontrou algo.**
+> Testes de arquitetura, varreduras de lint e verificacoes de convencao compartilham essa fragilidade:
+> sao escritos como "nenhum X viola Y", e "nenhum X existe" satisfaz a mesma sentenca. A assercao
+> positiva custa duas linhas e e a diferenca entre uma regra e a lembranca de uma regra.
+
+O mesmo passo trouxe um resultado que o plano tinha destacado como risco: rodar a regra nova contra o
+codigo de U1, ja entregue e aprovado. **Nenhuma reprovacao.** O risco nao se materializou, e o
+registro disso importa tanto quanto o registro de uma falha — a hipotese foi formulada, testada e
+recusada.
+
+---
+
 ## 4. Dados quantitativos do processo
 
 ### 4.1 Esclarecimento
@@ -1600,8 +1669,9 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: CONSTRUCTION
-**Stage**: **U2 — Lançamentos**. Functional Design aprovada; NFR Design gerada, gate pendente.
-Falta a Code Generation.
+**Stage**: **U2 — Lançamentos**. Functional Design e NFR Design aprovadas; Code Generation com os
+24 passos executados e a suíte de **82 testes verde no CI** (run `30715674722`, commit `ed55e3c`).
+Gate de aprovação pendente.
 **U1 — Fundação encerrada** em 2026-08-01: as 4 stages aprovadas e a suíte de 69 testes verde no CI
 (run `30713102231`, commit `cd310cb`).
 **Próxima unidade**: U3 — Crédito, a mais complexa do sistema.
