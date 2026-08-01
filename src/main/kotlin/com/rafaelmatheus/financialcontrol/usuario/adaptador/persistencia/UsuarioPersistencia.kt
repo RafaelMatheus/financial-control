@@ -49,7 +49,10 @@ class UsuarioRepositorioAdaptador(private val jpa: UsuarioSpringData) : UsuarioR
 
     override fun salvar(usuario: Usuario): Usuario =
         try {
-            jpa.save(usuario.paraJpa()).paraDominio()
+            // saveAndFlush, e nao save: com `save` o INSERT so vai ao banco no
+            // flush do commit, DEPOIS de este try/catch ter saido de cena. A
+            // violacao escaparia crua e viraria 500 em vez de 409.
+            jpa.saveAndFlush(usuario.paraJpa()).paraDominio()
         } catch (_: DataIntegrityViolationException) {
             // A restricao de unicidade do banco e a garantia real de RN-U01. Aqui
             // ela vira excecao de dominio, para nao vazar detalhe de persistencia

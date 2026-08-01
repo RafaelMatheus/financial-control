@@ -34,14 +34,24 @@ abstract class SuporteDeIntegracao {
     @Autowired protected lateinit var mvc: MockMvc
     @Autowired protected lateinit var json: ObjectMapper
     @Autowired private lateinit var dataSource: DataSource
+    @Autowired private lateinit var tentativas: com.rafaelmatheus.financialcontrol.common.seguranca.RegistroDeTentativas
 
     /**
      * Limpa as tabelas entre testes. TRUNCATE ... CASCADE em vez de @Transactional
      * com rollback: o teste de concorrencia precisa de commits de verdade, e um
      * rollback automatico esconderia justamente o que ele verifica.
      */
+    /**
+     * O RegistroDeTentativas e singleton com estado EM MEMORIA — TRUNCATE nao o
+     * alcanca. Sem esta limpeza, o teste de bloqueio deixa a conta travada por 15
+     * minutos e derruba todo teste seguinte que use o mesmo e-mail.
+     *
+     * E a mesma propriedade que faria o bloqueio quebrar com duas instancias
+     * (nfr-design-patterns.md §4): o unico componente com estado da unidade.
+     */
     @BeforeEach
     fun limparBanco() {
+        tentativas.limparTudo()
         dataSource.connection.use { conexao ->
             conexao.createStatement().use {
                 it.execute("TRUNCATE TABLE membro_grupo, grupo, usuario CASCADE")

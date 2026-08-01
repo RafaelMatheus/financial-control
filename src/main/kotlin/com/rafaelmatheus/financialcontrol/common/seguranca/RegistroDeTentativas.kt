@@ -58,6 +58,11 @@ class RegistroDeTentativas(
         registros.remove(chave)
     }
 
+    /** Descarta tudo. Usado entre testes — o estado nao e limpo por TRUNCATE. */
+    fun limparTudo() {
+        registros.clear()
+    }
+
     /**
      * Descarta registros vencidos. Sem isto o mapa cresceria indefinidamente com
      * e-mails tentados uma vez — que num sistema exposto e a maioria deles.

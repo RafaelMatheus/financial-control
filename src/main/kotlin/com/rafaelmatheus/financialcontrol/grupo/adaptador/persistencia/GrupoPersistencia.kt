@@ -70,7 +70,9 @@ class GrupoRepositorioAdaptador(
 
     override fun salvarMembro(membro: MembroGrupo): MembroGrupo =
         try {
-            membros.save(membro.paraJpa()).paraDominio()
+            // saveAndFlush pelo mesmo motivo de UsuarioRepositorioAdaptador: a
+            // violacao do indice precisa aparecer aqui, e nao no commit.
+            membros.saveAndFlush(membro.paraJpa()).paraDominio()
         } catch (_: DataIntegrityViolationException) {
             // Indice unico parcial em (grupo_id, usuario_id) where saiu_em is null.
             // E a unica coisa que barra duas requisicoes simultaneas de adicionar.

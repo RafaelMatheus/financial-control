@@ -8,7 +8,6 @@ import com.rafaelmatheus.financialcontrol.usuario.aplicacao.TokenDTO
 import com.rafaelmatheus.financialcontrol.usuario.aplicacao.UsuarioDTO
 import com.rafaelmatheus.financialcontrol.usuario.aplicacao.UsuarioService
 import jakarta.validation.Valid
-import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import org.springframework.http.HttpStatus
@@ -24,7 +23,11 @@ import org.springframework.web.bind.annotation.RestController
 // O tamanho minimo de senha e 8: nao ha requisito que o defina, e 8 e o piso
 // abaixo do qual nem o BCrypt salva. Registrado como escolha, nao como omissao.
 data class CadastroRequest(
-    @field:NotBlank @field:Email val email: String,
+    // Sem @Email de proposito. O Bean Validation roda ANTES da normalizacao, e
+    // rejeitaria "  Ana@Exemplo.COM  " por causa dos espacos — que RN-U01 manda
+    // remover. Dois validadores discordando sobre o mesmo campo. Quem valida
+    // formato e o dominio (RN-U02), depois de normalizar.
+    @field:NotBlank @field:Size(max = 320) val email: String,
     @field:NotBlank @field:Size(min = 8, max = 72) val senha: String,
     @field:NotBlank @field:Size(max = 120) val nome: String,
 )

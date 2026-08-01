@@ -113,6 +113,52 @@ Custo estimado: **~US$ 35/mês**.
 
 Autenticação na AWS por **OIDC** — nenhuma credencial de longa duração no repositório.
 
+### Acompanhar a pipeline pelo terminal
+
+Com a [GitHub CLI](https://cli.github.com) (`brew install gh`, depois `gh auth login` com escopos
+`repo` e `workflow`), dá para acompanhar tudo sem abrir o navegador:
+
+```bash
+# ultimas execucoes de todos os workflows
+gh run list --limit 10
+
+# so de um workflow
+gh run list --workflow=deploy-app.yml --limit 5
+
+# acompanhar ao vivo, falhando o comando se a execucao falhar
+gh run watch <run-id> --exit-status
+
+# so o que falhou — e o comando que realmente importa quando algo quebra
+gh run view <run-id> --log-failed
+
+# log inteiro, util para filtrar
+gh run view <run-id> --log | grep -i 'error'
+```
+
+Disparar manualmente:
+
+```bash
+gh workflow run bootstrap.yml    -f mode=plan          # depois mode=apply
+gh workflow run terraform-apply.yml -f environment=dev -f mode=plan
+gh workflow run db-bootstrap.yml -f environment=dev
+gh workflow run deploy-app.yml                          # redeploy da main
+gh workflow run deploy-app.yml -f image_tag=<sha>       # rollback
+```
+
+Ler e ajustar as variables do repositório:
+
+```bash
+gh variable list
+gh variable set ECR_REPOSITORY --body "594116288641.dkr.ecr.us-east-1.amazonaws.com/financial-control"
+```
+
+Um detalhe que economiza tempo: o log do Actions vem com códigos de cor ANSI e linhas de
+`##[debug]`. Para ler no terminal:
+
+```bash
+gh run view <run-id> --log-failed | grep -vE '^##\[debug\]' | sed 's/\x1b\[[0-9;]*m//g'
+```
+
 ### Variáveis do repositório
 
 Em *Settings → Secrets and variables → Actions → **Variables*** (não Secrets):
