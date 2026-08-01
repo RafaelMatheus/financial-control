@@ -12,6 +12,7 @@ import com.rafaelmatheus.financialcontrol.gasto.dominio.GastoRepositorio
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
+import java.time.Instant
 import java.util.UUID
 
 data class CategoriaDTO(
@@ -32,12 +33,32 @@ fun Categoria.paraDTO() = CategoriaDTO(
 
 data class CriarCategoria(val nome: String, val escopo: Escopo, val grupoId: UUID?)
 
+/**
+ * Criacao do conjunto inicial (RF-38, D-56), em bean proprio e transacao propria.
+ *
+ * Nao e organizacao por gosto: `CategoriaService.listar` precisa **sobreviver**
+ * ao fracasso desta operacao para reler, e no PostgreSQL uma violacao de
+ * restricao aborta a transacao inteira. Se isto fosse um metodo do proprio
+ * servico, a auto-invocacao nao passaria pelo proxy do Spring e a transacao
+ * seria a mesma — que e exatamente o defeito que o CI encontrou.
+ */
+@Service
+class CriadorDeCategoriasIniciais(private val repositorio: CategoriaRepositorio) {
+
+    @Transactional
+    fun criarPara(dono: UUID, agora: Instant): List<Categoria> =
+        repositorio.salvarTodas(
+            Categoria.INICIAIS.map { Categoria.nova(it, dono, Escopo.PESSOAL, null, agora) },
+        )
+}
+
 @Service
 class CategoriaService(
     private val repositorio: CategoriaRepositorio,
     private val gastos: GastoRepositorio,
     private val contexto: ContextoUsuario,
     private val relogio: Clock,
+    private val iniciais: CriadorDeCategoriasIniciais,
 ) {
 
     /** H-33, RF-36. */
@@ -138,18 +159,27 @@ class CategoriaService(
      *
      * Consequencia registrada e aceita: quem apagar todas ve as dez ressurgirem.
      * O preco de nao guardar estado de "ja recebeu".
+     *
+     * **Deliberadamente SEM `@Transactional`**, e a criacao vive em bean
+     * separado. O motivo foi encontrado pelo CI: no PostgreSQL, uma violacao de
+     * restricao **aborta a transacao inteira** (SQLSTATE 25P02), e qualquer
+     * comando seguinte falha ate o fim do bloco. Capturar a duplicidade e reler
+     * na mesma transacao nao recupera nada — le de dentro de uma transacao
+     * morta.
+     *
+     * Aqui a tentativa de criar tem transacao propria: quando ela falha, rola
+     * atras de si e a releitura acontece numa transacao nova e limpa.
+     *
+     * Note a assimetria com U1: la o mesmo `catch` funcionava porque **lancava**
+     * em seguida, e o rollback vinha junto. O padrao so quebra quando se tenta
+     * continuar.
      */
-    @Transactional
     fun listar(): List<CategoriaDTO> {
         val existentes = repositorio.listarVisiveis()
         if (existentes.isNotEmpty()) return existentes.map { it.paraDTO() }
 
-        val dono = contexto.usuarioAtual()
-        val agora = relogio.instant()
         return try {
-            repositorio.salvarTodas(
-                Categoria.INICIAIS.map { Categoria.nova(it, dono, Escopo.PESSOAL, null, agora) },
-            ).map { it.paraDTO() }
+            iniciais.criarPara(contexto.usuarioAtual(), relogio.instant()).map { it.paraDTO() }
         } catch (_: CategoriaDuplicada) {
             // Duas requisicoes simultaneas de um usuario novo — o front
             // carregando duas telas ao mesmo tempo — chegam as duas com a lista

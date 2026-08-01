@@ -180,7 +180,13 @@ class GastoIntegracaoTest : SuporteDeIntegracao() {
         check(campos.none { it.lowercase().contains("geral") }) {
             "A resposta de totais nao pode ter campo de total geral: $campos"
         }
-        check(json.readTree(corpo).get("totalPessoal").asText() == "0.00")
+
+        // O gasto e de escopo GRUPO E a dona e a consultante, entao ele entra
+        // nos DOIS totais — 150,00 em cada um (RN-T02, RN-T03).
+        //
+        // Nao e dupla contagem, e a ausencia do campo `totalGeral` e o que
+        // impede que pareca uma: 300,00 nao e um numero que exista aqui.
+        check(json.readTree(corpo).get("totalPessoal").asText() == "150.00")
         check(json.readTree(corpo).get("totalGrupo").asText() == "150.00")
     }
 
