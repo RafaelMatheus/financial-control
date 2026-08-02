@@ -1434,6 +1434,105 @@ recusada.
 
 ---
 
+### 3.42 A contradicao de tres pontas que nenhum gate pegou
+
+A Functional Design de U3 comecou pela leitura dos insumos, e a leitura encontrou tres documentos
+aprovados dizendo coisas incompativeis sobre a mesma operacao — o parcelamento:
+
+| Fonte | O que diz | Aprovado em |
+|---|---|---|
+| RF-29, H-27 e o comando `LancarCompraParcelada(valorParcela, n)` | A entrada e **valor da parcela x quantidade**. 12 x 100,00 = 1.200,00 | Requirements, User Stories e Application Design |
+| RF-31, H-28, E-01 | Dividir um **total** por N, com residuo: 100,00 em 3 -> 33,33 / 33,33 / 33,34 | Requirements e User Stories |
+| `Dinheiro.dividirEm`, corrigido em U1 | Residuo **um centavo por parte, nas ultimas** — regra diferente da de RF-31 | Code Generation de U1 |
+
+As duas primeiras sao incompativeis na **entrada**: se o usuario informa o valor da parcela, o total
+e o produto e **nao ha residuo, nunca**. A segunda e a terceira sao incompativeis na **regra de
+distribuicao**. E as tres atravessaram, cada uma, um gate de aprovacao explicito.
+
+O ponto que torna o caso instrutivo nao e ter havido contradicao — e onde ela estava. Cada documento
+e internamente coerente e defensavel. RF-29 descreve como a loja apresenta a compra; RF-31 descreve
+a aritmetica de dividir; `dividirEm` implementa a distribuicao que o property-based testing mostrou
+ser melhor. **A contradicao so existe no cruzamento**, e nenhum dos gates olhava o cruzamento:
+cada um revisava o seu proprio artefato.
+
+> **O-40 — Contradicoes entre artefatos sao invisiveis a gates por artefato.** O metodo aprova
+> Requirements, depois User Stories, depois Application Design, depois o codigo de cada unidade. Cada
+> aprovacao verifica coerencia interna. A incoerencia entre dois documentos aprovados em momentos
+> diferentes nao tem dono, e so aparece quando alguem precisa implementar os dois ao mesmo tempo —
+> aqui, tres stages e duas unidades depois.
+
+Vale notar o que **fez** a contradicao aparecer: a Functional Design de U3 e a primeira atividade que
+precisa dos tres documentos simultaneamente. Nao foi diligencia extra, foi a tarefa exigir o
+cruzamento. Isso sugere que o momento de detectar incoerencia entre artefatos nao e uma revisao
+dedicada, e sim a primeira tarefa que os consome juntos — e que vale antecipar essa leitura.
+
+### 3.43 A decisao que desfez o achado do property-based testing
+
+Resolvida a entrada — o usuario escolheu **valor total dividido por N** —, a divisao passou a
+acontecer em toda compra, e a regra de residuo deixou de ser detalhe.
+
+A escolha foi **"a ultima parcela absorve todo o residuo"**, que e o que RF-31 e E-01 dizem, e que
+**reverte** o comportamento entregue em U1. La, o property-based testing havia encontrado que o
+exemplo canonico de 100,00 em 3 ilustrava a regra errada com o resultado certo, e a implementacao
+passou a distribuir um centavo por parte nas ultimas (3.36, O-28).
+
+A reversao foi apresentada duas vezes. Na primeira, como opcao com a consequencia descrita. Na
+segunda, como confirmacao explicita, com os numeros lado a lado:
+
+```
+R$ 100,00 em 7x
+  ultima absorve : 14,28 x6  +  14,32
+  um por parte   : 14,28 x3  +  14,29 x4
+
+R$ 1,19 em 120x
+  ultima absorve : 0,00 x119  +  1,19
+  um por parte   : 0,00 x1    +  0,01 x119
+```
+
+Confirmada. A decisao e do usuario, e o registro dela vem com a consequencia ao lado — inclusive que
+a propriedade *"partes diferem no maximo 0,01"*, hoje verde, **passa a ser falsa** e sera substituida
+por *"as primeiras n-1 sao iguais entre si"*. A propriedade de soma exata, que e a que RF-32 exige,
+continua valendo nas duas regras.
+
+> **O-41 — Um achado tecnico correto nao decide sozinho uma questao de produto.** O property-based
+> testing provou um fato: as duas regras divergem, e a divergencia cresce com N. Nao provou qual
+> das duas o sistema deve ter. A escolha entre distribuir e concentrar o residuo e de quem define o
+> produto, e neste caso ela tinha requisito escrito desde a Inception. O papel da verificacao foi
+> tornar a escolha **visivel e informada** — nao substitui-la.
+
+O-28 permanece valido como observacao metodologica: o exemplo de 100,00 em 3 continua sendo aquele
+em que as duas regras coincidem, e continua sendo insuficiente para distingui-las. O que mudou foi a
+regra escolhida, nao o fato de o exemplo nao servir para escolher.
+
+### 3.44 A ausencia que virou presenca
+
+A NFR Design de U1 produziu uma tabela de **componentes que deliberadamente nao existem** — cache,
+fila, circuit breaker, store de sessao, servico de e-mail, agendador —, cada linha com a
+justificativa de por que a ausencia era decisao e nao esquecimento. O documento afirmava que a
+tabela era a sua parte mais util, porque *"alguem em U3 vai propor um cache, e a resposta precisa
+estar escrita"*.
+
+Em U3, ninguem propos um cache. Foi proposto um **agendador**, e ele entrou: D-71 fecha as faturas
+por job diario.
+
+A tabela funcionou como se pretendia — nao por impedir, mas por **tornar a mudanca uma decisao
+consciente**. A pergunta que ela forcou nao foi "podemos ter um job?", e sim "o que muda no sistema
+ao deixar de nao ter um?". Duas respostas concretas sairam dai:
+
+1. **Um modo de falha novo e silencioso.** Se o job nao rodar, a fatura nao fecha e a conta a pagar
+   nao nasce — sem erro, sem sinal. A alternativa recusada (fechar sob demanda, na consulta) nao
+   tinha esse modo. O tratamento adotado foi tornar o job **idempotente e recuperavel**: ele nao
+   fecha "as faturas de hoje", fecha todas as que ja deveriam estar fechadas.
+2. **A segunda coisa do sistema que quebra com escala horizontal**, ao lado do
+   `RegistroDeTentativas` de U1. Duas instancias fechariam a mesma fatura duas vezes.
+
+> **O-42 — Registrar uma ausencia nao a torna permanente; torna a sua remocao auditavel.** O valor da
+> tabela nao esteve em vetar o agendador — ele foi adotado. Esteve em que a adocao veio acompanhada
+> do inventario do que se perdia, escrito no mesmo momento da decisao e nao reconstruido meses
+> depois, quando a fatura de alguem nao fechar.
+
+---
+
 ## 4. Dados quantitativos do processo
 
 ### 4.1 Esclarecimento
@@ -1669,12 +1768,12 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: CONSTRUCTION
-**Stage**: **U2 — Lançamentos**. Functional Design e NFR Design aprovadas; Code Generation com os
-24 passos executados e a suíte de **82 testes verde no CI** (run `30715674722`, commit `ed55e3c`).
-Gate de aprovação pendente.
+**Stage**: **U3 — Crédito**. Functional Design gerada, gate pendente. Faltam NFR Design e Code
+Generation.
+**U2 — Lançamentos encerrada** em 2026-08-01: as 3 stages aprovadas, 82 testes verdes no CI.
 **U1 — Fundação encerrada** em 2026-08-01: as 4 stages aprovadas e a suíte de 69 testes verde no CI
 (run `30713102231`, commit `cd310cb`).
-**Próxima unidade**: U3 — Crédito, a mais complexa do sistema.
+**Próxima unidade**: U4 — Planejamento (`receita`, `orcamento`, `investimento`).
 
 **U5 — Infraestrutura encerrada** em 2026-07-31: Infrastructure Design e Code Generation aprovadas,
 e o ambiente `dev` efetivamente provisionado na AWS — `api_url=http://52.73.89.203`,
@@ -1686,11 +1785,11 @@ originais (thumbprint, capitalização do `sub`).
 Engineering, Requirements Analysis (9 revisões), User Stories, Workflow Planning, Application
 Design, Units Generation. Nenhuma pulada.
 
-**Decisões ainda em aberto** (adiadas para stages posteriores): fronteira do fechamento em dia 29–31
-(D-04, parcial), mecanismo de recorrência (D-19), mecanismo de fechamento de fatura (D-20), base de
-cálculo do "realizado" do orçamento (J-02), `Fatura.status` persistido ou derivado (D-33).
+**Decisões ainda em aberto**: apenas a base de cálculo do "realizado" do orçamento (**J-02**),
+destino U4. **D-04, D-19, D-20 e D-33 fecharam na Functional Design de U3** — respectivamente por
+D-69, D-72, D-71 e D-70.
 Fechadas na Construction: D-11, D-12, D-34 a D-39 (U5), **D-02, D-05, D-06, D-42 a D-53** (U1) e
-**D-54 a D-66** (U2).
+**D-54 a D-66** (U2) e **D-67 a D-72** (U3).
 
 **Riscos e pendências ativos**:
 

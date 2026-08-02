@@ -6,14 +6,18 @@ module "network" {
   source = "./modules/network"
 
   project_name = local.name
+  # A rota acompanha a exposicao do banco: ligar uma sem a outra produz um RDS
+  # com IP publico e sem rota de resposta, exposto e inalcancavel ao mesmo tempo.
+  enable_database_internet_route = var.db_publicly_accessible
 }
 
 module "security" {
   source = "./modules/security"
 
-  project_name = local.name
-  vpc_id       = module.network.vpc_id
-  aws_region   = var.aws_region
+  project_name           = local.name
+  vpc_id                 = module.network.vpc_id
+  aws_region             = var.aws_region
+  database_allowed_cidrs = var.db_allowed_cidrs
 }
 
 module "database" {
@@ -27,6 +31,7 @@ module "database" {
   master_password       = random_password.db_master.result
   multi_az              = var.db_multi_az
   backup_retention_days = var.db_backup_retention_days
+  publicly_accessible   = var.db_publicly_accessible
 }
 
 module "compute" {

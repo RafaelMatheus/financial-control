@@ -45,6 +45,38 @@ variable "db_backup_retention_days" {
   default     = 7
 }
 
+# ---------------------------------------------------- acesso direto ao banco
+# Desliga o isolamento de rede do RDS para permitir conexao de fora da VPC
+# (DBeaver, psql local). O default e FECHADO: so o ambiente que declarar
+# explicitamente nos tfvars fica exposto.
+#
+# Ligar isto contraria RNF-16 e o desenho de rede de U5, em que o banco so e
+# alcancavel a partir do security group da aplicacao. Aceitavel em dev, que nao
+# tem dado real; em prod exige decisao registrada.
+#
+# O caminho sem esta exposicao e o tunel SSM:
+#   aws ssm start-session --target <id> \
+#     --document-name AWS-StartPortForwardingSessionToRemoteHost \
+#     --parameters '{"host":["<endpoint>"],"portNumber":["5432"],"localPortNumber":["5433"]}'
+variable "db_publicly_accessible" {
+  description = "Da IP publico ao RDS e roteia as subnets do banco pelo IGW"
+  type        = bool
+  default     = false
+}
+
+variable "db_allowed_cidrs" {
+  description = "CIDRs que podem abrir 5432 no banco. Vazio mantem o banco fechado."
+  type        = list(string)
+  default     = []
+
+  validation {
+    # /0 aqui seria o banco inteiro aberto para a internet. O erro de digitacao
+    # que produz isso e barato demais para nao ter guarda.
+    condition     = !contains(var.db_allowed_cidrs, "0.0.0.0/0")
+    error_message = "0.0.0.0/0 abriria o banco para a internet inteira. Use um CIDR especifico."
+  }
+}
+
 variable "domain_name" {
   description = "Dominio da API. Vazio desabilita o TLS."
   type        = string

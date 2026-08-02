@@ -62,3 +62,20 @@ resource "aws_vpc_security_group_ingress_rule" "postgres_from_app" {
   to_port                      = 5432
   ip_protocol                  = "tcp"
 }
+
+# Acesso administrativo direto ao banco, por CIDR. Lista vazia = nenhuma regra,
+# que e o default e o estado de prod.
+#
+# for_each pelo proprio CIDR, nao por indice: com count, remover o primeiro item
+# da lista recriaria todas as regras seguintes, porque cada uma passaria a
+# ocupar outro endereco no state.
+resource "aws_vpc_security_group_ingress_rule" "postgres_from_cidr" {
+  for_each = toset(var.database_allowed_cidrs)
+
+  security_group_id = aws_security_group.database.id
+  description       = "PostgreSQL direto de ${each.value} - acesso administrativo"
+  cidr_ipv4         = each.value
+  from_port         = 5432
+  to_port           = 5432
+  ip_protocol       = "tcp"
+}

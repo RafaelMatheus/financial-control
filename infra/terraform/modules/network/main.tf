@@ -69,6 +69,24 @@ resource "aws_route_table" "private" {
   tags = { Name = "${var.project_name}-rt-private" }
 }
 
+# Rota default condicional, so quando o banco e exposto.
+#
+# publicly_accessible = true no RDS nao basta: a AWS atribui o IP publico, mas
+# sem rota para o IGW na subnet da instancia o pacote de resposta nao sai, e a
+# conexao morre em timeout — o mesmo sintoma de estar fechado, com a diferenca
+# de que o banco ja estaria exposto. Um dos dois sem o outro e o pior estado
+# possivel: sem acesso e sem isolamento.
+#
+# Com esta rota as subnets do banco deixam de ser privadas de fato. O que
+# preserva o isolamento passa a ser exclusivamente o security group.
+resource "aws_route" "private_internet" {
+  count = var.enable_database_internet_route ? 1 : 0
+
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.main.id
+}
+
 resource "aws_route_table_association" "private" {
   count = 2
 

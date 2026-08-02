@@ -73,3 +73,9 @@ variable "backup_retention_days" {
   type        = number
   default     = 7
 }
+
+variable "publicly_accessible" {
+  description = "Da IP publico ao RDS. Exige rota para o IGW na subnet do banco."
+  type        = bool
+  default     = false
+}

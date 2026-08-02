@@ -12,3 +12,9 @@ variable "aws_region" {
   description = "Regiao, usada na condicao de KMS"
   type        = string
 }
+
+variable "database_allowed_cidrs" {
+  description = "CIDRs que podem abrir 5432 direto no banco, alem do SG da aplicacao"
+  type        = list(string)
+  default     = []
+}

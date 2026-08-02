@@ -55,8 +55,9 @@ resource "aws_db_instance" "main" {
   vpc_security_group_ids = [var.security_group_id]
   parameter_group_name   = aws_db_parameter_group.main.name
 
-  # Sem acesso publico: alcancavel apenas de dentro da VPC.
-  publicly_accessible = false
+  # Default false: alcancavel apenas de dentro da VPC. Ver db_publicly_accessible
+  # na raiz para o que ligar isto implica.
+  publicly_accessible = var.publicly_accessible
   multi_az            = var.multi_az
 
   # Backup gerenciado — o que resolve o risco R-01.

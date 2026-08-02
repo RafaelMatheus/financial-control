@@ -27,7 +27,7 @@ Testcontainers que não rodam nesta máquina.
 
 **Gate aprovado em 2026-08-01T19:10:00Z.** U1 encerrada.
 
-## 🔵 U2 — LANÇAMENTOS: código entregue e verde no CI, gate pendente
+## ✅ U2 — LANÇAMENTOS: ENCERRADA — 2026-08-01
 
 `categoria` e `gasto` (à vista).
 
@@ -35,7 +35,7 @@ Testcontainers que não rodam nesta máquina.
 |---|---|
 | Functional Design | ✅ Aprovada — 9 questões, 9 decisões (D-54 a D-62), 23 regras |
 | NFR Design | ✅ Aprovada — 4 questões, 4 decisões (D-63 a D-66) |
-| Code Generation | ✅ 24/24 passos, 82 testes verdes no CI — **gate pendente** |
+| Code Generation | ✅ 24/24 passos, 82 testes verdes no CI — **aprovado** |
 
 **O achado da NFR Design**: a porta `RepositorioComVisibilidade`, escrita em U1, só tem
 `listarVisiveis()` **sem filtro**. U2 é a primeira unidade a implementá-la e a primeira a esbarrar
@@ -54,8 +54,16 @@ não existe forma de pedir "todos os gastos".
 **Resultado do Passo 20**: o `ArquiteturaTest` **não reprovou nada** de U1. A estrutura entregue
 estava limpa nas quatro regras.
 
-**Próximo passo**: aprovar o gate de Code Generation de U2 e seguir para **U3 — Crédito**, a unidade
-mais complexa do sistema (6 entidades, 25 histórias + 2 jornadas).
+**Gate aprovado.** U2 encerrada.
+
+## 🔴 U3 — CRÉDITO: iniciada
+
+A **maior unidade do sistema**: 6 entidades, 25 histórias + 2 jornadas, 31 requisitos.
+Componentes: `cartao`, `fatura`, `conta`, `compra`, `gasto` (integração com cartão).
+
+**É onde 4 decisões adiadas finalmente fecham**: D-04 (fronteira do fechamento em dia 29-31),
+D-19 (mecanismo de recorrência), D-20 (mecanismo de fechamento de fatura) e D-33 (`Fatura.status`
+persistido ou derivado). E onde `Dinheiro.dividirEm` ganha o primeiro consumidor.
 
 ---
 
@@ -249,7 +257,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U2 Lançamentos · Code Generation concluída, gate pendente**
+- **Current Stage**: CONSTRUCTION — **U3 Crédito · Functional Design gerada, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -353,7 +361,7 @@ Consulta sem filtro de visibilidade não vira bug — vira erro de compilação.
 **Dívida conhecida, a revisitar se houver escala horizontal**: `RegistroDeTentativas` guarda estado
 em memória. É o único componente com estado da unidade, e o CI confirmou a propriedade em teste.
 
-#### U2 — Lançamentos (EM ANDAMENTO)
+#### U2 — Lançamentos (ENCERRADA)
 - [x] Functional Design — COMPLETED e **APROVADO** (2026-08-01T19:55:00Z)
       Plano: `aidlc-docs/construction/plans/u2-lancamentos-functional-design-plan.md` (14 passos)
       Artefatos: `aidlc-docs/construction/u2-lancamentos/functional-design/`
@@ -365,7 +373,7 @@ em memória. É o único componente com estado da unidade, e o CI confirmou a pr
       4 decisões (D-63 a D-66) · 5 categorias avaliadas · 2 diagramas Mermaid
       **Nota de pré-requisito**: U2 não tem NFR Requirements própria — ela roda uma vez, em U1,
       porque fecha decisões de stack da aplicação. Insumo: os 14 NFRs de U1
-- [x] Code Generation — **24/24 passos · CI VERDE** (2026-08-01T20:10:00Z), aguardando aprovação
+- [x] Code Generation — **24/24 passos · CI VERDE · APROVADO** (2026-08-01T20:20:00Z)
       Plano: `aidlc-docs/construction/plans/u2-lancamentos-code-generation-plan.md`
       Resumo: `aidlc-docs/construction/u2-lancamentos/code/code-summary.md`
       Commits: `dae8227` · `ed55e3c` · Suíte: **82 testes**, run `30715674722`
@@ -394,8 +402,36 @@ livre, inclusive futura), D-62 (lançamentos de ex-membros permanecem no total d
 tem `PaginaGastos` com os totais embutidos; o design de U2 os separa em duas operações. O contrato
 escrito à mão é referência de design; a fonte é o springdoc gerado do código (D-06).
 
-#### U3 — Crédito
-- [ ] Functional Design · NFR Design · Code Generation
+#### U3 — Crédito (EM ANDAMENTO)
+- [x] Functional Design — GERADO (2026-08-01T21:00:00Z), **aguardando aprovação**
+      Plano: `aidlc-docs/construction/plans/u3-credito-functional-design-plan.md` (15 passos)
+      Artefatos: `aidlc-docs/construction/u3-credito/functional-design/`
+      6 entidades · **37 regras** (RN-K, RN-F, RN-P, RN-A, RN-R) · 7 alvos de PBT ·
+      6 diagramas Mermaid · 6 decisões (D-67 a D-72) · **as 2 jornadas resolvidas**
+- [ ] NFR Design
+- [ ] Code Generation
+
+**As 4 decisões adiadas desde a Inception fecharam**: D-04 (por D-69), D-33 (por D-70),
+D-20 (por D-71), D-19 (por D-72).
+
+⚠️ **CONTRADIÇÃO DE TRÊS PONTAS ENCONTRADA E RESOLVIDA**: RF-29/H-27 pediam entrada por *valor da
+parcela × quantidade* (sem resíduo nunca); RF-31/H-28/E-01 descreviam dividir um *total* com
+resíduo; e o `Dinheiro.dividirEm` de U1 usava regra de resíduo diferente da de RF-31. O usuário
+decidiu: **entrada por valor total** (D-67) e **última parcela absorve** (D-68).
+
+⚠️ **D-68 reverte comportamento entregue em U1.** `Dinheiro.dividirEm` distribui hoje um centavo por
+parte, nas últimas — adotado porque o property-based testing achou o defeito da regra original
+(research-log 3.36, O-28). A reversão foi apresentada com os números concretos e **confirmada numa
+segunda rodada**. A alteração e a reescrita da propriedade acontecem na Code Generation de U3.
+
+⚠️ **PENDÊNCIA DE REQUISITOS**: RF-29 e H-27 ficaram **desatualizados** por D-67 — o texto diz o
+inverso do que foi decidido. É mudança de texto, não reinterpretação.
+
+⚠️ **D-71 cria o primeiro componente agendado do sistema.** A NFR Design de U1 listou
+"fila / job / agendador" na tabela do que deliberadamente não existe. Consequências registradas: um
+modo de falha novo e silencioso (job não roda → fatura não fecha → vencimento não aparece), tratado
+por o job ser **idempotente e recuperável**; e a **segunda** coisa do sistema que quebra com escala
+horizontal, ao lado do `RegistroDeTentativas`.
 
 #### U4 — Planejamento
 - [ ] Functional Design · NFR Design · Code Generation
