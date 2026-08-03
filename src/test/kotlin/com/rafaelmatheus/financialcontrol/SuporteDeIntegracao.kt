@@ -124,13 +124,16 @@ abstract class SuporteDeIntegracao {
         escopo: String = "PESSOAL",
         grupoId: String? = null,
         descricao: String = "Compra",
+        cartaoId: String? = null,
     ): ResultActions {
         val grupo = if (grupoId == null) "null" else "\"$grupoId\""
+        val cartao = if (cartaoId == null) "null" else "\"$cartaoId\""
         return mvc.perform(
             comToken(post("/gastos"), token).contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """{"descricao":"$descricao","valor":$valor,"data":"$data",
-                       "categoriaId":"$categoriaId","escopo":"$escopo","grupoId":$grupo}""",
+                       "categoriaId":"$categoriaId","escopo":"$escopo","grupoId":$grupo,
+                       "cartaoId":$cartao}""",
                 ),
         )
     }

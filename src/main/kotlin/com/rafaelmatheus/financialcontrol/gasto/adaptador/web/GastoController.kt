@@ -42,6 +42,8 @@ data class GastoRequest(
     @field:NotNull val categoriaId: UUID,
     @field:NotNull val escopo: Escopo,
     val grupoId: UUID? = null,
+    /** U3: nulo = a vista; preenchido = entra na fatura da competencia (RF-19). */
+    val cartaoId: UUID? = null,
 ) {
     fun paraComando() = LancarGasto(
         descricao = descricao,
@@ -50,6 +52,7 @@ data class GastoRequest(
         categoriaId = categoriaId,
         escopo = escopo,
         grupoId = grupoId,
+        cartaoId = cartaoId,
     )
 }
 

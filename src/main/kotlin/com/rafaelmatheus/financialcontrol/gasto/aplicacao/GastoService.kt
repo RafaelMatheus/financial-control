@@ -1,6 +1,9 @@
 package com.rafaelmatheus.financialcontrol.gasto.aplicacao
 
+import com.rafaelmatheus.financialcontrol.cartao.aplicacao.CartaoService
 import com.rafaelmatheus.financialcontrol.categoria.dominio.CategoriaRepositorio
+import com.rafaelmatheus.financialcontrol.common.dominio.CalculadoraDeCompetencia
+import com.rafaelmatheus.financialcontrol.common.dominio.Competencia
 import com.rafaelmatheus.financialcontrol.common.dominio.Dinheiro
 import com.rafaelmatheus.financialcontrol.common.dominio.Escopo
 import com.rafaelmatheus.financialcontrol.common.seguranca.ContextoUsuario
@@ -13,6 +16,8 @@ import com.rafaelmatheus.financialcontrol.gasto.dominio.GastoRepositorio
 import com.rafaelmatheus.financialcontrol.gasto.dominio.PaginaDeGastos
 import com.rafaelmatheus.financialcontrol.gasto.dominio.Paginacao
 import com.rafaelmatheus.financialcontrol.gasto.dominio.TotaisDeGastos
+import com.rafaelmatheus.financialcontrol.fatura.aplicacao.FaturaService
+import com.rafaelmatheus.financialcontrol.fatura.dominio.ProtecaoFatura
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -34,6 +39,14 @@ data class LancarGasto(
     val categoriaId: UUID,
     val escopo: Escopo,
     val grupoId: UUID?,
+    /**
+     * ⚠️ **Acrescentado em U3** — a segunda metade do componente `gasto`.
+     *
+     * Nulo = gasto a vista, o unico caso que U2 conhecia. Preenchido = gasto no
+     * cartao, e entao a competencia da fatura e calculada e o lancamento passa
+     * a incidir nela (RF-19, RF-60).
+     */
+    val cartaoId: UUID? = null,
 )
 
 @Service
@@ -42,12 +55,18 @@ class GastoService(
     private val categorias: CategoriaRepositorio,
     private val contexto: ContextoUsuario,
     private val relogio: Clock,
+    // --- U3: integracao com cartao ---
+    private val cartoes: CartaoService,
+    private val faturas: FaturaService,
+    private val protecao: ProtecaoFatura,
 ) {
 
     /** H-15, H-09, RF-18, RF-19, RF-11. */
     @Transactional
     fun lancar(comando: LancarGasto): GastoDTO {
         validar(comando.descricao, comando.valor, comando.categoriaId, comando.escopo, comando.grupoId)
+
+        val competencia = prepararCartao(comando)
 
         return repositorio.salvar(
             Gasto.novo(
@@ -59,7 +78,7 @@ class GastoService(
                 escopo = comando.escopo,
                 grupo = comando.grupoId,
                 criadoEm = relogio.instant(),
-            ),
+            ).copy(cartao = comando.cartaoId, competencia = competencia),
         ).paraDTO()
     }
 
@@ -78,6 +97,13 @@ class GastoService(
         val gasto = exigirVisivel(id)
         validar(comando.descricao, comando.valor, comando.categoriaId, comando.escopo, comando.grupoId)
 
+        // RN-P08 aplicado a gasto: a UNIAO da competencia antiga e da nova. Tirar
+        // um gasto de uma fatura paga e alterar essa fatura tanto quanto por um.
+        if (gasto.cartao != null && gasto.competencia != null) {
+            protecao.exigirAlteracaoPermitida(gasto.cartao, gasto.competencia)
+        }
+        val competencia = prepararCartao(comando)
+
         return repositorio.salvar(
             gasto.editado(
                 descricao = comando.descricao,
@@ -86,15 +112,36 @@ class GastoService(
                 categoria = comando.categoriaId,
                 escopo = comando.escopo,
                 grupo = comando.grupoId,
-            ),
+            ).copy(cartao = comando.cartaoId, competencia = competencia),
         ).paraDTO()
     }
 
     /** H-15, RF-20. */
     @Transactional
     fun excluir(id: UUID) {
-        exigirVisivel(id)
+        val gasto = exigirVisivel(id)
+        // RF-95, H-24: excluir uma compra de fatura paga e bloqueado.
+        if (gasto.cartao != null && gasto.competencia != null) {
+            protecao.exigirAlteracaoPermitida(gasto.cartao, gasto.competencia)
+        }
         repositorio.excluir(id)
+    }
+
+    /**
+     * A integracao de U3 (RF-19, RF-25, RF-60, RF-95).
+     *
+     * Sem cartao, devolve nulo e nada muda — e o gasto a vista que U2 ja
+     * conhecia. Com cartao, calcula a competencia pela **data da compra e pelo
+     * dia de FECHAMENTO** (nunca o de vencimento, RF-61), verifica se aquela
+     * fatura esta paga e prepara a fatura para receber o lancamento.
+     */
+    private fun prepararCartao(comando: LancarGasto): Competencia? {
+        val cartaoId = comando.cartaoId ?: return null
+        val cartao = cartoes.exigirAtivo(cartaoId)
+        val competencia = CalculadoraDeCompetencia.competenciaDe(comando.data, cartao.diaFechamento)
+        protecao.exigirAlteracaoPermitida(cartaoId, competencia)
+        faturas.prepararParaLancamento(cartaoId, competencia)
+        return competencia
     }
 
     /** H-16, RF-21. Paginada; os totais vem de [totalizar] (D-57). */
@@ -178,6 +225,9 @@ data class GastoDTO(
     val donoId: String,
     val escopo: Escopo,
     val grupoId: String?,
+    /** U3: nulo em gasto a vista. */
+    val cartaoId: String?,
+    val competencia: String?,
 )
 
 fun Gasto.paraDTO() = GastoDTO(
@@ -189,4 +239,6 @@ fun Gasto.paraDTO() = GastoDTO(
     donoId = dono.toString(),
     escopo = escopo,
     grupoId = grupo?.toString(),
+    cartaoId = cartao?.toString(),
+    competencia = competencia?.toString(),
 )

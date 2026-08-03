@@ -85,23 +85,23 @@ src/test/kotlin/...
 - [x] **Passo 15** — `adaptador/persistencia/`: `SUM` da competência (D-75) e **a guarda de D-73 na
       gravação**
 - [x] **Passo 16** — `adaptador/web/`: consultar fatura e faturas futuras
-- [~] **Passo 17** — ADIADO para o Bloco D (ver §7): fatura vazia nao exercita nada — Testes: competência dos três cenários de H-20, fatura aberta acumulando,
+- [x] **Passo 17** — feito no Bloco D, em `FaturaIntegracaoTest` (ver §7)
       status derivado, bloqueio de fatura paga, reabertura por lançamento retroativo
 - [x] **Passo 18** — compilacao verde; testes de comportamento no Bloco D — ✅ **Verificação do bloco**
 
 ### Bloco D — `compra`, `parcela` e a integração de `gasto` (H-27 a H-32)
 
-- [ ] **Passo 19** — `dominio/`: `Compra`, `Parcela`, `DivisorDeParcelas`, porta — *RN-P01 a P09*
-- [ ] **Passo 20** — `aplicacao/CompraService`: lançar, editar (**união das competências antigas e
+- [x] **Passo 19** — `dominio/`: `Compra`, `Parcela`, `DivisorDeParcelas`, porta — *RN-P01 a P09*
+- [x] **Passo 20** — `aplicacao/CompraService`: lançar, editar (**união das competências antigas e
       novas**), excluir, consultar
-- [ ] **Passo 21** — `adaptador/` de `compra`
-- [ ] **Passo 22** — **Integração de `gasto` com cartão**: `GastoService` passa a aceitar `cartaoId`,
+- [x] **Passo 21** — `adaptador/` de `compra`
+- [x] **Passo 22** — **Integração de `gasto` com cartão**: `GastoService` passa a aceitar `cartaoId`,
       calcula a competência e invoca `ProtecaoFatura`. **Segunda metade do componente iniciado em U2**
-- [ ] **Passo 23** — 🔬 **PBT do parcelamento**: soma exata; primeiras n-1 iguais; nenhuma negativa;
+- [x] **Passo 23** — 🔬 **PBT do parcelamento**: soma exata; primeiras n-1 iguais; nenhuma negativa;
       **invariante após qualquer sequência de criação e edição** (H-29 — o alvo mais valioso)
-- [ ] **Passo 24** — Testes de integração de `compra`, incluindo edição que reduz parcelas tocando
+- [x] **Passo 24** — Testes de integração de `compra`, incluindo edição que reduz parcelas tocando
       fatura paga
-- [ ] **Passo 25** — ✅ **Verificação do bloco**
+- [x] **Passo 25** — ✅ **Verificação do bloco**
 
 ### Bloco E — `conta` e recorrência (H-42 a H-51)
 
