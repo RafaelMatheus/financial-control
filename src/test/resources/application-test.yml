@@ -22,13 +22,13 @@ app:
     max-tentativas: 5
     bloqueio-minutos: 15
 
+  # D-71/D-74: nos testes o job NUNCA dispara sozinho — o teste chama
+  # fecharTudoQueJaVenceu() com o relogio avancado. Um cron ativo tornaria os
+  # testes dependentes do horario de execucao da suite.
+  fechamento:
+    cron: "-"
+
 logging:
   level:
     com.rafaelmatheus.financialcontrol: DEBUG
 
-# D-71/D-74: nos testes o job NUNCA dispara sozinho — o teste chama
-# fecharTudoQueJaVenceu() com o relogio avancado. Um cron ativo tornaria os
-# testes dependentes do horario de execucao da suite.
-app:
-  fechamento:
-    cron: "-"

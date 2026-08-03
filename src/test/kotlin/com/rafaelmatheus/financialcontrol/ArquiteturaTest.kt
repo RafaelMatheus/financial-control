@@ -2,6 +2,7 @@ package com.rafaelmatheus.financialcontrol
 
 import com.rafaelmatheus.financialcontrol.common.persistencia.RepositorioComVisibilidade
 import com.tngtech.archunit.core.domain.JavaClasses
+import com.tngtech.archunit.core.domain.JavaParameterizedType
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
@@ -77,12 +78,28 @@ class ArquiteturaTest {
             .map { it.simpleName }
             .toSet()
 
+        // As entidades cobertas saem do ARGUMENTO DE TIPO de
+        // `RepositorioComVisibilidade<T>`, e nao do nome da porta.
+        //
+        // ## Por que nao pelo nome
+        //
+        // A versao original casava `porta.simpleName.startsWith(entidade)`. Ela
+        // passou em U2 por **coincidencia**: `CategoriaRepositorio` e
+        // `GastoRepositorio` comecam com o nome da entidade. Em U3,
+        // `ContaRepositorio` nao comeca com `ContaAPagar`, e o teste reprovou
+        // duas entidades que estao perfeitamente protegidas.
+        //
+        // A regra estava verificando uma **convencao de nomenclatura** achando
+        // que verificava uma relacao de tipo. O argumento generico e a relacao
+        // de verdade: nao ha como declarar `RepositorioComVisibilidade<Conta>` e
+        // proteger outra coisa.
         val protegidas = classes
             .filter { it.isInterface }
-            .filter { candidata ->
-                candidata.allRawInterfaces.any { it.name == RepositorioComVisibilidade::class.java.name }
-            }
-            .flatMap { porta -> entidadesComDono.filter { porta.simpleName.startsWith(it) } }
+            .flatMap { porta -> porta.interfaces }
+            .filterIsInstance<JavaParameterizedType>()
+            .filter { it.toErasure().name == RepositorioComVisibilidade::class.java.name }
+            .flatMap { it.actualTypeArguments }
+            .map { it.toErasure().simpleName }
             .toSet()
 
         // GUARDA CONTRA VACUIDADE.
