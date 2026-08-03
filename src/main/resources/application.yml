@@ -30,6 +30,11 @@ server:
   port: ${SERVER_PORT:8080}
 
 app:
+  # D-71: fechamento diario de faturas. O horario exato importa pouco — o job e
+  # recuperavel, entao atrasar nao perde nada. De madrugada para nao competir
+  # com uso interativo.
+  fechamento:
+    cron: "0 15 3 * * *"
   auth:
     # Sem default: um default aqui viraria o segredo de producao no dia em que a
     # variavel faltasse. Vem do Parameter Store, como as credenciais do banco.

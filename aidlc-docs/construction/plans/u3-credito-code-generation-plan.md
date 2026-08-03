@@ -105,22 +105,22 @@ src/test/kotlin/...
 
 ### Bloco E — `conta` e recorrência (H-42 a H-51)
 
-- [ ] **Passo 26** — `dominio/`: `ContaAPagar`, `ContaRecorrente`, portas — *RN-A01 a A09, RN-R01 a R06*
-- [ ] **Passo 27** — `aplicacao/ContaService`: cadastrar, editar, excluir, marcar paga (com valor
+- [x] **Passo 26** — `dominio/`: `ContaAPagar`, `ContaRecorrente`, portas — *RN-A01 a A09, RN-R01 a R06*
+- [x] **Passo 27** — `aplicacao/ContaService`: cadastrar, editar, excluir, marcar paga (com valor
       ajustado), desmarcar, vencimentos do período, a vencer, vencidas
-- [ ] **Passo 28** — `aplicacao/RecorrenteService` e a **projeção de ocorrências** (D-72), com a
+- [x] **Passo 28** — `aplicacao/RecorrenteService` e a **projeção de ocorrências** (D-72), com a
       materialização ao ser tocada
-- [ ] **Passo 29** — `adaptador/` de `conta` e de `recorrente`
+- [x] **Passo 29** — `adaptador/` de `conta` e de `recorrente`
 - [ ] **Passo 30** — Testes: visão consolidada reunindo os quatro tipos ordenados; ajuste de valor
       não alterando o valor base; encerrar preservando histórico
 - [ ] **Passo 31** — ✅ **Verificação do bloco**
 
 ### Bloco F — o job (D-71, D-74)
 
-- [ ] **Passo 32** — `TravaDeExecucao`: `pg_try_advisory_lock` — *D-74*
-- [ ] **Passo 33** — `FechamentoAgendado`: `@Scheduled`, fecha **todas** as faturas com janela
+- [x] **Passo 32** — `TravaDeExecucao`: `pg_try_advisory_lock` — *D-74*
+- [x] **Passo 33** — `FechamentoAgendado`: `@Scheduled`, fecha **todas** as faturas com janela
       terminada, gera a conta a pagar com o valor do momento — *RN-F05, RN-A05*
-- [ ] **Passo 34** — `@EnableScheduling` e configuração do horário em `application.yml`
+- [x] **Passo 34** — `@EnableScheduling` e configuração do horário em `application.yml`
 - [ ] **Passo 35** — Testes do job: **idempotência** (rodar duas vezes não gera duas contas),
       **recuperação** (três dias parado recupera os três), e o lock impedindo execução concorrente
 

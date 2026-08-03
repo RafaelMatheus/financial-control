@@ -167,7 +167,10 @@ CREATE TABLE conta_a_pagar (
     tipo            VARCHAR(30)    NOT NULL,
     status          VARCHAR(20)    NOT NULL,
     data_pagamento  DATE,
-    categoria_id    UUID           NOT NULL,
+    -- NULAVEL, e so para a conta derivada de fatura. Uma fatura MISTURA
+    -- categorias — forcar uma seria inventar dado. O CHECK abaixo garante que a
+    -- ausencia so acontece onde ela faz sentido.
+    categoria_id    UUID,
     dono_id         UUID           NOT NULL,
     escopo          VARCHAR(20)    NOT NULL,
     grupo_id        UUID,
@@ -184,6 +187,10 @@ CREATE TABLE conta_a_pagar (
     CONSTRAINT fk_conta_recorrente FOREIGN KEY (origem_recorrente_id)
         REFERENCES conta_recorrente (id),
     CONSTRAINT ck_conta_valor CHECK (valor > 0),
+    -- Toda conta tem categoria, EXCETO a derivada de fatura (RN-A01).
+    CONSTRAINT ck_conta_categoria_obrigatoria CHECK (
+        categoria_id IS NOT NULL OR origem_fatura_id IS NOT NULL
+    ),
     -- RN-A03: status e data de pagamento andam juntos, nos dois sentidos.
     CONSTRAINT ck_conta_pagamento CHECK (
         (status = 'PAGA'      AND data_pagamento IS NOT NULL) OR
