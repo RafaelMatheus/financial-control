@@ -257,7 +257,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U4 Planejamento · Functional Design gerada, gate pendente**
+- **Current Stage**: CONSTRUCTION — **U4 Planejamento · NFR Design gerada, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -456,12 +456,27 @@ por o job ser **idempotente e recuperável**; e a **segunda** coisa do sistema q
 horizontal, ao lado do `RegistroDeTentativas`.
 
 #### U4 — Planejamento (EM ANDAMENTO — **última unidade**)
-- [x] Functional Design — GERADO (2026-08-03T14:00:00Z), **aguardando aprovação**
+- [x] Functional Design — COMPLETED e **APROVADO** (2026-08-03T14:20:00Z)
       Plano: `aidlc-docs/construction/plans/u4-planejamento-functional-design-plan.md` (15 passos)
       Artefatos: `aidlc-docs/construction/u4-planejamento/functional-design/`
       4 entidades · **26 regras** · 5 alvos de PBT · 5 diagramas · 4 decisões (D-77 a D-80)
-- [ ] NFR Design
+- [x] NFR Design — GERADO (2026-08-03T14:40:00Z), **aguardando aprovação**
+      Plano: `aidlc-docs/construction/plans/u4-planejamento-nfr-design-plan.md` (10 passos)
+      Artefatos: `aidlc-docs/construction/u4-planejamento/nfr-design/`
+      4 decisões (D-81 a D-84) · 5 categorias avaliadas · **inventário final do ciclo**
 - [ ] Code Generation
+
+**Decisões de NFR Design de U4**: D-81 (leitura entre unidades por **porta exposta por quem é dono
+do dado**; `BaseDoRealizado` retrocede para `common`), D-82 (`totalAportado` calculado na leitura),
+D-83 (excluir aporte subtrai do saldo — simétrico a D-80), D-84 (acompanhamento por uma consulta
+agrupada, não uma por orçamento).
+
+📋 **INVENTÁRIO FINAL — o que quebra com escala horizontal**: **um item**, o `RegistroDeTentativas`
+de U1. U3 ia acrescentar o segundo e D-74 resolveu no minuto em que o problema foi criado; U2 e U4
+não acrescentaram nada.
+
+📋 **Tabela de ausências deliberadas**: **uma das dez linhas mudou de lado** em quatro unidades — o
+agendador, em U3. U1 previu que "alguém em U3 vai propor um cache"; ninguém propôs cache.
 
 ✅ **J-02 FECHADA por D-77** — e com ela, **nenhuma decisão do ciclo permanece adiada**.
 
