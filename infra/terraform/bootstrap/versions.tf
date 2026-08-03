@@ -92,8 +92,36 @@ variable "github_repositories_front" {
     precisam exatamente das mesmas permissoes. Uma role por repositorio seria
     mais granular sem ser mais segura, e duplicaria a manutencao da policy.
 
-    Apenas `main`: nao ha pull_request aqui, porque o CI do front nao toca a AWS.
+    ## O formato do `sub`, e a divida que isto resolve
+
+    Esta conta do GitHub NAO emite o `sub` no formato documentado
+    `repo:OWNER/REPO:ref:...`. Ela emite com IDs numericos embutidos:
+
+        repo:OWNER@<owner_id>/REPO@<repo_id>:<contexto>
+
+    A trust policy original ja trazia `repo:RafaelMatheus@25590639/financial-control@1316467420:*`,
+    herdado da role criada a mao no console. O ciclo AI-DLC registrou aquele
+    valor como "formato cuja origem nao foi identificada" e manteve a UNIAO com
+    o padrao documentado, por assimetria de custo.
+
+    **A origem esta identificada agora**: 25590639 e o `id` do usuario e
+    1316467420 e o `id` do repositorio, conferidos pela API do GitHub. O primeiro
+    deploy do front falhou com `Not authorized to perform sts:AssumeRoleWithWebIdentity`
+    exatamente porque a entrada dele usava o formato documentado, que esta conta
+    nao emite.
+
+    Cada entrada aqui gera as DUAS formas. A do padrao documentado nao custa
+    nada e cobre o caso de a conta voltar ao formato normal; a numerica e a que
+    de fato autentica hoje.
   DESC
-  type        = list(string)
-  default     = ["RafaelMatheus/financial-control-web"]
+  type = list(object({
+    repositorio = string
+    owner_id    = number
+    repo_id     = number
+  }))
+  default = [{
+    repositorio = "RafaelMatheus/financial-control-web"
+    owner_id    = 25590639
+    repo_id     = 1322237708
+  }]
 }

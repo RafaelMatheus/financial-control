@@ -83,9 +83,16 @@ data "aws_iam_policy_document" "github_actions_assume" {
         # Uma role por repositorio seria mais granular, e nao mais segura aqui:
         # os dois precisam do mesmo conjunto de permissoes — ECR e SSM na mesma
         # instancia. Duas roles com a mesma policy so duplicariam a manutencao.
-        [
-          for repositorio in var.github_repositories_front : "repo:${repositorio}:ref:refs/heads/main"
-        ],
+        # Duas formas por repositorio: o padrao documentado e o com IDs
+        # numericos, que e o que esta conta de fato emite. Condicao IAM com
+        # multiplos valores e um OU, entao a uniao nao amplia o acesso alem dos
+        # repositorios listados.
+        flatten([
+          for r in var.github_repositories_front : [
+            "repo:${r.repositorio}:ref:refs/heads/main",
+            "repo:${split("/", r.repositorio)[0]}@${r.owner_id}/${split("/", r.repositorio)[1]}@${r.repo_id}:*",
+          ]
+        ]),
         var.extra_trusted_subs,
       )
     }
