@@ -111,13 +111,23 @@ class ArquiteturaTest {
         //
         // As duas entidades de U2 mais as de U3 que tem dono proprio.
         //
-        // `Fatura` e `Parcela` NAO estao aqui, e nao e esquecimento: nenhuma das
-        // duas tem dono. A fatura pertence ao cartao e herda a visibilidade
-        // dele; a parcela pertence a compra. Sao os dois casos em que a ausencia
-        // de `dono` e a modelagem correta, e nao um escape do padrao.
+        // NAO estao aqui, e nenhuma ausencia e esquecimento:
+        //
+        // - `Fatura` nao tem dono: pertence ao cartao e herda a visibilidade dele
+        // - `Parcela` pertence ao agregado `Compra`
+        // - `Aporte` pertence ao agregado `ObjetivoInvestimento`
+        //
+        // Sao os tres casos em que a ausencia de `dono` e a modelagem correta, e
+        // nao um escape do padrao.
+        //
+        // `Receita` ENTRA, e e o caso mais interessante da lista: ela tem dono e
+        // NAO tem escopo (P-05). O predicado de RN-V01 se reduz a primeira
+        // metade, e ela e a unica entidade do sistema que exercita esse lado
+        // sozinho.
         val esperadas = setOf(
             "Categoria", "Gasto",
             "Cartao", "Compra", "ContaAPagar", "ContaRecorrente",
+            "Receita", "Orcamento", "ObjetivoInvestimento",
         )
         val naoEncontradas = esperadas - entidadesComDono
         if (naoEncontradas.isNotEmpty()) {
@@ -127,7 +137,7 @@ class ArquiteturaTest {
             )
         }
 
-        val desprotegidas = entidadesComDono - protegidas
+        val desprotegidas = entidadesComDono - protegidas - DENTRO_DE_AGREGADO
         if (desprotegidas.isNotEmpty()) {
             fail(
                 "Entidades com campo `dono` sem porta que estenda RepositorioComVisibilidade: " +
@@ -174,5 +184,28 @@ class ArquiteturaTest {
 
         /** `listarVisiveis()` e a unica sem argumento por design: o criterio vem do contexto. */
         val METODOS_DA_PORTA_BASE = setOf("listarVisiveis", "buscarVisivel")
+
+        /**
+         * Entidades que tem `dono` e **nao** sao raiz de agregado.
+         *
+         * ## Por que esta lista existe, e por que ela so apareceu em U4
+         *
+         * A regra acima supunha, sem dizer, que **ter `dono` implica ser raiz de
+         * agregado**. A suposicao valeu em U1, U2 e U3 por acidente: as entidades
+         * de dentro de agregado que existiam — `MembroGrupo` e `Parcela` — nao
+         * tinham `dono`, entao nunca acionaram a regra.
+         *
+         * `Aporte` e o primeiro caso real. Ele tem `dono` porque **RF-75 exige**:
+         * num objetivo de grupo, todos aportam, e cada aporte registra quem
+         * aportou. Mas o `dono` ali e **atribuicao, nao visibilidade** — quem
+         * decide o que se enxerga e o objetivo, que e a raiz.
+         *
+         * A lista e explicita e curta de proposito. Uma entrada nova aqui e uma
+         * afirmacao de que aquela entidade pertence a um agregado — e isso
+         * aparece na revisao, que e o mesmo criterio de `CartoesParaFechamento`
+         * em U3: **uma excecao nomeada continua sendo excecao; uma excecao
+         * embutida na regra a enfraquece para todos os usos.**
+         */
+        val DENTRO_DE_AGREGADO = setOf("Aporte")
     }
 }

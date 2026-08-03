@@ -65,58 +65,58 @@ src/test/kotlin/...
 
 ### Bloco B — `receita` (H-36 a H-38)
 
-- [ ] **Passo 6** — `dominio/`: `Receita` **sem escopo** (P-05) + porta — *RN-RC01 a RC03*
-- [ ] **Passo 7** — `aplicacao/ReceitaService`: CRUD, consulta por período e **balanço** — *RN-B01 a B03*
-- [ ] **Passo 8** — `adaptador/`: persistência com só a primeira metade do predicado, e web
-- [ ] **Passo 9** — Testes: receita é invisível a qualquer outro usuário, inclusive do mesmo grupo;
+- [x] **Passo 6** — `dominio/`: `Receita` **sem escopo** (P-05) + porta — *RN-RC01 a RC03*
+- [x] **Passo 7** — `aplicacao/ReceitaService`: CRUD, consulta por período e **balanço** — *RN-B01 a B03*
+- [x] **Passo 8** — `adaptador/`: persistência com só a primeira metade do predicado, e web
+- [x] **Passo 9** — Testes: receita é invisível a qualquer outro usuário, inclusive do mesmo grupo;
       balanço com aporte contando como gasto (H-38, H-59)
-- [ ] **Passo 10** — ✅ **Verificação do bloco**
+- [x] **Passo 10** — ✅ **Verificação do bloco**
 
 ### Bloco C — `orcamento` e J-02 (H-39 a H-41)
 
-- [ ] **Passo 11** — `dominio/`: `Orcamento` com `base` e `escopo` + porta — *RN-O01 a O03, D-77, D-78*
-- [ ] **Passo 12** — `aplicacao/OrcamentoService`: definir, remover, **acompanhar** — *RN-O04 a O08*
-- [ ] **Passo 13** — `adaptador/`: persistência e web. O DTO **sem total geral** — *RN-O08*
-- [ ] **Passo 14** — Testes de `orcamento`: teto zero válido, duplicidade por escopo, estouro
+- [x] **Passo 11** — `dominio/`: `Orcamento` com `base` e `escopo` + porta — *RN-O01 a O03, D-77, D-78*
+- [x] **Passo 12** — `aplicacao/OrcamentoService`: definir, remover, **acompanhar** — *RN-O04 a O08*
+- [x] **Passo 13** — `adaptador/`: persistência e web. O DTO **sem total geral** — *RN-O08*
+- [x] **Passo 14** — Testes de `orcamento`: teto zero válido, duplicidade por escopo, estouro
       sinalizado com excedente, e **as duas bases dando resultados diferentes na mesma compra
       parcelada** — *J-02, o teste que a jornada pedia*
-- [ ] **Passo 15** — Teste de que nenhum DTO soma bases diferentes — *RN-O08*
-- [ ] **Passo 16** — ✅ **Verificação do bloco**
+- [x] **Passo 15** — Teste de que nenhum DTO soma bases diferentes — *RN-O08*
+- [x] **Passo 16** — ✅ **Verificação do bloco**
 
 ### Bloco D — `investimento` (H-52 a H-60)
 
-- [ ] **Passo 17** — `dominio/`: `ObjetivoInvestimento`, `Aporte`, `CalculadoraDeAporte` + porta —
+- [x] **Passo 17** — `dominio/`: `ObjetivoInvestimento`, `Aporte`, `CalculadoraDeAporte` + porta —
       *RN-I01 a I11*
-- [ ] **Passo 18** — `aplicacao/InvestimentoService`: criar, aportar (**soma ao saldo**, D-80),
+- [x] **Passo 18** — `aplicacao/InvestimentoService`: criar, aportar (**soma ao saldo**, D-80),
       excluir aporte (**subtrai**, D-83), atualizar saldo, posição consolidada
-- [ ] **Passo 19** — `adaptador/`: `totalAportado` por `SUM` na leitura (D-82); web
-- [ ] **Passo 20** — 🔬 **PBT do investimento**: `totalAportado` exato; `rendimento` sempre
+- [x] **Passo 19** — `adaptador/`: `totalAportado` por `SUM` na leitura (D-82); web
+- [x] **Passo 20** — 🔬 **PBT do investimento**: `totalAportado` exato; `rendimento` sempre
       `saldo − aportado` inclusive negativo; **`aporteMensal × meses >= falta`** — *o alvo mais
       interessante, e de direção oposta à do parcelamento*
-- [ ] **Passo 21** — Testes de integração: rendimento negativo exibido, objetivo de grupo com dois
+- [x] **Passo 21** — Testes de integração: rendimento negativo exibido, objetivo de grupo com dois
       aportantes, aporte e exclusão como inversas
-- [ ] **Passo 22** — ✅ **Verificação do bloco**
+- [x] **Passo 22** — ✅ **Verificação do bloco**
 
 ### Bloco E — persistência e isolamento
 
-- [ ] **Passo 23** — `V4__planejamento.sql`: 4 tabelas, **único** `(dono, categoria, competencia,
+- [x] **Passo 23** — `V4__planejamento.sql`: 4 tabelas, **único** `(dono, categoria, competencia,
       escopo, grupo)` em orçamento, `CHECK`s, FK de `aporte` **`CASCADE`** e de `categoria`
       **`RESTRICT`**
-- [ ] **Passo 24** — 🔒 **Teste de isolamento das 4 entidades**, com atenção a `Receita` — a primeira
+- [x] **Passo 24** — 🔒 **Teste de isolamento das 4 entidades**, com atenção a `Receita` — a primeira
       entidade com dono e **sem escopo**, que exercita a metade do predicado que nunca rodou sozinha
-- [ ] **Passo 25** — 🔬 Teste de **consistência entre unidades**: o realizado pelas duas bases
+- [x] **Passo 25** — 🔬 Teste de **consistência entre unidades**: o realizado pelas duas bases
       coincide quando não há cartão — *alvo 5 do PBT*
-- [ ] **Passo 26** — ✅ **Verificação do bloco**
+- [x] **Passo 26** — ✅ **Verificação do bloco**
 
 ### Bloco F — fechamento do ciclo
 
-- [ ] **Passo 27** — `ArquiteturaTest`: estender a guarda contra vacuidade às 4 entidades novas.
+- [x] **Passo 27** — `ArquiteturaTest`: estender a guarda contra vacuidade às 4 entidades novas.
       **`Receita` entra; `Aporte` não** — ele pertence ao agregado do objetivo
-- [ ] **Passo 28** — Empurrar e **esperar o CI verde**
-- [ ] **Passo 29** — Verificação final: nenhum `Double`/`Float` monetário; **a única divisão
+- [x] **Passo 28** — Empurrar e **esperar o CI verde**
+- [x] **Passo 29** — Verificação final: nenhum `Double`/`Float` monetário; **a única divisão
       monetária nova é a de `CalculadoraDeAporte`, e ela arredonda para cima**; nenhuma consulta de
       domínio sem filtro; as 26 regras com teste
-- [ ] **Passo 30** — Resumo em `aidlc-docs/construction/u4-planejamento/code/code-summary.md`
+- [x] **Passo 30** — Resumo em `aidlc-docs/construction/u4-planejamento/code/code-summary.md`
 
 ---
 

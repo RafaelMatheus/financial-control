@@ -55,7 +55,8 @@ abstract class SuporteDeIntegracao {
         dataSource.connection.use { conexao ->
             conexao.createStatement().use {
                 it.execute(
-                    "TRUNCATE TABLE conta_a_pagar, conta_recorrente, parcela, compra, " +
+                    "TRUNCATE TABLE aporte, objetivo_investimento, orcamento, receita, " +
+                        "conta_a_pagar, conta_recorrente, parcela, compra, " +
                         "fatura, cartao, gasto, categoria, membro_grupo, grupo, usuario CASCADE",
                 )
             }
