@@ -256,8 +256,8 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Name**: financial-control
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
-- **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **Build and Test gerado, gate pendente** (5 unidades encerradas)
+- **Current Phase**: OPERATIONS (placeholder) — ciclo encerrado
+- **Current Stage**: 🏁 **CICLO ENCERRADO** — Inception, Construction e Operations percorridas
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -497,7 +497,7 @@ gasto de cartão pela **data da compra** ou pela **competência da fatura**? U3 
 disponíveis em cada parcela justamente para U4 escolher.
 
 #### Fechamento
-- [x] Build and Test — GERADO (2026-08-03T16:20:00Z), **aguardando aprovação**
+- [x] Build and Test — COMPLETED e **APROVADO** (2026-08-03T16:40:00Z)
       `aidlc-docs/construction/build-and-test/` — 5 documentos
       **199 testes, 0 falhas** (run `30817833392`, commit `c67bac5`, 16 s) · 22 classes
 
@@ -513,7 +513,30 @@ Cada consulta com custo real recebeu decisão de design registrada (D-64, D-65, 
 **O CI na primeira execução, por unidade**: U1 ❌ 3/69 · U2 ❌ 2/82 · U3 ❌ 2 causas · **U4 ✅ verde**.
 
 ### OPERATIONS PHASE
-- [ ] Operations — PLACEHOLDER
+- [x] Operations — **ALCANÇADA** (2026-08-03T16:40:00Z). É **placeholder do método**: nada a
+      executar. Registro em `aidlc-docs/operations/operations.md`
+
+**A lacuna do método foi fechada dentro da Construction**: a Requirements Analysis detectou que o
+AI-DLC entrega o Terraform escrito e **não o aplica**, e isso gerou 13 requisitos (RF-81 a RF-93) e
+as decisões D-21 a D-26. O ambiente `dev` está de pé desde 2026-07-31 — a fase de Operations deste
+projeto já aconteceu, como U5.
+
+**5 pendências operacionais reais**, documentadas com ordem sugerida: passo 5b do runbook
+(bloqueante para uso real), `domain_name` sem TLS, R-05 (`AdministratorAccess` na role do CI),
+R-01 (retenção de backup em `prod`) e a dívida da trust policy do OIDC.
+
+---
+
+# 🏁 CICLO AI-DLC ENCERRADO — 2026-08-03
+
+| Fase | Situação |
+|---|---|
+| INCEPTION | ✅ 7 stages, nenhuma pulada |
+| CONSTRUCTION | ✅ 5 unidades + Build and Test |
+| OPERATIONS | ⬜ Placeholder do método |
+
+**199 testes, 0 falhas.** 84 decisões registradas (D-01 a D-84). **Nenhuma decisão permanece
+adiada** — a última, J-02, fechou na Functional Design de U4.
 
 ## Units Generation Status
 - [x] Parte 1 — Planejamento (5 questões respondidas; 3 defaults adotados e comunicados)

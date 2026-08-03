@@ -1690,6 +1690,64 @@ o dominio em vez de contorna-lo.
 
 ---
 
+### 3.50 A fase que nao existia, e a que aconteceu no lugar dela
+
+O ciclo termina com a stage de **Operations**, e ela e um placeholder vazio. As regras do metodo sao
+explicitas: *"the AI-DLC workflow currently ends after the Build and Test phase in CONSTRUCTION"*.
+
+Isso teria sido um problema — o metodo entrega o Terraform **escrito** e nao o aplica — se a lacuna
+nao tivesse sido detectada **na Requirements Analysis**, a primeira stage substantiva do ciclo. A
+deteccao nao veio de uma revisao do metodo: veio de uma pergunta do usuario sobre *processo*, nao
+sobre produto (O-09), e a resposta exigiu ler as proprias regras para constatar que a coisa nao
+acontecia.
+
+O resultado esta registrado em numeros: **13 requisitos novos** (RF-81 a RF-93), **seis decisoes**
+(D-21 a D-26) e uma unidade inteira, U5, que nao existia no plano original. O ambiente `dev` subiu
+tres stages antes de a Operations ser alcancada.
+
+> **O-49 — A lacuna mais cara de um metodo e a que ele nao declara ter.** As stages vazias sao
+> visiveis: `operations.md` diz que e placeholder. O que nao estava declarado era a **consequencia**
+> — que o artefato de infraestrutura ficaria escrito e nao aplicado, e que ninguem seria responsavel
+> por aplica-lo. A stage vazia era honesta; a expectativa implicita de que "alguem faz o deploy" e
+> que nao era.
+
+Vale registrar tambem a assimetria de quando a lacuna foi fechada. Se a pergunta tivesse vindo na
+Build and Test, o custo seria o mesmo trabalho num momento em que quatro unidades ja dependeriam de
+um ambiente que nao existe. Vindo na Requirements Analysis, ela gerou requisitos como qualquer outro
+esclarecimento — e U5 pode ser executada **primeiro**, deixando o CI verde desde o inicio.
+
+### 3.51 O ciclo, em numeros
+
+| Dimensao | Valor |
+|---|---|
+| Stages de Inception | 7, nenhuma pulada |
+| Unidades de Construction | 5 (U1 a U5) |
+| Decisoes registradas | **84** (D-01 a D-84) |
+| Requisitos funcionais ativos | 97 |
+| Historias | 57 + 3 jornadas |
+| Regras de negocio escritas | 21 (U1) + 23 (U2) + 37 (U3) + 26 (U4) = **107** |
+| Testes | **199**, 0 falhas |
+| Observacoes metodologicas | **49** (O-01 a O-49) |
+| Migrations | 4 |
+| Indices unicos parciais | 6 — nenhum expressavel em JPA |
+| Divisoes monetarias no sistema | **2**, ambas com teste de propriedade |
+| Componentes com estado | **1** |
+| Integracoes externas, caches, filas | **0** |
+
+**Decisoes revertidas durante o ciclo**: uma — `Dinheiro.dividirEm`, por D-68, com a propriedade
+correspondente substituida e nao desligada.
+
+**Gates em que o CI reprovou de primeira**: tres de quatro. A regra de esperar o CI antes de declarar
+uma stage concluida nasceu do primeiro deles.
+
+> **O-50 — O numero que melhor descreve o ciclo nao e o de linhas de codigo, e sim o de decisoes
+> registradas com a alternativa recusada ao lado.** Das 84, uma parcela substancial existe porque
+> alguma pergunta foi feita antes de o codigo ser escrito — e as tres que foram tomadas por
+> julgamento sem consulta estao marcadas como tais, para poderem ser contestadas. E o que separa um
+> registro de decisoes de um registro de acontecimentos.
+
+---
+
 ## 4. Dados quantitativos do processo
 
 ### 4.1 Esclarecimento
@@ -1924,13 +1982,20 @@ evita reinterpretação em stages posteriores.
 
 ## 6. Estado atual
 
-**Fase**: CONSTRUCTION
-**Stage**: **U3 — Crédito**. Functional Design e NFR Design aprovadas; Code Generation com os 43
-passos executados e a suíte **verde no CI** (run `30814981176`, commit `9fe61a9`). Gate pendente.
+**Fase**: 🏁 **CICLO ENCERRADO** — 2026-08-03.
+
+Inception (7 stages), Construction (5 unidades + Build and Test) e Operations percorridas. A stage
+de Operations é **placeholder do método**, e a lacuna que ela deixaria foi fechada dentro da
+Construction, por U5.
+
+**199 testes, 0 falhas.** 84 decisões registradas. **Nenhuma decisão permanece adiada** — a última,
+J-02, fechou na Functional Design de U4.
 **U2 — Lançamentos encerrada** em 2026-08-01: as 3 stages aprovadas, 82 testes verdes no CI.
 **U1 — Fundação encerrada** em 2026-08-01: as 4 stages aprovadas e a suíte de 69 testes verde no CI
 (run `30713102231`, commit `cd310cb`).
-**Próxima unidade**: U4 — Planejamento (`receita`, `orcamento`, `investimento`).
+**Pendências operacionais reais** (não do placeholder): passo 5b do runbook, `domain_name` sem TLS,
+R-05 (`AdministratorAccess` na role do CI), R-01 (retenção de backup em `prod`) e a dívida da trust
+policy do OIDC. Ordem sugerida em `aidlc-docs/operations/operations.md`.
 
 **U5 — Infraestrutura encerrada** em 2026-07-31: Infrastructure Design e Code Generation aprovadas,
 e o ambiente `dev` efetivamente provisionado na AWS — `api_url=http://52.73.89.203`,
@@ -1946,7 +2011,7 @@ Design, Units Generation. Nenhuma pulada.
 destino U4. **D-04, D-19, D-20 e D-33 fecharam na Functional Design de U3** — respectivamente por
 D-69, D-72, D-71 e D-70.
 Fechadas na Construction: D-11, D-12, D-34 a D-39 (U5), **D-02, D-05, D-06, D-42 a D-53** (U1) e
-**D-54 a D-66** (U2) e **D-67 a D-76** (U3).
+**D-54 a D-66** (U2) e **D-67 a D-76** (U3) e **D-77 a D-84** (U4).
 
 **`Dinheiro.dividirEm` foi revertido em U3** (D-68) — a primeira alteração não-aditiva de código de
 uma unidade anterior. A propriedade *"partes diferem no máximo 0,01"* foi substituída, nunca
