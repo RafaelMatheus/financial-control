@@ -257,7 +257,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U4 Planejamento · Code Generation concluída, gate pendente**
+- **Current Stage**: CONSTRUCTION — **Build and Test gerado, gate pendente** (5 unidades encerradas)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -455,7 +455,7 @@ modo de falha novo e silencioso (job não roda → fatura não fecha → vencime
 por o job ser **idempotente e recuperável**; e a **segunda** coisa do sistema que quebra com escala
 horizontal, ao lado do `RegistroDeTentativas`.
 
-#### U4 — Planejamento (EM ANDAMENTO — **última unidade**)
+#### U4 — Planejamento (ENCERRADA — **última unidade**)
 - [x] Functional Design — COMPLETED e **APROVADO** (2026-08-03T14:20:00Z)
       Plano: `aidlc-docs/construction/plans/u4-planejamento-functional-design-plan.md` (15 passos)
       Artefatos: `aidlc-docs/construction/u4-planejamento/functional-design/`
@@ -464,8 +464,7 @@ horizontal, ao lado do `RegistroDeTentativas`.
       Plano: `aidlc-docs/construction/plans/u4-planejamento-nfr-design-plan.md` (10 passos)
       Artefatos: `aidlc-docs/construction/u4-planejamento/nfr-design/`
       4 decisões (D-81 a D-84) · 5 categorias avaliadas · **inventário final do ciclo**
-- [x] Code Generation — **30/30 passos · CI VERDE NA PRIMEIRA EXECUÇÃO** (2026-08-03T15:40:00Z),
-      aguardando aprovação
+- [x] Code Generation — **30/30 passos · CI VERDE NA PRIMEIRA EXECUÇÃO · APROVADO** (2026-08-03T16:00:00Z)
       Plano: `aidlc-docs/construction/plans/u4-planejamento-code-generation-plan.md`
       Resumo: `aidlc-docs/construction/u4-planejamento/code/code-summary.md`
       Run `30817833392`, commit `c67bac5`. 13 arquivos novos, 5 modificados
@@ -498,7 +497,20 @@ gasto de cartão pela **data da compra** ou pela **competência da fatura**? U3 
 disponíveis em cada parcela justamente para U4 escolher.
 
 #### Fechamento
-- [ ] Build and Test — **EXECUTE** (sempre, ao final)
+- [x] Build and Test — GERADO (2026-08-03T16:20:00Z), **aguardando aprovação**
+      `aidlc-docs/construction/build-and-test/` — 5 documentos
+      **199 testes, 0 falhas** (run `30817833392`, commit `c67bac5`, 16 s) · 22 classes
+
+| Suíte | Testes | Docker? |
+|---|---|---|
+| Unidade e propriedade | 82 | Não |
+| Integração (Testcontainers) | 117 | **Sim** |
+
+**Testes de desempenho não existem, e a ausência é decisão registrada**: RNF-12 é uso doméstico e
+não há requisito de tempo de resposta — um teste sem critério de aprovação é relatório, não teste.
+Cada consulta com custo real recebeu decisão de design registrada (D-64, D-65, D-72, D-75, D-84).
+
+**O CI na primeira execução, por unidade**: U1 ❌ 3/69 · U2 ❌ 2/82 · U3 ❌ 2 causas · **U4 ✅ verde**.
 
 ### OPERATIONS PHASE
 - [ ] Operations — PLACEHOLDER
