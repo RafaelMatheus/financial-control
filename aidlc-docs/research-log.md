@@ -1599,6 +1599,97 @@ regra de proteger fatura paga existe para impedir.
 
 ---
 
+### 3.47 A regra que verificava o nome achando que verificava o tipo
+
+D-66 criou, em U2, um teste de arquitetura que reprova o build quando uma entidade com campo `dono`
+nao tem porta estendendo `RepositorioComVisibilidade`. Ele foi a resposta a um problema de escala: U2
+acrescentava duas entidades, U3 acrescentaria seis, e escrever a prova a mao a cada uma funciona
+enquanto alguem lembrar.
+
+Ele passou em U2. Passou tambem na guarda contra vacuidade que 3.41 acrescentou — a assercao de que
+a deteccao **encontra** `Categoria` e `Gasto`.
+
+Em U3 ele reprovou `ContaAPagar` e `ContaRecorrente`. E era **falso positivo**: as duas portas
+estendem a base corretamente.
+
+O que falhou foi o casamento entre entidade e porta, feito por prefixo de nome:
+
+```
+CategoriaRepositorio.startsWith("Categoria")   -> true    (U2)
+GastoRepositorio.startsWith("Gasto")           -> true    (U2)
+ContaRepositorio.startsWith("ContaAPagar")     -> false   (U3)
+```
+
+As duas entidades de U2 seguiam, por acaso, a convencao `{Entidade}Repositorio`. A regra media essa
+convencao e reportava o resultado como se fosse uma verificacao de tipo.
+
+> **O-46 — Um teste de arquitetura tambem pode verificar a coisa errada, e o custo disso e maior que
+> o de um teste comum.** Um teste de comportamento errado falha visivelmente. Uma regra estrutural
+> errada tem dois modos de erro assimetricos: no falso positivo ela grita e alguem investiga; no
+> **falso negativo** ela fica verde enquanto a propriedade que deveria proteger ja nao vale. Aqui foi
+> o primeiro caso — mas a mesma fragilidade produziria o segundo se uma entidade nova fosse chamada
+> `ContaRepositorio` sem estender a porta.
+
+A correcao foi ler o **argumento generico** de `RepositorioComVisibilidade<T>` em vez do nome. E a
+relacao de verdade: nao ha como declarar `RepositorioComVisibilidade<Conta>` e proteger outra coisa.
+
+O detalhe que fecha o episodio: a guarda contra vacuidade de 3.41 **nao pegou este defeito**, e nao
+tinha como. Ela verifica que as entidades sao encontradas — e elas eram. O que estava quebrado era o
+passo seguinte, o de decidir se estao protegidas. Uma guarda contra vacuidade protege contra "nao
+achei nada"; nao protege contra "achei e comparei errado".
+
+### 3.48 Um caractere, quarenta testes vermelhos
+
+O mesmo CI reprovou por um segundo motivo, sem relacao com o primeiro. O arquivo
+`application-test.yml` ficou com **duas chaves `app:`** — uma edicao automatizada acrescentou um
+bloco sem verificar que ele ja existia. O snakeyaml recusa mapeamento com chave duplicada, o contexto
+Spring nao sobe, e **todos os quarenta testes de integracao falham de uma vez**.
+
+O que interessa nao e o erro, que e trivial. E a forma do relatorio: a lista de falhas trazia
+quarenta linhas, todas de testes de negocio — cartao, categoria, conta, concorrencia — e **nenhuma
+delas mencionava YAML**. A causa aparecia a dezenas de linhas de profundidade numa unica
+`Caused by`, identica nas quarenta.
+
+> **O-47 — O numero de testes vermelhos nao guarda relacao com o tamanho do defeito.** Um erro de uma
+> linha, em configuracao, produziu mais falhas do que qualquer defeito de logica deste projeto. O
+> instinto de comecar pelo teste mais especifico da lista leva ao lugar errado; o caminho util foi
+> agrupar as `Caused by` distintas, que reduziu quarenta falhas a **uma** causa.
+
+Vale contrastar com os defeitos de U2 (3.40): la, tres falhas apontavam para tres causas reais e
+independentes. Aqui, quarenta falhas apontavam para uma so — e o numero maior era o problema menor.
+
+### 3.49 A excecao que precisou ser nomeada
+
+O job de fechamento roda **sem usuario autenticado**. Nao ha requisicao, logo nao ha
+`ContextoUsuario`, logo nao ha criterio de visibilidade. E ele precisa enxergar os cartoes de todos
+os usuarios, porque a fatura de todos fecha.
+
+Isso colide de frente com o padrao central do projeto. Desde D-52, a garantia e que **nao existe
+consulta sem filtro** — em U2 (D-63) ela ficou expressa no tipo, e em U2 tambem (D-66) passou a ser
+verificada pelo CI.
+
+A primeira versao pos o metodo em `CartaoRepositorio`. Teria funcionado, e teria reaberto o buraco:
+uma operacao que devolve colecao sem exigir filtro, disponivel a qualquer um que injete o
+repositorio. O `ArquiteturaTest` reprovaria — corretamente.
+
+A solucao foi uma **interface separada**, `CartoesParaFechamento`, implementada pelo mesmo adaptador.
+A consulta sem filtro continua existindo, porque precisa existir; o que muda e que ela deixou de ser
+um metodo a mais numa porta que todo mundo injeta, e passou a ser um tipo com nome proprio.
+
+> **O-48 — Toda regra estrutural encontra o seu caso legitimo de excecao, e o desenho da excecao
+> importa mais que a regra.** Uma excecao acrescentada *dentro* do mecanismo o enfraquece para todos
+> os usos; a mesma excecao *fora* dele, com nome proprio, continua sendo excecao. A diferenca
+> pratica: injetar `CartoesParaFechamento` num servico de API aparece na revisao como uma declaracao
+> escrita de que se quer dado de todos os usuarios. Um `listarTodos()` na porta comum nao apareceria.
+
+O mesmo raciocinio produziu, no mesmo bloco, a decisao de tornar `ContaAPagar.categoria` **nulavel**.
+A conta gerada no fechamento nao tem categoria porque uma fatura **mistura** categorias — escolher
+uma seria inventar dado, e criar uma categoria de sistema chamada "Fatura" seria criar registro que o
+usuario nao pediu. A nulabilidade, com um `CHECK` que a restringe ao unico caso legitimo, **expressa**
+o dominio em vez de contorna-lo.
+
+---
+
 ## 4. Dados quantitativos do processo
 
 ### 4.1 Esclarecimento
@@ -1834,8 +1925,8 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: CONSTRUCTION
-**Stage**: **U3 — Crédito**. Functional Design e NFR Design geradas; a primeira aprovada, a segunda
-com gate pendente. Falta a Code Generation.
+**Stage**: **U3 — Crédito**. Functional Design e NFR Design aprovadas; Code Generation com os 43
+passos executados e a suíte **verde no CI** (run `30814981176`, commit `9fe61a9`). Gate pendente.
 **U2 — Lançamentos encerrada** em 2026-08-01: as 3 stages aprovadas, 82 testes verdes no CI.
 **U1 — Fundação encerrada** em 2026-08-01: as 4 stages aprovadas e a suíte de 69 testes verde no CI
 (run `30713102231`, commit `cd310cb`).
@@ -1856,6 +1947,10 @@ destino U4. **D-04, D-19, D-20 e D-33 fecharam na Functional Design de U3** — 
 D-69, D-72, D-71 e D-70.
 Fechadas na Construction: D-11, D-12, D-34 a D-39 (U5), **D-02, D-05, D-06, D-42 a D-53** (U1) e
 **D-54 a D-66** (U2) e **D-67 a D-76** (U3).
+
+**`Dinheiro.dividirEm` foi revertido em U3** (D-68) — a primeira alteração não-aditiva de código de
+uma unidade anterior. A propriedade *"partes diferem no máximo 0,01"* foi substituída, nunca
+desligada.
 
 **Riscos e pendências ativos**:
 

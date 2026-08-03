@@ -138,11 +138,12 @@ src/test/kotlin/...
 - [x] **Passo 40** — **`ArquiteturaTest`**: confirmar que as 6 entidades novas são cobertas
       automaticamente e **atualizar a guarda contra vacuidade** para incluí-las — *primeiro retorno
       concreto de D-66*
-- [ ] **Passo 41** — Empurrar e **esperar o CI verde**. A stage não se declara concluída antes
-- [ ] **Passo 42** — Verificação final: nenhum `Double`/`Float` monetário; **nenhuma divisão
+- [x] **Passo 41** — **CI VERDE** no run `30814981176` (commit `9fe61a9`). A primeira execução
+      (`30814758497`) reprovou por dois motivos — §7
+- [x] **Passo 42** — Verificação final: nenhum `Double`/`Float` monetário; **nenhuma divisão
       monetária em SQL**; nenhuma consulta de domínio sem filtro; nenhuma gravação de entidade com
       competência fora da guarda de D-73; as 37 regras com teste
-- [ ] **Passo 43** — Resumo em `aidlc-docs/construction/u3-credito/code/code-summary.md`
+- [x] **Passo 43** — Resumo em `aidlc-docs/construction/u3-credito/code/code-summary.md`
 
 ---
 
@@ -190,4 +191,66 @@ nenhuma correção de RF-29/H-27 nos requisitos — é pendência registrada, n�
 
 ## 7. Desvios de execução
 
-*Preenchido durante a execução.*
+| Passo | Desvio | Motivo |
+|---|---|---|
+| 36 | `V3__credito.sql` **antecipada** do Bloco G para o Bloco B | Os testes de integração de todos os blocos dependem do schema. Manter a migration no fim tornaria os blocos B a F não verificáveis |
+| 17 | Testes de fatura escritos no **Bloco D**, não no C | Uma fatura sem lançamentos não exercita nada. Só depois de `gasto` e `compra` existirem o ciclo pôde ser testado |
+| 7 | Criada a interface **`CartoesParaFechamento`**, que o plano não previa | Ver §8.1 |
+| 26 | `ContaAPagar.categoria` ficou **nulável** | Ver §8.2 |
+| 40 | A regra do `ArquiteturaTest` foi **reescrita**, não só estendida | Ver §8.4 |
+| — | `Dinheiro.ehPositivo()` e `@EnableScheduling` acrescentados | Adições necessárias, previstas em espírito mas não listadas |
+
+---
+
+## 8. Achados
+
+### 8.1 O job precisa ver o que ninguém pode ver
+
+O fechamento roda **sem usuário autenticado** — não há requisição, logo não há `ContextoUsuario` de
+onde tirar o critério. Ele precisa enxergar os cartões de todos, porque a fatura de todos fecha.
+
+A primeira versão pôs `listarTodosAtivosParaFechamento()` em `CartaoRepositorio`. Isso reabriria
+exatamente o buraco que D-52 e D-63 fecharam: uma operação que devolve coleção sem exigir filtro,
+disponível a qualquer um que injete o repositório. **O `ArquiteturaTest` teria reprovado, com razão.**
+
+Ficou numa interface própria, `CartoesParaFechamento`, implementada pelo mesmo adaptador. A exceção
+passa a ser **nomeada, isolada e visível**: quem injetar essa interface num serviço de API está
+declarando por escrito que quer dado de todos os usuários.
+
+### 8.2 A conta derivada de fatura não tem categoria
+
+`ContaAPagar` exigia categoria. A conta gerada no fechamento não tem uma — **uma fatura mistura
+categorias**, e escolher uma delas seria inventar dado. Criar uma categoria de sistema chamada
+"Fatura" seria criar registro que o usuário não pediu.
+
+`categoria_id` passou a ser nulável, com `CHECK` garantindo que a ausência só acontece na conta
+derivada. A nulabilidade **expressa o domínio** em vez de contorná-lo.
+
+### 8.3 A chave YAML duplicada
+
+`application-test.yml` ficou com duas chaves `app:` — o append não viu que o bloco já existia. O
+snakeyaml recusa, o contexto Spring não sobe, e **todos** os testes de integração caem de uma vez.
+
+Erro de edição, não de design. Vale registrar pelo padrão de falha: um defeito de uma linha
+produziu 40 testes vermelhos, e a lista de falhas não apontava para ele em lugar nenhum.
+
+### 8.4 A regra de arquitetura verificava o nome, achando que verificava o tipo
+
+O `ArquiteturaTest` reprovou `ContaAPagar` e `ContaRecorrente` — **falso positivo**. As duas portas
+estendem `RepositorioComVisibilidade`. O que falhou foi o casamento por **prefixo de nome**:
+
+```
+CategoriaRepositorio.startsWith("Categoria")     -> true   (U2)
+GastoRepositorio.startsWith("Gasto")             -> true   (U2)
+ContaRepositorio.startsWith("ContaAPagar")       -> false  (U3)
+```
+
+A regra passou em U2 por **coincidência de nomenclatura**. Ela verificava uma convenção de nomes
+acreditando verificar uma relação de tipo.
+
+Corrigida para ler o **argumento genérico** de `RepositorioComVisibilidade<T>`, que é a relação de
+verdade — não há como declarar `<Conta>` e proteger outra coisa.
+
+> O caso é instrutivo porque a regra existia justamente para não depender de disciplina humana. Ela
+> passou a depender de uma convenção não escrita — e a convenção quebrou na primeira unidade que não
+> a seguiu por acaso.

@@ -56,7 +56,7 @@ estava limpa nas quatro regras.
 
 **Gate aprovado.** U2 encerrada.
 
-## 🔴 U3 — CRÉDITO: iniciada
+## 🔴 U3 — CRÉDITO: código entregue e verde no CI, gate pendente
 
 A **maior unidade do sistema**: 6 entidades, 25 histórias + 2 jornadas, 31 requisitos.
 Componentes: `cartao`, `fatura`, `conta`, `compra`, `gasto` (integração com cartão).
@@ -257,7 +257,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U3 Crédito · plano de Code Generation pronto, gate pendente**
+- **Current Stage**: CONSTRUCTION — **U3 Crédito · Code Generation concluída, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -412,9 +412,11 @@ escrito à mão é referência de design; a fonte é o springdoc gerado do códi
       Plano: `aidlc-docs/construction/plans/u3-credito-nfr-design-plan.md` (10 passos)
       Artefatos: `aidlc-docs/construction/u3-credito/nfr-design/`
       4 decisões (D-73 a D-76) · 5 categorias avaliadas · 3 diagramas Mermaid
-- [~] Code Generation — **Parte 1 (planejamento) concluída**, aguardando aprovação do plano
-      `aidlc-docs/construction/plans/u3-credito-code-generation-plan.md` — **43 passos em 8 blocos**,
-      ~28 arquivos novos e ~6 modificados
+- [x] Code Generation — **43/43 passos · CI VERDE** (2026-08-03T13:00:00Z), aguardando aprovação
+      Plano: `aidlc-docs/construction/plans/u3-credito-code-generation-plan.md`
+      Resumo: `aidlc-docs/construction/u3-credito/code/code-summary.md`
+      Run `30814981176`, commit `9fe61a9`. ~20 arquivos novos, 8 modificados
+      A primeira execução no CI reprovou por dois motivos independentes — §8 do plano
 
 **Decisões de NFR Design de U3**: D-73 (bloqueio de fatura paga **desce para o adaptador**; o
 serviço continua verificando para dar mensagem), D-74 (`@Scheduled` + **advisory lock** do
