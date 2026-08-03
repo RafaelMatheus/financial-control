@@ -257,7 +257,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U3 Crédito · NFR Design gerada, gate pendente**
+- **Current Stage**: CONSTRUCTION — **U3 Crédito · plano de Code Generation pronto, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -408,11 +408,13 @@ escrito à mão é referência de design; a fonte é o springdoc gerado do códi
       Artefatos: `aidlc-docs/construction/u3-credito/functional-design/`
       6 entidades · **37 regras** (RN-K, RN-F, RN-P, RN-A, RN-R) · 7 alvos de PBT ·
       6 diagramas Mermaid · 6 decisões (D-67 a D-72) · **as 2 jornadas resolvidas**
-- [x] NFR Design — GERADO (2026-08-03T10:30:00Z), **aguardando aprovação**
+- [x] NFR Design — COMPLETED e **APROVADO** (2026-08-03T11:00:00Z)
       Plano: `aidlc-docs/construction/plans/u3-credito-nfr-design-plan.md` (10 passos)
       Artefatos: `aidlc-docs/construction/u3-credito/nfr-design/`
       4 decisões (D-73 a D-76) · 5 categorias avaliadas · 3 diagramas Mermaid
-- [ ] Code Generation
+- [~] Code Generation — **Parte 1 (planejamento) concluída**, aguardando aprovação do plano
+      `aidlc-docs/construction/plans/u3-credito-code-generation-plan.md` — **43 passos em 8 blocos**,
+      ~28 arquivos novos e ~6 modificados
 
 **Decisões de NFR Design de U3**: D-73 (bloqueio de fatura paga **desce para o adaptador**; o
 serviço continua verificando para dar mensagem), D-74 (`@Scheduled` + **advisory lock** do

@@ -744,3 +744,11 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U3: NFR Design aprovada; Code Generation Parte 1 (planejamento)
+**Timestamp**: 2026-08-03T11:00:00Z
+**User Input**: "continue para a Code Generation de U3"
+**AI Response**: "Interpretado como aprovacao da NFR Design de U3. Criado o plano de Code Generation com 43 passos organizados em OITO BLOCOS COM VERIFICACAO INTERMEDIARIA — a mitigacao adotada dentro de D-76, que escolheu entrega unica contra a recomendacao. Cada bloco termina com compilar e rodar a suite local, dando seis pontos de parada antes do CI. Estimados ~28 arquivos novos e ~6 modificados. O BLOCO A E ISOLADO E VEM PRIMEIRO porque esta e a PRIMEIRA ENTREGA DO PROJETO QUE ALTERA CODIGO DE U1 DE FORMA NAO-ADITIVA: Dinheiro.dividirEm muda de comportamento por D-68, e a propriedade 'partes diferem no maximo 0,01' passa a ser falsa. Criterio de aceitacao registrado explicitamente: a propriedade obsoleta e SUBSTITUIDA por 'as primeiras n-1 sao iguais entre si', nunca desligada, porque propriedade removida sem substituta e cobertura perdida sem registro. As de soma exata e nao-negatividade continuam. Destacados os passos mais importantes: 13 e 15 (ProtecaoFatura no servico e a guarda no adaptador, materializando D-73), 23 (PBT do parcelamento, incluindo a invariante apos QUALQUER SEQUENCIA de criacao e edicao, que e o que H-29 pede explicitamente e o alvo mais valioso), 37 (isolamento das 6 entidades novas) e 40 (confirmar que o ArquiteturaTest de U2 ja cobre as 6 automaticamente — primeiro retorno concreto de D-66). Riscos com tratamento: a uniao das competencias antigas e novas na edicao de compra e nomeada no passo 20 e tem teste dedicado no 24, porque verificar so as novas deixaria alterar por subtracao uma fatura paga; o Clock injetado desde U1 permite testar o job avancando o relogio em vez de dormir, que foi precisamente a razao de ele existir; e a guarda de D-73 tem verificacao explicita no passo 42, com nota de que vira regra do ArquiteturaTest se a verificacao manual se mostrar fragil. Aguardando aprovacao do plano antes de gerar codigo."
+**Context**: CONSTRUCTION PHASE - U3 - Code Generation Parte 1
+
+---
+
