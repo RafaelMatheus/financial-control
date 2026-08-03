@@ -69,6 +69,21 @@ enum class CodigoErro(val status: HttpStatus, val mensagem: String) {
         "Esta fatura ja foi paga. Desmarque o pagamento antes de alterar os lancamentos.",
     ),
 
+    // --- U4 Planejamento ---
+
+    META_INVALIDA(HttpStatus.BAD_REQUEST, "A meta precisa ser maior que zero."),
+
+    RECEITA_NAO_ENCONTRADA(HttpStatus.NOT_FOUND, "Receita nao encontrada."),
+    ORCAMENTO_NAO_ENCONTRADO(HttpStatus.NOT_FOUND, "Orcamento nao encontrado."),
+    OBJETIVO_NAO_ENCONTRADO(HttpStatus.NOT_FOUND, "Objetivo nao encontrado."),
+    APORTE_NAO_ENCONTRADO(HttpStatus.NOT_FOUND, "Aporte nao encontrado."),
+
+    /** RN-O01: um teto por categoria, competencia e escopo. */
+    ORCAMENTO_DUPLICADO(
+        HttpStatus.CONFLICT,
+        "Ja existe um orcamento para esta categoria neste mes e escopo.",
+    ),
+
     /** RN-A06, P-11: o valor deriva dos lancamentos da fatura. */
     CONTA_DERIVADA(
         HttpStatus.CONFLICT,

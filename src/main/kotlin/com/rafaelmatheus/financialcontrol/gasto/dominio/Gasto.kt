@@ -1,5 +1,6 @@
 package com.rafaelmatheus.financialcontrol.gasto.dominio
 
+import com.rafaelmatheus.financialcontrol.common.dominio.BaseDoRealizado
 import com.rafaelmatheus.financialcontrol.common.dominio.Competencia
 import com.rafaelmatheus.financialcontrol.common.dominio.Dinheiro
 import com.rafaelmatheus.financialcontrol.common.dominio.Escopo
@@ -197,4 +198,48 @@ interface GastoRepositorio : RepositorioComVisibilidade<Gasto> {
 
     /** Para RN-C06: realoca de qualquer dono, e devolve quantos foram. */
     fun realocarCategoria(de: UUID, para: UUID): Int
+}
+
+/**
+ * 🔑 **O padrao de leitura entre unidades** (D-81).
+ *
+ * U4 precisa somar gastos e parcelas por categoria para calcular o "realizado"
+ * do orcamento. Ela **nao e dona** de nenhuma das duas tabelas.
+ *
+ * Esta porta vive aqui, no dominio de `gasto`, e nao no de `orcamento`, porque
+ * **quem sabe somar um dado e quem e dono dele**. O ganho nao e de organizacao:
+ *
+ * - o **filtro de visibilidade** continua sendo aplicado por quem o escreveu;
+ * - se o modelo de `gasto` mudar, o compilador aponta o lugar;
+ * - `orcamento` nunca escreve SQL sobre tabela alheia, e nunca reimplementa
+ *   RN-V01 — que e exatamente onde erros de isolamento nascem.
+ *
+ * A alternativa recusada era o adaptador de `orcamento` ler `gasto` e `parcela`
+ * por consulta nativa. Ha precedente disso em U3, onde o adaptador de `fatura`
+ * le as duas — mas ali e **dentro da mesma unidade**, entre features desenhadas
+ * juntas, e sobretudo a fatura **nao tem dono**: a visibilidade dela ja foi
+ * resolvida pelo cartao. O orcamento tem dono e escopo proprios.
+ *
+ * `BaseDoRealizado` mora em `common` justamente para que esta porta nao precise
+ * importar um tipo de U4 — o que inverteria a seta de dependencia.
+ */
+interface ConsultaDeRealizado {
+
+    /**
+     * Soma, **por categoria**, o que foi realizado na janela.
+     *
+     * Uma consulta agrupada, e nao uma por orcamento (D-84): com dez tetos no
+     * mes, a diferenca e entre uma ida ao banco e dez. O `ArquiteturaTest` nao
+     * pegaria esse N+1 — ele e estrutural, e N+1 e comportamental.
+     *
+     * @param escopo PESSOAL soma o que o consultante e dono, de qualquer escopo;
+     *   GRUPO soma o que e de escopo GRUPO daquele grupo, de qualquer dono
+     *   (RN-O05, D-78).
+     */
+    fun somarPorCategoria(
+        janela: Competencia,
+        base: BaseDoRealizado,
+        escopo: Escopo,
+        grupo: UUID?,
+    ): Map<UUID, Dinheiro>
 }

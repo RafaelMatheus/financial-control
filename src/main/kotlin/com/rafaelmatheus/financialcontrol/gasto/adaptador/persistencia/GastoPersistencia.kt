@@ -1,10 +1,12 @@
 package com.rafaelmatheus.financialcontrol.gasto.adaptador.persistencia
 
+import com.rafaelmatheus.financialcontrol.common.dominio.BaseDoRealizado
 import com.rafaelmatheus.financialcontrol.common.dominio.Competencia
 import com.rafaelmatheus.financialcontrol.common.dominio.Dinheiro
 import com.rafaelmatheus.financialcontrol.common.dominio.Escopo
 import com.rafaelmatheus.financialcontrol.common.persistencia.CriterioVisibilidade
 import com.rafaelmatheus.financialcontrol.common.seguranca.ContextoUsuario
+import com.rafaelmatheus.financialcontrol.gasto.dominio.ConsultaDeRealizado
 import com.rafaelmatheus.financialcontrol.gasto.dominio.FiltroGasto
 import com.rafaelmatheus.financialcontrol.gasto.dominio.Gasto
 import com.rafaelmatheus.financialcontrol.gasto.dominio.GastoRepositorio
@@ -112,7 +114,81 @@ class GastoRepositorioAdaptador(
     private val jpa: GastoSpringData,
     private val em: EntityManager,
     private val contexto: ContextoUsuario,
-) : GastoRepositorio {
+) : GastoRepositorio, ConsultaDeRealizado {
+
+    /**
+     * 🔑 D-81 e D-84 — o realizado do orcamento, somado por quem e dono do dado.
+     *
+     * **Uma consulta agrupada**, e nao uma por orcamento: com dez tetos no mes, a
+     * diferenca e entre uma ida ao banco e dez.
+     *
+     * As duas bases produzem consultas de FORMA diferente, e nao so de filtro:
+     *
+     * - `DATA_DA_COMPRA` soma gastos pela `data` e compras parceladas pelo
+     *   **valor total**, na `data_compra` — o comprometimento acontece de uma vez;
+     * - `COMPETENCIA` soma gastos e **parcelas** pela `competencia` — o desembolso
+     *   acontece mes a mes.
+     *
+     * E a diferenca que J-02 expos, escrita em SQL.
+     */
+    override fun somarPorCategoria(
+        janela: Competencia,
+        base: BaseDoRealizado,
+        escopo: Escopo,
+        grupo: UUID?,
+    ): Map<UUID, Dinheiro> {
+        val c = contexto.criterio()
+        // RN-O05: o recorte depende do escopo do ORCAMENTO, nao do lancamento.
+        val recorte = if (escopo == Escopo.GRUPO) {
+            "g.escopo = 'GRUPO' and g.grupo_id = :grupo"
+        } else {
+            "g.dono_id = :usuario"
+        }
+        val recorteCompra = recorte.replace("g.", "cp.")
+
+        val sql = if (base == BaseDoRealizado.DATA_DA_COMPRA) {
+            """
+            select categoria_id, sum(valor) from (
+                -- Todo gasto conta pela sua data, com cartao ou sem: nesta base
+                -- o que importa e QUANDO SE COMPROU.
+                select g.categoria_id as categoria_id, g.valor as valor
+                  from gasto g
+                 where $recorte
+                   and to_char(g.data, 'YYYY-MM') = :janela
+                union all
+                -- A compra parcelada conta pelo VALOR TOTAL, de uma vez: o
+                -- comprometimento acontece no dia da compra, nao mes a mes.
+                select cp.categoria_id, cp.valor_total
+                  from compra cp
+                 where $recorteCompra
+                   and to_char(cp.data_compra, 'YYYY-MM') = :janela
+            ) t group by categoria_id
+            """
+        } else {
+            """
+            select categoria_id, sum(valor) from (
+                select g.categoria_id as categoria_id, g.valor as valor
+                  from gasto g
+                 where $recorte
+                   and coalesce(g.competencia, to_char(g.data, 'YYYY-MM')) = :janela
+                union all
+                select cp.categoria_id, p.valor
+                  from parcela p
+                  join compra cp on cp.id = p.compra_id
+                 where $recorteCompra
+                   and p.competencia = :janela
+            ) t group by categoria_id
+            """
+        }
+
+        val consulta = em.createNativeQuery(sql).setParameter("janela", janela.toString())
+        if (escopo == Escopo.GRUPO) consulta.setParameter("grupo", grupo)
+        else consulta.setParameter("usuario", c.usuarioAtual)
+
+        @Suppress("UNCHECKED_CAST")
+        val linhas = consulta.resultList as List<Array<Any?>>
+        return linhas.associate { (it[0] as UUID) to Dinheiro.de(it[1] as java.math.BigDecimal) }
+    }
 
     override fun buscarVisivel(id: UUID): Gasto? {
         val c = contexto.criterio()

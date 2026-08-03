@@ -257,7 +257,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U4 Planejamento · NFR Design gerada, gate pendente**
+- **Current Stage**: CONSTRUCTION — **U4 Planejamento · plano de Code Generation pronto, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -460,7 +460,7 @@ horizontal, ao lado do `RegistroDeTentativas`.
       Plano: `aidlc-docs/construction/plans/u4-planejamento-functional-design-plan.md` (15 passos)
       Artefatos: `aidlc-docs/construction/u4-planejamento/functional-design/`
       4 entidades · **26 regras** · 5 alvos de PBT · 5 diagramas · 4 decisões (D-77 a D-80)
-- [x] NFR Design — GERADO (2026-08-03T14:40:00Z), **aguardando aprovação**
+- [x] NFR Design — COMPLETED e **APROVADO** (2026-08-03T15:00:00Z)
       Plano: `aidlc-docs/construction/plans/u4-planejamento-nfr-design-plan.md` (10 passos)
       Artefatos: `aidlc-docs/construction/u4-planejamento/nfr-design/`
       4 decisões (D-81 a D-84) · 5 categorias avaliadas · **inventário final do ciclo**
