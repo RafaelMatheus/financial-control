@@ -112,7 +112,7 @@ src/test/kotlin/...
 
 - [x] **Passo 27** — `ArquiteturaTest`: estender a guarda contra vacuidade às 4 entidades novas.
       **`Receita` entra; `Aporte` não** — ele pertence ao agregado do objetivo
-- [x] **Passo 28** — Empurrar e **esperar o CI verde**
+- [x] **Passo 28** — **CI VERDE na primeira execução** — run `30817833392`, commit `c67bac5`
 - [x] **Passo 29** — Verificação final: nenhum `Double`/`Float` monetário; **a única divisão
       monetária nova é a de `CalculadoraDeAporte`, e ela arredonda para cima**; nenhuma consulta de
       domínio sem filtro; as 26 regras com teste
@@ -152,4 +152,36 @@ src/test/kotlin/...
 
 ## 6. Desvios de execução
 
-*Preenchido durante a execução.*
+| Passo | Desvio | Motivo |
+|---|---|---|
+| 23 | `V4__planejamento.sql` escrita junto com os adaptadores, não no Bloco E | Mesma razão de U3: os testes de integração dependem do schema |
+| 23 | O único de orçamento virou **dois índices únicos parciais**, um por escopo | `grupo_id` nulo não participa de `UNIQUE` comum no PostgreSQL — dois tetos pessoais da mesma categoria passariam |
+| 27 | O `ArquiteturaTest` ganhou uma **lista de exceções** | Ver §7 |
+| — | Os testes dos Blocos B, C e D ficaram numa suíte só (`PlanejamentoIntegracaoTest`) | 15 testes cobrindo três features pequenas; três arquivos repetiriam o mesmo preâmbulo |
+
+---
+
+## 7. O achado: a regra supunha que `dono` implica raiz de agregado
+
+Na verificação local, o `ArquiteturaTest` reprovou **`Aporte`**.
+
+Desta vez **não foi falso positivo de heurística** — foi uma premissa não escrita da regra. Ela
+supunha que **ter `dono` implica ser raiz de agregado**, e a suposição valeu por acaso em três
+unidades:
+
+| Entidade | Unidade | Dentro de agregado? | Tem `dono`? |
+|---|---|---|---|
+| `MembroGrupo` | U1 | Sim | **Não** |
+| `Parcela` | U3 | Sim | **Não** |
+| **`Aporte`** | **U4** | **Sim** | **Sim** — RF-75 exige |
+
+`Aporte` carrega `dono` porque num objetivo de grupo todos aportam, e cada aporte registra quem
+aportou. Mas ali o `dono` é **atribuição, não visibilidade** — quem decide o que se enxerga é o
+objetivo, que é a raiz.
+
+**Tratamento**: uma lista explícita, `DENTRO_DE_AGREGADO`, com uma entrada e a justificativa
+escrita. Uma entrada nova ali é uma afirmação de que aquela entidade pertence a um agregado, e isso
+aparece na revisão.
+
+> É o mesmo critério de `CartoesParaFechamento` em U3: **uma exceção nomeada continua sendo exceção;
+> uma exceção embutida na regra a enfraquece para todos os usos.**

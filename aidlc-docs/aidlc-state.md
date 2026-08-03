@@ -257,7 +257,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U4 Planejamento · plano de Code Generation pronto, gate pendente**
+- **Current Stage**: CONSTRUCTION — **U4 Planejamento · Code Generation concluída, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -464,7 +464,12 @@ horizontal, ao lado do `RegistroDeTentativas`.
       Plano: `aidlc-docs/construction/plans/u4-planejamento-nfr-design-plan.md` (10 passos)
       Artefatos: `aidlc-docs/construction/u4-planejamento/nfr-design/`
       4 decisões (D-81 a D-84) · 5 categorias avaliadas · **inventário final do ciclo**
-- [ ] Code Generation
+- [x] Code Generation — **30/30 passos · CI VERDE NA PRIMEIRA EXECUÇÃO** (2026-08-03T15:40:00Z),
+      aguardando aprovação
+      Plano: `aidlc-docs/construction/plans/u4-planejamento-code-generation-plan.md`
+      Resumo: `aidlc-docs/construction/u4-planejamento/code/code-summary.md`
+      Run `30817833392`, commit `c67bac5`. 13 arquivos novos, 5 modificados
+      **A única unidade do ciclo cujo CI passou de primeira**
 
 **Decisões de NFR Design de U4**: D-81 (leitura entre unidades por **porta exposta por quem é dono
 do dado**; `BaseDoRealizado` retrocede para `common`), D-82 (`totalAportado` calculado na leitura),
