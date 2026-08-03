@@ -41,21 +41,38 @@ value class Dinheiro private constructor(val valor: BigDecimal) : Comparable<Din
     fun ehPositivo(): Boolean = valor.signum() > 0
 
     /**
-     * Divide em [n] partes cuja soma e **exatamente** este valor, com as partes
-     * diferindo entre si em no maximo um centavo.
+     * Divide em [n] partes cuja soma e **exatamente** este valor, com a **ultima
+     * parte absorvendo todo o residuo** (RF-31, E-01, RN-P03, D-68).
      *
      * Trabalha em centavos inteiros, nao em decimal fracionario: a soma volta a
      * ser exata por construcao, e nao por sorte de arredondamento.
      *
-     * Os centavos que sobram vao **um por parte, nas ultimas**. Nao "todos na
-     * ultima": isso concentraria ate n-1 centavos num unico lugar. O caso que
-     * expos o erro foi R$ 10.000.000.000,00 em 6 partes, onde sobram 4 centavos —
-     * encontrado pelo property-based testing na primeira execucao, depois de o
-     * exemplo de 100,00 em 3 ter passado por coincidencia de o residuo ali ser
-     * de exatamente um centavo.
+     * ```
+     * 100,00 em 3  ->  33,33  33,33  33,34
+     * 100,00 em 7  ->  14,28 x6      14,32
+     * 1,19  em 120 ->  0,00 x119     1,19
+     * ```
      *
-     * Para o parcelamento isso importa de verdade: R$ 1,19 em 120 parcelas deve
-     * dar centavos espalhados, nao 119 parcelas de zero e uma de R$ 1,19.
+     * ## Historico desta funcao, porque ele importa para quem for altera-la
+     *
+     * A implementacao anterior distribuia o residuo **um centavo por parte, nas
+     * ultimas**, o que mantinha a diferenca entre partes em no maximo um centavo.
+     * Ela foi adotada em U1 porque o property-based testing mostrou, no primeiro
+     * caso gerado, que o exemplo canonico de 100,00 em 3 **ilustrava a regra
+     * errada com o resultado certo** — o residuo ali e de exatamente um centavo,
+     * e as duas regras coincidem (research-log 3.36, O-28).
+     *
+     * A regra atual foi **escolhida pelo usuario** na Functional Design de U3
+     * (D-68), apresentada com os tres exemplos acima e confirmada numa segunda
+     * rodada. Ela cumpre RF-31 e E-01 ao pe da letra.
+     *
+     * O-28 continua valendo como observacao: o exemplo de 100,00 em 3 e
+     * insuficiente para distinguir as duas regras. O que mudou foi a regra
+     * escolhida, nao o fato de o exemplo nao servir para escolher.
+     *
+     * **Consequencia para quem testa**: a propriedade "partes diferem no maximo
+     * 0,01" e FALSA aqui. A propriedade que vale e "as primeiras n-1 sao iguais
+     * entre si". A de soma exata vale nas duas, e e a que RF-32 exige.
      *
      * Alvo de property-based testing (RNF-07) — ver DinheiroPropriedadesTest.
      */
@@ -65,17 +82,16 @@ value class Dinheiro private constructor(val valor: BigDecimal) : Comparable<Din
         // A escala e sempre 2, entao o valor sem escala ja e a quantia em centavos.
         val centavos = valor.unscaledValue()
         val divisor = BigInteger.valueOf(n.toLong())
-        val base = centavos / divisor
-        val resto = centavos.rem(divisor) // mesmo sinal do dividendo
 
-        // Em valor negativo o resto e negativo, e o ajuste tem de ser de -1 centavo:
-        // -100,00 em 3 deve dar -33,33 -33,33 -33,34, e nao -33,32.
-        val ajuste = BigInteger.valueOf(resto.signum().toLong())
-        val quantasAjustadas = resto.abs().toInt()
+        // Divisao truncada em direcao a zero, que e o comportamento de BigInteger.
+        // Em valor negativo isso faz a base ser maior (menos negativa) que o
+        // quociente exato, e a ultima parte absorve a diferenca com o sinal certo:
+        // -100,00 em 3 da -33,33 -33,33 -33,34.
+        val base = centavos / divisor
+        val ultima = centavos - base * BigInteger.valueOf((n - 1).toLong())
 
         return List(n) { indice ->
-            val ehUmaDasUltimas = indice >= n - quantasAjustadas
-            val parte = if (ehUmaDasUltimas) base + ajuste else base
+            val parte = if (indice == n - 1) ultima else base
             Dinheiro(BigDecimal(parte, 2))
         }
     }

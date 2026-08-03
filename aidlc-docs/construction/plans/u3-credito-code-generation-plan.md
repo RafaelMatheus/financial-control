@@ -56,17 +56,17 @@ src/test/kotlin/...
 
 ### Bloco A — `common`, e a reversão de D-68
 
-- [ ] **Passo 1** — `Erros.kt`: códigos novos — `DIA_INVALIDO`, `CARTAO_ENCERRADO`,
+- [x] **Passo 1** — `Erros.kt`: códigos novos — `DIA_INVALIDO`, `CARTAO_ENCERRADO`,
       `CARTAO_NAO_ENCONTRADO`, `FATURA_NAO_ENCONTRADA`, `FATURA_PAGA`, `NUMERO_PARCELAS_INVALIDO`,
       `EDICAO_DE_PARCELA`, `CONTA_NAO_ENCONTRADA`, `CONTA_DERIVADA`, `RECORRENTE_NAO_ENCONTRADA`
-- [ ] **Passo 2** — ⚠️ **`Dinheiro.dividirEm`**: última parte absorve o resíduo — *D-68, RN-P03*
-- [ ] **Passo 3** — ⚠️ `DinheiroPropriedadesTest`: **substituir** a propriedade *"partes diferem no
+- [x] **Passo 2** — ⚠️ **`Dinheiro.dividirEm`**: última parte absorve o resíduo — *D-68, RN-P03*
+- [x] **Passo 3** — ⚠️ `DinheiroPropriedadesTest`: **substituir** a propriedade *"partes diferem no
       máximo 0,01"* por *"as primeiras n-1 são iguais entre si"*. Manter soma exata e não-negatividade
-- [ ] **Passo 4** — `CalculadoraDeCompetencia`: `diaEfetivo` (RN-K03, D-69) e `competenciaDe`
+- [x] **Passo 4** — `CalculadoraDeCompetencia`: `diaEfetivo` (RN-K03, D-69) e `competenciaDe`
       (RN-F01). **Função pura, sem banco**
-- [ ] **Passo 5** — 🔬 Testes de propriedade da calculadora: dia válido para todo dia 1–31 e todo
+- [x] **Passo 5** — 🔬 Testes de propriedade da calculadora: dia válido para todo dia 1–31 e todo
       mês incluindo fevereiro bissexto; competência determinística e **monotônica**
-- [ ] **Passo 6** — ✅ **Verificação do bloco**: compilar e rodar a suíte local
+- [x] **Passo 6** — ✅ **Verificação do bloco**: compilar e rodar a suíte local
 
 ### Bloco B — `cartao` (H-18, H-19)
 

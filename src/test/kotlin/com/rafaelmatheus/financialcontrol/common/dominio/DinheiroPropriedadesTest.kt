@@ -41,14 +41,34 @@ class DinheiroPropriedadesTest : StringSpec({
         }
     }
 
-    "as partes de dividirEm diferem entre si em no maximo um centavo" {
-        // Sozinha, a propriedade acima admitiria [V, 0, 0, ..., 0]. Esta prende o
-        // comportamento: a divisao precisa ser equilibrada, nao so somar certo.
+    // SUBSTITUIU a propriedade "as partes diferem entre si em no maximo um
+    // centavo", que era verdadeira ate D-68 e passou a ser FALSA.
+    //
+    // A regra mudou por decisao do usuario na Functional Design de U3: o residuo
+    // inteiro vai para a ultima parte (RF-31, E-01), em vez de um centavo por
+    // parte nas ultimas. Em 100,00 dividido em 7, as partes passam a diferir em
+    // quatro centavos — e isso agora e o comportamento correto.
+    //
+    // A propriedade NAO foi removida: foi trocada por outra que prende o mesmo
+    // que ela prendia. Sozinha, a de soma exata admitiria [V, 0, 0, ..., 0];
+    // esta exige que so a ultima parte seja diferente.
+    "as primeiras n-1 partes de dividirEm sao iguais entre si" {
         checkAll(dinheiroArb, partesArb) { valor, n ->
             val partes = valor.dividirEm(n)
-            val maior = partes.maxOf { it.valor }
-            val menor = partes.minOf { it.valor }
-            (maior.subtract(menor).abs() <= BigDecimal("0.01")) shouldBe true
+            if (n > 1) {
+                partes.dropLast(1).distinct().size shouldBe 1
+            }
+        }
+    }
+
+    "nenhuma parte de dividirEm tem sinal oposto ao do valor" {
+        // Complementa a anterior: garante que a ultima parte nao vira negativa
+        // ao absorver o residuo de um valor positivo.
+        checkAll(dinheiroArb, partesArb) { valor, n ->
+            val partes = valor.dividirEm(n)
+            if (!valor.ehZero()) {
+                partes.none { it.ehNegativo() != valor.ehNegativo() && !it.ehZero() } shouldBe true
+            }
         }
     }
 
@@ -111,8 +131,38 @@ class DinheiroPropriedadesTest : StringSpec({
     }
 
     "cem reais em tres devolve 33,33 33,33 33,34" {
+        // O exemplo canonico do design. Ele da o MESMO resultado nas duas regras
+        // de residuo — foi exatamente isso que O-28 registrou, e e por isso que
+        // ele nao serve para distinguir uma da outra. Fica aqui porque continua
+        // sendo verdade, nao porque prova a regra.
         val partes = Dinheiro.de("100.00").dividirEm(3)
         partes.map { it.toString() } shouldBe listOf("33.33", "33.33", "33.34")
+    }
+
+    "cem reais em sete concentra os quatro centavos na ultima" {
+        // ESTE distingue as duas regras, e por isso ele existe.
+        //   ultima absorve : 14,28 x6  +  14,32   <- D-68, o comportamento atual
+        //   um por parte   : 14,28 x3  +  14,29 x4
+        val partes = Dinheiro.de("100.00").dividirEm(7)
+        partes.map { it.toString() } shouldBe
+            listOf("14.28", "14.28", "14.28", "14.28", "14.28", "14.28", "14.32")
+        Dinheiro.soma(partes) shouldBe Dinheiro.de("100.00")
+    }
+
+    "um real e dezenove em cento e vinte da 119 zeros e uma parcela cheia" {
+        // O caso extremo de D-68, registrado porque foi apresentado ao usuario e
+        // confirmado. Nao e defeito: e a consequencia da regra escolhida.
+        val partes = Dinheiro.de("1.19").dividirEm(120)
+        partes.dropLast(1).all { it.ehZero() } shouldBe true
+        partes.last() shouldBe Dinheiro.de("1.19")
+        Dinheiro.soma(partes) shouldBe Dinheiro.de("1.19")
+    }
+
+    "mil e duzentos em doze nao tem residuo" {
+        // O caso comum do parcelamento: divisao exata, nenhuma parte diferente.
+        val partes = Dinheiro.de("1200.00").dividirEm(12)
+        partes.distinct().size shouldBe 1
+        partes.first() shouldBe Dinheiro.de("100.00")
     }
 
     "valor negativo dividido tambem soma exato" {

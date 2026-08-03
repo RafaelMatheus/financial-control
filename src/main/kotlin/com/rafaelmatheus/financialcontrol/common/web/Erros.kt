@@ -42,6 +42,39 @@ enum class CodigoErro(val status: HttpStatus, val mensagem: String) {
      */
     CATEGORIA_EM_USO(HttpStatus.CONFLICT, "Esta categoria tem lancamentos vinculados."),
 
+    // --- U3 Credito ---
+
+    DIA_INVALIDO(HttpStatus.BAD_REQUEST, "Informe um dia entre 1 e 31."),
+    NUMERO_PARCELAS_INVALIDO(HttpStatus.BAD_REQUEST, "O numero de parcelas precisa ser pelo menos 1."),
+
+    /** RN-P06, H-30: a edicao e sempre da compra inteira. */
+    EDICAO_DE_PARCELA(HttpStatus.BAD_REQUEST, "Edite a compra inteira; parcelas nao mudam sozinhas."),
+
+    CARTAO_NAO_ENCONTRADO(HttpStatus.NOT_FOUND, "Cartao nao encontrado."),
+    FATURA_NAO_ENCONTRADA(HttpStatus.NOT_FOUND, "Fatura nao encontrada."),
+    CONTA_NAO_ENCONTRADA(HttpStatus.NOT_FOUND, "Conta nao encontrada."),
+    RECORRENTE_NAO_ENCONTRADA(HttpStatus.NOT_FOUND, "Conta recorrente nao encontrada."),
+
+    CARTAO_ENCERRADO(HttpStatus.CONFLICT, "Este cartao foi encerrado e nao recebe lancamentos."),
+
+    /**
+     * RN-F07, RF-95, H-24, E-13.
+     *
+     * A mensagem **diz o que fazer**, e nao so o que impediu: sem a saida de
+     * desmarcar o pagamento, um lancamento errado numa fatura paga ficaria preso
+     * para sempre. Foi por isso que RF-94 nasceu.
+     */
+    FATURA_PAGA(
+        HttpStatus.CONFLICT,
+        "Esta fatura ja foi paga. Desmarque o pagamento antes de alterar os lancamentos.",
+    ),
+
+    /** RN-A06, P-11: o valor deriva dos lancamentos da fatura. */
+    CONTA_DERIVADA(
+        HttpStatus.CONFLICT,
+        "Esta conta veio do fechamento de uma fatura; o valor deriva dos lancamentos.",
+    ),
+
     NAO_AUTENTICADO(HttpStatus.UNAUTHORIZED, "Autentique-se para continuar."),
 
     /**
