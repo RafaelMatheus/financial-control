@@ -78,16 +78,16 @@ src/test/kotlin/...
 
 ### Bloco C — `fatura` e a guarda transversal (H-20 a H-26)
 
-- [ ] **Passo 12** — `dominio/`: `Fatura` **sem `valorTotal`** (D-75) + porta
-- [ ] **Passo 13** — 🔒 **`ProtecaoFatura`** — *RN-F07, D-73. Um dos dois passos mais importantes*
-- [ ] **Passo 14** — `aplicacao/FaturaService`: consultar (com `SUM`), futuras, recalcular, reabrir.
+- [x] **Passo 12** — `dominio/`: `Fatura` **sem `valorTotal`** (D-75) + porta
+- [x] **Passo 13** — 🔒 **`ProtecaoFatura`** — *RN-F07, D-73. Um dos dois passos mais importantes*
+- [x] **Passo 14** — `aplicacao/FaturaService`: consultar (com `SUM`), futuras, recalcular, reabrir.
       **Sem `fechar` público** — o fechamento é do job
-- [ ] **Passo 15** — `adaptador/persistencia/`: `SUM` da competência (D-75) e **a guarda de D-73 na
+- [x] **Passo 15** — `adaptador/persistencia/`: `SUM` da competência (D-75) e **a guarda de D-73 na
       gravação**
-- [ ] **Passo 16** — `adaptador/web/`: consultar fatura e faturas futuras
-- [ ] **Passo 17** — Testes: competência dos três cenários de H-20, fatura aberta acumulando,
+- [x] **Passo 16** — `adaptador/web/`: consultar fatura e faturas futuras
+- [~] **Passo 17** — ADIADO para o Bloco D (ver §7): fatura vazia nao exercita nada — Testes: competência dos três cenários de H-20, fatura aberta acumulando,
       status derivado, bloqueio de fatura paga, reabertura por lançamento retroativo
-- [ ] **Passo 18** — ✅ **Verificação do bloco**
+- [x] **Passo 18** — compilacao verde; testes de comportamento no Bloco D — ✅ **Verificação do bloco**
 
 ### Bloco D — `compra`, `parcela` e a integração de `gasto` (H-27 a H-32)
 
