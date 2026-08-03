@@ -8,13 +8,17 @@
 # Rodar isto a cada deploy torna o estado da instancia convergente, em vez de
 # depender de um boot que deu certo. Idempotente.
 #
-# Uso: write-env.sh <ambiente> <ecr_repository>
+# Uso: write-env.sh <ambiente> <ecr_repository> [ecr_web_repository]
 #      write-env.sh dev 594116288641.dkr.ecr.us-east-1.amazonaws.com/financial-control
 
 set -euo pipefail
 
 ENVIRONMENT="${1:?informe o ambiente, ex: dev}"
 ECR="${2:?informe o repositorio ECR}"
+# Opcional: o deploy do FRONT tambem escreve esta chave, e ele pode rodar antes
+# de o backend ser reimplantado. O default deriva do repositorio da aplicacao,
+# que difere apenas pelo sufixo.
+ECR_WEB="${3:-${ECR}-web}"
 
 NAME="financial-control-$ENVIRONMENT"
 APP_DIR="/opt/$NAME"
@@ -45,6 +49,9 @@ preservar() {
 }
 
 TAG_ATUAL="$(preservar IMAGE_TAG latest)"
+# Preservado como as demais: quem manda na tag do front e o deploy do front, e
+# reescrever aqui desfaria a ultima publicacao dele a cada deploy do backend.
+TAG_WEB="$(preservar WEB_IMAGE_TAG latest)"
 DOMINIO="$(preservar DOMAIN_NAME '')"
 TLS="$(preservar ENABLE_TLS false)"
 
@@ -53,6 +60,8 @@ cat > "$APP_DIR/.env" <<ENVFILE
 AWS_REGION=$REGION
 ECR_REPOSITORY=$ECR
 IMAGE_TAG=$TAG_ATUAL
+ECR_WEB_REPOSITORY=$ECR_WEB
+WEB_IMAGE_TAG=$TAG_WEB
 DB_URL=$(get "$PREFIX/db/url")
 DB_USER=$(get "$PREFIX/db/user")
 DB_PASSWORD=$(get "$PREFIX/db/password")
@@ -65,4 +74,5 @@ ENVFILE
 chmod 600 "$APP_DIR/.env"
 
 echo ".env escrito em $APP_DIR"
-echo "  IMAGE_TAG=$TAG_ATUAL  ENABLE_TLS=$TLS  DOMAIN_NAME=${DOMINIO:-<vazio>}"
+echo "  IMAGE_TAG=$TAG_ATUAL  WEB_IMAGE_TAG=$TAG_WEB"
+echo "  ENABLE_TLS=$TLS  DOMAIN_NAME=${DOMINIO:-<vazio>}"

@@ -8,6 +8,11 @@ on:
       - 'build.gradle.kts'
       - 'Dockerfile'
       - 'docker-compose.prod.yml'
+      # A configuracao do nginx e entregue pelo deploy, entao mudar nela precisa
+      # disparar um. Sem isto, uma alteracao de roteamento ficaria no repositorio
+      # e nunca chegaria na instancia.
+      - 'infra/nginx/**'
+      - 'infra/scripts/write-env.sh'
   workflow_dispatch:
     inputs:
       image_tag:
@@ -89,7 +94,7 @@ jobs:
               "set -euo pipefail",
               "echo ${{ steps.pack.outputs.write_env }} | base64 -d > /tmp/write-env.sh",
               "chmod +x /tmp/write-env.sh",
-              "/tmp/write-env.sh ${{ env.TF_ENV }} ${{ vars.ECR_REPOSITORY }}",
+              "/tmp/write-env.sh ${{ env.TF_ENV }} ${{ vars.ECR_REPOSITORY }} ${{ vars.ECR_WEB_REPOSITORY }}",
               "cd /opt/financial-control-${{ env.TF_ENV }}",
               "mkdir -p nginx",
               "echo ${{ steps.pack.outputs.compose }} | base64 -d > docker-compose.prod.yml",

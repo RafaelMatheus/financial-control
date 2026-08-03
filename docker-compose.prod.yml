@@ -21,6 +21,24 @@ services:
         # `service_started` faria o nginx subir antes de a aplicacao atender, e
         # os primeiros acessos morreriam em 502 ate o Spring terminar de subir.
         condition: service_healthy
+      # O front NAO entra em depends_on de proposito: o nginx resolve o nome
+      # `web` por requisicao, via variavel no proxy_pass, e sobe mesmo sem ele.
+      # Amarrar aqui faria a API cair junto com um problema no front.
+
+  # Front-end. Imagem publicada pelo repositorio financial-control-web, que
+  # tambem faz o proprio deploy — este servico so precisa existir na composicao.
+  #
+  # O nginx de entrada faz proxy de `/` para ca e de `/api/` para a aplicacao.
+  # Sao duas camadas de nginx: esta so serve estaticos, e a de entrada detem a
+  # logica de TLS. O custo e desprezivel, e mantem a configuracao de certificado
+  # num lugar so.
+  #
+  # `:-latest` no default: sem ele, um deploy do backend anterior ao primeiro
+  # deploy do front tentaria puxar uma imagem com tag vazia e falharia.
+  web:
+    image: ${ECR_WEB_REPOSITORY}:${WEB_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    # Sem "ports": so alcancavel pela rede interna, via nginx de entrada.
 
   certbot:
     image: certbot/certbot
