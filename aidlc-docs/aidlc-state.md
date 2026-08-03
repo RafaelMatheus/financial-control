@@ -56,7 +56,7 @@ estava limpa nas quatro regras.
 
 **Gate aprovado.** U2 encerrada.
 
-## 🔴 U3 — CRÉDITO: código entregue e verde no CI, gate pendente
+## ✅ U3 — CRÉDITO: ENCERRADA — 2026-08-03
 
 A **maior unidade do sistema**: 6 entidades, 25 histórias + 2 jornadas, 31 requisitos.
 Componentes: `cartao`, `fatura`, `conta`, `compra`, `gasto` (integração com cartão).
@@ -257,7 +257,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U3 Crédito · Code Generation concluída, gate pendente**
+- **Current Stage**: CONSTRUCTION — **U4 Planejamento · Functional Design gerada, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -402,7 +402,7 @@ livre, inclusive futura), D-62 (lançamentos de ex-membros permanecem no total d
 tem `PaginaGastos` com os totais embutidos; o design de U2 os separa em duas operações. O contrato
 escrito à mão é referência de design; a fonte é o springdoc gerado do código (D-06).
 
-#### U3 — Crédito (EM ANDAMENTO)
+#### U3 — Crédito (ENCERRADA)
 - [x] Functional Design — COMPLETED e **APROVADO** (2026-08-03T10:00:00Z)
       Plano: `aidlc-docs/construction/plans/u3-credito-functional-design-plan.md` (15 passos)
       Artefatos: `aidlc-docs/construction/u3-credito/functional-design/`
@@ -412,7 +412,7 @@ escrito à mão é referência de design; a fonte é o springdoc gerado do códi
       Plano: `aidlc-docs/construction/plans/u3-credito-nfr-design-plan.md` (10 passos)
       Artefatos: `aidlc-docs/construction/u3-credito/nfr-design/`
       4 decisões (D-73 a D-76) · 5 categorias avaliadas · 3 diagramas Mermaid
-- [x] Code Generation — **43/43 passos · CI VERDE** (2026-08-03T13:00:00Z), aguardando aprovação
+- [x] Code Generation — **43/43 passos · CI VERDE · APROVADO** (2026-08-03T13:20:00Z)
       Plano: `aidlc-docs/construction/plans/u3-credito-code-generation-plan.md`
       Resumo: `aidlc-docs/construction/u3-credito/code/code-summary.md`
       Run `30814981176`, commit `9fe61a9`. ~20 arquivos novos, 8 modificados
@@ -455,8 +455,27 @@ modo de falha novo e silencioso (job não roda → fatura não fecha → vencime
 por o job ser **idempotente e recuperável**; e a **segunda** coisa do sistema que quebra com escala
 horizontal, ao lado do `RegistroDeTentativas`.
 
-#### U4 — Planejamento
-- [ ] Functional Design · NFR Design · Code Generation
+#### U4 — Planejamento (EM ANDAMENTO — **última unidade**)
+- [x] Functional Design — GERADO (2026-08-03T14:00:00Z), **aguardando aprovação**
+      Plano: `aidlc-docs/construction/plans/u4-planejamento-functional-design-plan.md` (15 passos)
+      Artefatos: `aidlc-docs/construction/u4-planejamento/functional-design/`
+      4 entidades · **26 regras** · 5 alvos de PBT · 5 diagramas · 4 decisões (D-77 a D-80)
+- [ ] NFR Design
+- [ ] Code Generation
+
+✅ **J-02 FECHADA por D-77** — e com ela, **nenhuma decisão do ciclo permanece adiada**.
+
+**Decisões de U4**: D-77 (cada orçamento declara a base do realizado — data da compra ou
+competência), D-78 (orçamento pode ser PESSOAL ou de GRUPO), D-79 (aporte não entra no realizado do
+orçamento; conta só no balanço), D-80 (registrar aporte soma ao saldo do objetivo).
+
+⚠️ **Consequência de D-77, tratada dentro da decisão**: com bases diferentes entre categorias, somar
+os realizados de todas produz um número sem significado. A resposta apresenta os totais **separados
+por base** — **terceira aplicação do mesmo padrão no ciclo**, depois de RF-97/D-28 e de D-78.
+
+**Era onde J-02 fechava** — a última questão em aberto do ciclo: o "realizado" do orçamento conta o
+gasto de cartão pela **data da compra** ou pela **competência da fatura**? U3 deixou as duas datas
+disponíveis em cada parcela justamente para U4 escolher.
 
 #### Fechamento
 - [ ] Build and Test — **EXECUTE** (sempre, ao final)

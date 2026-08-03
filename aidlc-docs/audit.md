@@ -761,3 +761,20 @@ Complete audit trail of all user inputs and AI responses.
 
 ---
 
+## CONSTRUCTION — U3 encerrada, U4 iniciada
+**Timestamp**: 2026-08-03T13:20:00Z
+**User Input**: "continue para U4"
+**AI Response**: "Interpretado como aprovacao do gate de Code Generation de U3. U3 — Credito encerrada: as 3 stages aprovadas, 43 passos, CI verde. Iniciada U4 — Planejamento (receita, orcamento, investimento), a ULTIMA unidade do ciclo: 15 historias mais a jornada J-02, e 20 requisitos. E onde J-02 fecha — a ultima questao em aberto do ciclo inteiro."
+**Context**: CONSTRUCTION PHASE - U3 encerrada, U4 iniciada
+
+---
+
+## CONSTRUCTION — U4: Functional Design
+**Timestamp**: 2026-08-03T14:00:00Z
+**AI Prompt**: 4 questoes via AskUserQuestion — J-02 (base do realizado), escopo do orcamento, aporte no realizado, e se o aporte mexe no saldo
+**User Input**: "O usuario escolhe por orcamento"; "Pode ser de grupo tambem"; "Nao — so no balanco (Recomendado)"; "Sim, o aporte soma ao saldo (Recomendado)"
+**AI Response**: "Plano com 15 passos, nascendo sem secao de respostas — quinta stage seguida com a correcao estrutural a O-32. J-02 FECHADA POR D-77, e com ela NENHUMA DECISAO DO CICLO PERMANECE ADIADA. A pergunta foi apresentada com os dois numeros concretos lado a lado: compra de 1.200 em 12x feita em 30/07 aparece como 1.200 em julho pela data da compra, ou como 100 por mes de setembro a agosto do ano seguinte pela competencia. O usuario escolheu a terceira opcao — cada orcamento declara a sua base. CONSEQUENCIA SINALIZADA NA PERGUNTA E TRATADA DENTRO DA DECISAO: com bases diferentes entre categorias, somar os realizados de todas produz um numero sem significado, porque seria somar 'quanto me comprometi' com 'quanto vou pagar'. O tratamento adotado: a comparacao POR CATEGORIA e sempre exata e e a que H-40 e H-41 pedem; o agregado do mes nao e um escalar, e sim os totais separados por base, lado a lado e nunca somados. E A TERCEIRA VEZ NO CICLO QUE ESTE PADRAO RESOLVE UM PROBLEMA — RF-97 separou total pessoal de total de grupo, D-28 proibiu soma-los, e agora D-77 cria um terceiro par incomensuravel. Em todos os tres a resposta foi a mesma, e em todos a AUSENCIA do campo agregado E a regra, verificada por teste. D-78 (orcamento pode ser de grupo) cria um segundo eixo que ja tem precedente: um gasto de escopo GRUPO conta no teto pessoal do dono E no teto do grupo, exatamente como ja acontece com totalPessoal e totalGrupo em U2, e a resolucao e a mesma — grandezas distintas que nunca se somam. D-79 repete o raciocinio da conta derivada de fatura em U3: o aporte nao tem categoria, e forcar uma seria inventar dado. D-80 faz o rendimento nascer ZERO em vez de negativo. ACHADOS DE DESIGN: (1) Receita e a UNICA entidade com dono do sistema sem Escopo, por P-05, e a consequencia nao e de modelagem e sim de produto — NAO HA RENDA FAMILIAR, e por isso o balanco e sempre pessoal; (2) o teto ZERO e valido e significa 'nao quero gastar nada nesta categoria este mes' — remover o orcamento e operacao distinta; (3) totalAportado e derivado e saldoAtual e estado declarado pelo usuario, mesma distincao de U3 entre a fatura e a conta a pagar, e e por isso que RF-71 existe: o sistema nao tem cotacao e nao pretende ter; (4) o aporte mensal necessario e a SEGUNDA divisao monetaria do sistema e tem direcao OPOSTA a do parcelamento — la a soma tem que ser exata, aqui ela tem que ser SUFICIENTE, porque arredondar para baixo faria o usuario chegar ao prazo faltando centavos; (5) a propriedade 5 do PBT e uma prova de consistencia ENTRE UNIDADES: o realizado pelas duas bases coincide quando nao ha cartao, e se falhar o defeito esta em U2 ou em U4; (6) Dinheiro aceitar negativos, decidido em U1 sem consumidor a vista, paga aqui no rendimento negativo — segunda vez que uma escolha de U1 sem consumidor imediato paga em unidade posterior, e diferente de dividirEm esta nao precisou ser revertida."
+**Context**: CONSTRUCTION PHASE - U4 - Functional Design
+
+---
+
