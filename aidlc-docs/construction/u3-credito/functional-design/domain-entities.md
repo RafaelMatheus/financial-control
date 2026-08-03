@@ -56,7 +56,7 @@ Raiz de agregado. Entidade **persistida** (D-31) — não é uma visão calculad
 | `id` | UUID | sim | |
 | `cartao` | UUID de `Cartao` | sim | |
 | `competencia` | `Competencia` | sim | Ano-mês. **Único por cartão** |
-| `valorTotal` | `Dinheiro` | sim | Soma dos lançamentos da competência |
+| ~~`valorTotal`~~ | — | — | ⚠️ **Deixou de ser atributo** — ver §2.3 |
 | `dataFechamento` | data | não | Nula enquanto ABERTA |
 | `dataVencimento` | data | sim | `diaVencimento` do cartão no mês da competência, com D-69 |
 | `contaAPagar` | UUID de `ContaAPagar` | não | Criada no fechamento (RF-59) |
@@ -65,10 +65,8 @@ Raiz de agregado. Entidade **persistida** (D-31) — não é uma visão calculad
 **Invariantes**
 
 1. `(cartao, competencia)` é único
-2. `valorTotal` é sempre igual à soma dos lançamentos com aquela competência — **derivado, nunca
-   digitado**
-3. `dataFechamento != null ⟺ a fatura está FECHADA`
-4. `contaAPagar != null ⟹ dataFechamento != null`
+2. `dataFechamento != null ⟺ a fatura está FECHADA`
+3. `contaAPagar != null ⟹ dataFechamento != null`
 
 ### 2.1 O status tem dois níveis, e só um é persistido (D-70)
 
@@ -91,6 +89,24 @@ realmente acontece (RF-27, RF-57).
 **Sem `status`** — ver acima. **Sem `dataPagamento`**: vive na conta.
 **Sem lista de lançamentos**: a fatura não é dona deles. `Gasto` e `Parcela` apontam para a
 competência; a fatura os encontra, não os contém.
+
+### 2.3 Correção posterior — `valorTotal` não é atributo (D-75)
+
+Este documento listava `valorTotal` como atributo persistido, com a invariante *"sempre igual à soma
+dos lançamentos"*. A **NFR Design de U3 decidiu o contrário** (D-75): o total é **calculado na
+leitura**, por `SUM` sobre os lançamentos da competência.
+
+O motivo é que a invariante, como estava escrita, dependia de todo caminho de escrita lembrar de
+recalcular — lançar, editar, excluir, reabrir. Esquecer um faria o total divergir **em silêncio**.
+Calculado na leitura, a invariante deixa de precisar de guardião.
+
+> **O que continua persistido**: o **valor da `ContaAPagar`** gerada no fechamento. Aquilo é fato
+> histórico — o que foi efetivamente cobrado — e não pode mudar se um lançamento antigo for
+> corrigido depois. A fatura reflete a soma atual; a conta reflete o que foi fechado. Sem essa
+> distinção, corrigir um gasto de março mudaria o valor de uma conta paga em abril.
+
+*Correção aplicada em 2026-08-03, durante a NFR Design. Registrada aqui em vez de reescrita em
+silêncio, para que o rastro da mudança fique legível.*
 
 ---
 

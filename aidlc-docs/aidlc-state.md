@@ -257,7 +257,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: CONSTRUCTION
-- **Current Stage**: CONSTRUCTION — **U3 Crédito · Functional Design gerada, gate pendente**
+- **Current Stage**: CONSTRUCTION — **U3 Crédito · NFR Design gerada, gate pendente**
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -403,13 +403,31 @@ tem `PaginaGastos` com os totais embutidos; o design de U2 os separa em duas ope
 escrito à mão é referência de design; a fonte é o springdoc gerado do código (D-06).
 
 #### U3 — Crédito (EM ANDAMENTO)
-- [x] Functional Design — GERADO (2026-08-01T21:00:00Z), **aguardando aprovação**
+- [x] Functional Design — COMPLETED e **APROVADO** (2026-08-03T10:00:00Z)
       Plano: `aidlc-docs/construction/plans/u3-credito-functional-design-plan.md` (15 passos)
       Artefatos: `aidlc-docs/construction/u3-credito/functional-design/`
       6 entidades · **37 regras** (RN-K, RN-F, RN-P, RN-A, RN-R) · 7 alvos de PBT ·
       6 diagramas Mermaid · 6 decisões (D-67 a D-72) · **as 2 jornadas resolvidas**
-- [ ] NFR Design
+- [x] NFR Design — GERADO (2026-08-03T10:30:00Z), **aguardando aprovação**
+      Plano: `aidlc-docs/construction/plans/u3-credito-nfr-design-plan.md` (10 passos)
+      Artefatos: `aidlc-docs/construction/u3-credito/nfr-design/`
+      4 decisões (D-73 a D-76) · 5 categorias avaliadas · 3 diagramas Mermaid
 - [ ] Code Generation
+
+**Decisões de NFR Design de U3**: D-73 (bloqueio de fatura paga **desce para o adaptador**; o
+serviço continua verificando para dar mensagem), D-74 (`@Scheduled` + **advisory lock** do
+PostgreSQL), D-75 (`Fatura.valorTotal` **calculado na leitura**; o valor da conta a pagar continua
+persistido como fato histórico), D-76 (Code Generation em **uma entrega só** — contra a
+recomendação, com blocos de verificação intermediária como mitigação).
+
+✅ **A lista do que quebra com escala horizontal ENCOLHEU.** D-74 impede execução dupla, então o
+`RegistroDeTentativas` de U1 volta a ser o **único** item. Primeira vez no ciclo que essa lista
+diminui.
+
+⚠️ **Correção aplicada a um artefato já aprovado**: `domain-entities.md` §2 listava
+`Fatura.valorTotal` como atributo persistido. D-75 o remove — a invariante dependia de todo caminho
+de escrita lembrar de recalcular. A correção está registrada em §2.3 do próprio artefato, com a
+data, em vez de reescrita em silêncio.
 
 **As 4 decisões adiadas desde a Inception fecharam**: D-04 (por D-69), D-33 (por D-70),
 D-20 (por D-71), D-19 (por D-72).

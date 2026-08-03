@@ -1533,6 +1533,72 @@ ao deixar de nao ter um?". Duas respostas concretas sairam dai:
 
 ---
 
+### 3.45 A lista que encolheu
+
+Desde U1 o projeto mantem, sem nome formal, um inventario do que quebraria com uma segunda
+instancia da aplicacao. Ele nasceu com um item: `RegistroDeTentativas`, o contador de tentativas de
+login guardado em memoria. A NFR Design de U1 registrou-o como *"o unico componente com estado, e e
+justamente o que quebra com uma segunda instancia"*, e a Code Generation confirmou a propriedade por
+um caminho que ninguem tinha previsto — o teste de bloqueio deixava a conta travada para os testes
+seguintes, porque dois testes no mesmo processo sao, para aquele componente, indistinguiveis de duas
+requisicoes na mesma instancia (3.40).
+
+U3 ia acrescentar o segundo item. O fechamento de fatura por job diario (D-71) faria duas instancias
+fecharem a mesma fatura ao mesmo tempo, e a Functional Design registrou isso explicitamente como
+consequencia da decisao.
+
+Na NFR Design, a pergunta foi feita junto com a de onde o job deveria viver, e a resposta escolhida
+foi `@Scheduled` **com advisory lock do PostgreSQL**. O segundo item nunca chegou a entrar na lista.
+
+O que torna o episodio interessante nao e o lock — e um mecanismo banal. E o momento.
+
+> **O-43 — Divida arquitetural e mais barata no minuto em que e criada do que em qualquer minuto
+> seguinte.** O custo de resolver a exclusao mutua foi uma pergunta numa rodada de esclarecimento e
+> uma chamada a `pg_try_advisory_lock`. O mesmo problema, descoberto no dia em que a segunda
+> instancia subir, custaria diagnostico de fatura duplicada em producao — e o diagnostico seria dificil
+> justamente porque a idempotencia do design mascara o sintoma: nao haveria conta duplicada, haveria
+> corrida silenciosa.
+
+Vale notar a assimetria com o `RegistroDeTentativas`, que continua na lista. Ele foi mantido de
+proposito: resolve-lo exigiria um armazenamento compartilhado — a mesma decisao que a tabela de
+ausencias de U1 recusou por nao haver escala que a justificasse. **Os dois casos receberam
+tratamento diferente porque tinham custo diferente**, e nao porque um foi lembrado e o outro
+esquecido. A lista serve para tornar essa distincao visivel.
+
+### 3.46 A invariante que precisava de guardiao
+
+A Functional Design de U3 modelou `Fatura.valorTotal` como atributo persistido, com a invariante
+*"sempre igual a soma dos lancamentos daquela competencia"*. O artefato foi aprovado assim.
+
+Na NFR Design, ao enumerar os caminhos de escrita que precisariam manter a invariante, a lista ficou:
+lancar gasto, editar gasto, excluir gasto, lancar compra, editar compra, excluir compra, reabrir
+fatura por lancamento retroativo, realocar categoria. **Oito caminhos**, e cada um deles um lugar
+onde alguem pode esquecer — com o agravante de que esquecer nao produz erro: produz um numero errado
+que parece certo.
+
+A decisao foi remover o atributo: o total passa a ser `SUM` na leitura, e a invariante deixa de
+existir como obrigacao, porque passa a ser verdadeira por construcao.
+
+> **O-44 — Uma invariante que precisa ser mantida e uma invariante que pode ser violada.** A
+> formulacao "X e sempre igual a soma de Y" descreve a mesma intencao nos dois desenhos, mas no
+> desenho persistido ela e uma promessa que oito caminhos precisam honrar, e no desenho derivado ela
+> e uma definicao. Trocar promessa por definicao elimina a classe inteira de defeitos, e o preco foi
+> uma agregacao sobre dezenas de linhas indexadas.
+
+O episodio tem um contraponto que impede a leitura simplista de "derive tudo". O **valor da conta a
+pagar** gerada no fechamento permanece persistido, e deliberadamente. Aquele numero nao e a soma
+atual: e o que foi cobrado. Se ele derivasse, corrigir um gasto de marco mudaria o valor de uma conta
+paga em abril — e o historico deixaria de bater com o extrato do banco, que e precisamente o que a
+regra de proteger fatura paga existe para impedir.
+
+> **O-45 — A escolha entre derivar e guardar depende de o valor ser uma soma ou um fato.** Os dois
+> numeros deste episodio tem a mesma unidade, a mesma origem e quase o mesmo nome. Um e "quanto essa
+> fatura soma agora"; o outro e "quanto foi cobrado naquele dia". O primeiro deve mudar quando os
+> lancamentos mudam; o segundo, nunca. Nenhuma regra geral sobre normalizacao distingue os dois — so
+> a pergunta sobre o que o numero significa.
+
+---
+
 ## 4. Dados quantitativos do processo
 
 ### 4.1 Esclarecimento
@@ -1768,8 +1834,8 @@ evita reinterpretação em stages posteriores.
 ## 6. Estado atual
 
 **Fase**: CONSTRUCTION
-**Stage**: **U3 — Crédito**. Functional Design gerada, gate pendente. Faltam NFR Design e Code
-Generation.
+**Stage**: **U3 — Crédito**. Functional Design e NFR Design geradas; a primeira aprovada, a segunda
+com gate pendente. Falta a Code Generation.
 **U2 — Lançamentos encerrada** em 2026-08-01: as 3 stages aprovadas, 82 testes verdes no CI.
 **U1 — Fundação encerrada** em 2026-08-01: as 4 stages aprovadas e a suíte de 69 testes verde no CI
 (run `30713102231`, commit `cd310cb`).
@@ -1789,7 +1855,7 @@ Design, Units Generation. Nenhuma pulada.
 destino U4. **D-04, D-19, D-20 e D-33 fecharam na Functional Design de U3** — respectivamente por
 D-69, D-72, D-71 e D-70.
 Fechadas na Construction: D-11, D-12, D-34 a D-39 (U5), **D-02, D-05, D-06, D-42 a D-53** (U1) e
-**D-54 a D-66** (U2) e **D-67 a D-72** (U3).
+**D-54 a D-66** (U2) e **D-67 a D-76** (U3).
 
 **Riscos e pendências ativos**:
 
