@@ -54,7 +54,10 @@ abstract class SuporteDeIntegracao {
         tentativas.limparTudo()
         dataSource.connection.use { conexao ->
             conexao.createStatement().use {
-                it.execute("TRUNCATE TABLE gasto, categoria, membro_grupo, grupo, usuario CASCADE")
+                it.execute(
+                    "TRUNCATE TABLE conta_a_pagar, conta_recorrente, parcela, compra, " +
+                        "fatura, cartao, gasto, categoria, membro_grupo, grupo, usuario CASCADE",
+                )
             }
         }
     }
@@ -141,6 +144,27 @@ abstract class SuporteDeIntegracao {
         ate: String = "2026-08-31",
         extra: String = "",
     ): ResultActions = mvc.perform(comToken(get("/gastos?de=$de&ate=$ate$extra"), token))
+
+    // --- U3 Credito ---
+
+    protected fun criarCartao(
+        token: String,
+        apelido: String = "Nubank",
+        diaFechamento: Int = 28,
+        diaVencimento: Int = 5,
+        escopo: String = "PESSOAL",
+        grupoId: String? = null,
+    ): String {
+        val grupo = if (grupoId == null) "null" else "\"$grupoId\""
+        val resposta = mvc.perform(
+            comToken(post("/cartoes"), token).contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """{"apelido":"$apelido","diaFechamento":$diaFechamento,
+                       "diaVencimento":$diaVencimento,"escopo":"$escopo","grupoId":$grupo}""",
+                ),
+        ).andReturn().response.contentAsString
+        return json.readTree(resposta).get("id").asText()
+    }
 
     protected fun totais(
         token: String,

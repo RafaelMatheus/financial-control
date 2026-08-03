@@ -70,11 +70,11 @@ src/test/kotlin/...
 
 ### Bloco B — `cartao` (H-18, H-19)
 
-- [ ] **Passo 7** — `dominio/`: `Cartao` + porta `CartaoRepositorio` — *RN-K01, RN-K02, RN-K04*
-- [ ] **Passo 8** — `aplicacao/CartaoService`: cadastrar, editar, encerrar, listar
-- [ ] **Passo 9** — `adaptador/`: persistência com o critério de visibilidade, e web
-- [ ] **Passo 10** — Testes de `cartao`, incluindo dias 29–31 aceitos no cadastro
-- [ ] **Passo 11** — ✅ **Verificação do bloco**
+- [x] **Passo 7** — `dominio/`: `Cartao` + porta `CartaoRepositorio` — *RN-K01, RN-K02, RN-K04*
+- [x] **Passo 8** — `aplicacao/CartaoService`: cadastrar, editar, encerrar, listar
+- [x] **Passo 9** — `adaptador/`: persistência com o critério de visibilidade, e web
+- [x] **Passo 10** — Testes de `cartao`, incluindo dias 29–31 aceitos no cadastro
+- [x] **Passo 11** — ✅ **Verificação do bloco**
 
 ### Bloco C — `fatura` e a guarda transversal (H-20 a H-26)
 
@@ -126,7 +126,7 @@ src/test/kotlin/...
 
 ### Bloco G — persistência e isolamento
 
-- [ ] **Passo 36** — `V3__credito.sql`: 6 tabelas, único `(cartao_id, competencia)`, único
+- [x] **Passo 36** — ANTECIPADO para o Bloco B (ver §7) — `V3__credito.sql`: 6 tabelas, único `(cartao_id, competencia)`, único
       `(compra_id, numero)`, **índice único parcial** `(origem_recorrente_id, competencia)`,
       `CHECK`s, FK de `parcela` **`CASCADE`** e de `categoria` **`RESTRICT`**
 - [ ] **Passo 37** — 🔒 **Teste de isolamento das 6 entidades novas** — replica os casos de H-03
