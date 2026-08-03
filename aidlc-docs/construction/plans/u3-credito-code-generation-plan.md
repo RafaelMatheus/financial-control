@@ -111,9 +111,9 @@ src/test/kotlin/...
 - [x] **Passo 28** — `aplicacao/RecorrenteService` e a **projeção de ocorrências** (D-72), com a
       materialização ao ser tocada
 - [x] **Passo 29** — `adaptador/` de `conta` e de `recorrente`
-- [ ] **Passo 30** — Testes: visão consolidada reunindo os quatro tipos ordenados; ajuste de valor
+- [x] **Passo 30** — Testes: visão consolidada reunindo os quatro tipos ordenados; ajuste de valor
       não alterando o valor base; encerrar preservando histórico
-- [ ] **Passo 31** — ✅ **Verificação do bloco**
+- [x] **Passo 31** — ✅ **Verificação do bloco**
 
 ### Bloco F — o job (D-71, D-74)
 
@@ -121,7 +121,7 @@ src/test/kotlin/...
 - [x] **Passo 33** — `FechamentoAgendado`: `@Scheduled`, fecha **todas** as faturas com janela
       terminada, gera a conta a pagar com o valor do momento — *RN-F05, RN-A05*
 - [x] **Passo 34** — `@EnableScheduling` e configuração do horário em `application.yml`
-- [ ] **Passo 35** — Testes do job: **idempotência** (rodar duas vezes não gera duas contas),
+- [x] **Passo 35** — Testes do job: **idempotência** (rodar duas vezes não gera duas contas),
       **recuperação** (três dias parado recupera os três), e o lock impedindo execução concorrente
 
 ### Bloco G — persistência e isolamento
@@ -129,13 +129,13 @@ src/test/kotlin/...
 - [x] **Passo 36** — ANTECIPADO para o Bloco B (ver §7) — `V3__credito.sql`: 6 tabelas, único `(cartao_id, competencia)`, único
       `(compra_id, numero)`, **índice único parcial** `(origem_recorrente_id, competencia)`,
       `CHECK`s, FK de `parcela` **`CASCADE`** e de `categoria` **`RESTRICT`**
-- [ ] **Passo 37** — 🔒 **Teste de isolamento das 6 entidades novas** — replica os casos de H-03
-- [ ] **Passo 38** — Teste de concorrência: materialização simultânea da mesma ocorrência recorrente
-- [ ] **Passo 39** — ✅ **Verificação do bloco**
+- [x] **Passo 37** — 🔒 **Teste de isolamento das 6 entidades novas** — replica os casos de H-03
+- [x] **Passo 38** — Teste de concorrência: materialização simultânea da mesma ocorrência recorrente
+- [x] **Passo 39** — ✅ **Verificação do bloco**
 
 ### Bloco H — fechamento
 
-- [ ] **Passo 40** — **`ArquiteturaTest`**: confirmar que as 6 entidades novas são cobertas
+- [x] **Passo 40** — **`ArquiteturaTest`**: confirmar que as 6 entidades novas são cobertas
       automaticamente e **atualizar a guarda contra vacuidade** para incluí-las — *primeiro retorno
       concreto de D-66*
 - [ ] **Passo 41** — Empurrar e **esperar o CI verde**. A stage não se declara concluída antes

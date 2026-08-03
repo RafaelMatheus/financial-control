@@ -92,9 +92,16 @@ class ArquiteturaTest {
         // ou a forma como o Kotlin gera os campos, a regra acima deixaria de
         // proteger qualquer coisa sem nenhum sinal.
         //
-        // As duas entidades de U2 sao fato conhecido hoje. U3 acrescenta seis, e
-        // a assercao continua valendo sem manutencao.
-        val esperadas = setOf("Categoria", "Gasto")
+        // As duas entidades de U2 mais as de U3 que tem dono proprio.
+        //
+        // `Fatura` e `Parcela` NAO estao aqui, e nao e esquecimento: nenhuma das
+        // duas tem dono. A fatura pertence ao cartao e herda a visibilidade
+        // dele; a parcela pertence a compra. Sao os dois casos em que a ausencia
+        // de `dono` e a modelagem correta, e nao um escape do padrao.
+        val esperadas = setOf(
+            "Categoria", "Gasto",
+            "Cartao", "Compra", "ContaAPagar", "ContaRecorrente",
+        )
         val naoEncontradas = esperadas - entidadesComDono
         if (naoEncontradas.isNotEmpty()) {
             fail(
