@@ -17,3 +17,8 @@ output "aws_region" {
   description = "Regiao. Registrar como variable AWS_REGION no GitHub."
   value       = var.aws_region
 }
+
+output "ecr_web_repository_url" {
+  description = "URI do repositorio ECR do front (variavel ECR_WEB_REPOSITORY nos dois repos)"
+  value       = aws_ecr_repository.web.repository_url
+}

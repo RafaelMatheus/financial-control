@@ -77,6 +77,15 @@ data "aws_iam_policy_document" "github_actions_assume" {
           "repo:${var.github_repository}:ref:refs/heads/${var.github_branch}",
           "repo:${var.github_repository}:pull_request",
         ],
+        # O repositorio do FRONT usa a mesma role: ele publica no ECR e dispara
+        # o deploy por SSM, exatamente como o backend.
+        #
+        # Uma role por repositorio seria mais granular, e nao mais segura aqui:
+        # os dois precisam do mesmo conjunto de permissoes — ECR e SSM na mesma
+        # instancia. Duas roles com a mesma policy so duplicariam a manutencao.
+        [
+          for repositorio in var.github_repositories_front : "repo:${repositorio}:ref:refs/heads/main"
+        ],
         var.extra_trusted_subs,
       )
     }

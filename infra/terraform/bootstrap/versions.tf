@@ -83,3 +83,17 @@ variable "project_name" {
   type        = string
   default     = "financial-control"
 }
+
+variable "github_repositories_front" {
+  description = <<-DESC
+    Repositorios adicionais que usam a mesma role OIDC — hoje, o do front.
+
+    Eles publicam no ECR e disparam o deploy por SSM na mesma instancia, entao
+    precisam exatamente das mesmas permissoes. Uma role por repositorio seria
+    mais granular sem ser mais segura, e duplicaria a manutencao da policy.
+
+    Apenas `main`: nao ha pull_request aqui, porque o CI do front nao toca a AWS.
+  DESC
+  type        = list(string)
+  default     = ["RafaelMatheus/financial-control-web"]
+}
