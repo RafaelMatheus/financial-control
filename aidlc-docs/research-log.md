@@ -1980,6 +1980,16 @@ evita reinterpretação em stages posteriores.
 
 ---
 
+## 5.1 Dossiê consolidado
+
+`aidlc-docs/dossie-do-ciclo.md` reúne, num documento só, os dois repositórios, o método, a
+seleção de decisões que mudaram o sistema e o que a verificação encontrou. É a porta de entrada
+para quem chega ao projeto; este research-log continua sendo o registro analítico completo.
+
+Versão navegável: https://claude.ai/code/artifact/16b5bfe9-e6e7-4592-8005-54f35fa16de0
+
+---
+
 ## 6. Estado atual
 
 **Fase**: 🏁 **CICLO ENCERRADO** — 2026-08-03.

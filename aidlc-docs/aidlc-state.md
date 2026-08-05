@@ -529,6 +529,10 @@ R-01 (retenção de backup em `prod`) e a dívida da trust policy do OIDC.
 
 # 🏁 CICLO AI-DLC ENCERRADO — 2026-08-03
 
+📒 **Dossiê consolidado**: `aidlc-docs/dossie-do-ciclo.md` — os dois repositórios, o método, as
+decisões e o que a verificação encontrou, num documento só.
+Versão navegável: https://claude.ai/code/artifact/16b5bfe9-e6e7-4592-8005-54f35fa16de0
+
 | Fase | Situação |
 |---|---|
 | INCEPTION | ✅ 7 stages, nenhuma pulada |
