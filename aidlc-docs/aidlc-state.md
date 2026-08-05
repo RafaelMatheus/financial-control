@@ -257,7 +257,7 @@ diferente. Usar CloudShell na conta correta, ou `AWS_PROFILE=pessoal`.
 - **Project Type**: Brownfield (esqueleto executável sem domínio de negócio)
 - **Start Date**: 2026-07-30T16:11:59Z
 - **Current Phase**: OPERATIONS (placeholder) — ciclo encerrado
-- **Current Stage**: 🏁 **CICLO ENCERRADO** — Inception, Construction e Operations percorridas
+- **Current Stage**: 🏁 **CICLO ENCERRADO**. Front-end integrado em 2026-08-05, fora do ciclo
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -528,6 +528,36 @@ R-01 (retenção de backup em `prod`) e a dívida da trust policy do OIDC.
 ---
 
 # 🏁 CICLO AI-DLC ENCERRADO — 2026-08-03
+
+## 🔵 DEPOIS DO CICLO — front-end integrado (2026-08-05)
+
+Repositório próprio: **https://github.com/RafaelMatheus/financial-control-web** — React + Vite +
+TypeScript, 7 telas, 10 testes. Consome a API **sem exigir alteração de contrato**.
+
+**Mesma origem**: o nginx serve `/` (front) e `/api/` (backend). Resolve CORS — que o backend não
+declara — e *mixed content*, que seria intransponível com o front em HTTPS e a API em HTTP.
+
+**Mudanças na AWS**, detalhadas em `operations/operations.md` §4.6:
+
+| Recurso | Mudança |
+|---|---|
+| ECR | Segundo repositório, `financial-control-web`, **`MUTABLE`** (a composição usa `latest` como default) |
+| IAM | Trust policy confia também no repo do front. Mudança **puramente aditiva** |
+| nginx | `/api/` → app (barra final remove o prefixo), `/` → web, com o endereço em **variável** para não derrubar a API se o front faltar |
+| Compose | Serviço `web`, sem `ports` e **fora de `depends_on`** |
+
+✅ **A dívida da trust policy do OIDC foi RESOLVIDA.** O `sub` desta conta traz IDs numéricos —
+`owner_id` e `repo_id`, conferidos pela API do GitHub. O ciclo a registrara como "origem não
+identificada"; o segundo repositório obrigou a reproduzir o formato, e reproduzir exigiu compreender.
+
+⚠️ **A ordem do deploy foi violada durante a execução** e está registrada: o `push` da correção
+levou junto o commit do nginx, disparando o deploy do backend antes de a imagem do front existir.
+A tag imutável barrou o rebuild na retentativa, e o caminho de rollback do próprio workflow resolveu.
+
+⚠️ **`domain_name` subiu para a pendência mais urgente.** Com uma tela de login num navegador, HTTP
+deixa de ser incômodo e passa a ser a senha de quem entra.
+
+---
 
 📒 **Dossiê consolidado**: `aidlc-docs/dossie-do-ciclo.md` — os dois repositórios, o método, as
 decisões e o que a verificação encontrou, num documento só.

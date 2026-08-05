@@ -1748,6 +1748,66 @@ uma stage concluida nasceu do primeiro deles.
 
 ---
 
+### 3.52 A divida que se pagou ao ser exercitada
+
+O ciclo encerrou com cinco pendencias operacionais. Uma delas era a trust policy do OIDC: a lista de
+`sub` confiados era a **uniao** do padrao documentado do GitHub com um formato herdado da role
+criada a mao no console, que traz IDs numericos e cuja origem o registro descrevia como **nao
+identificada** (3.32).
+
+A uniao foi escolhida por assimetria de custo: errar para o lado permissivo custa uma condicao a
+mais numa policy; errar para o restritivo custa o acesso ao CI — e a role sob edicao era justamente
+a identidade que o CI usa para consertar o proprio erro.
+
+Dois dias depois, ao integrar um segundo repositorio, o primeiro deploy do front falhou com
+`Not authorized to perform sts:AssumeRoleWithWebIdentity`. A entrada nova usava o formato
+documentado, e **esta conta nao o emite**.
+
+A origem ficou identificada na hora: os numeros sao o `id` do usuario e o `id` do repositorio,
+conferidos pela API do GitHub, e batem exatamente com o `sub` herdado.
+
+> **O-51 — Uma divida so e paga quando alguem precisa do que ela esconde.** Enquanto havia um
+> repositorio, o valor herdado funcionava, e entende-lo nao tinha consequencia pratica: a duvida
+> podia ficar registrada indefinidamente sem custo. O segundo repositorio obrigou a **reproduzir** o
+> formato — e reproduzir exigiu compreender. O que a resolveu nao foi diligencia, foi necessidade.
+
+Vale notar o que isso diz sobre o registro. A divida ficou escrita com o valor exato, a hipotese em
+aberto e a razao da escolha. Quando a necessidade chegou, o diagnostico levou uma consulta a API —
+porque o registro dizia onde olhar. Um `# TODO: entender esse sub` teria produzido a mesma falha e
+nenhuma pista.
+
+### 3.53 O front chegou dois dias depois, e o contrato aguentou
+
+A Requirements Analysis excluiu o front-end do repositorio: seria construido separadamente,
+consumindo a API. A decisao foi tomada com o dominio ainda por modelar, e o unico compromisso
+assumido foi o contrato de API como entregavel (RF-78 a RF-80, D-06).
+
+O front foi construido em dois dias, depois de o ciclo encerrar. Sete telas, 39 rotas consumidas,
+dez testes. **Nenhuma alteracao de contrato foi necessaria** — e nenhuma rota do backend mudou nem
+para acomodar o roteamento, porque a barra final no `proxy_pass` do nginx remove o prefixo `/api`.
+
+Duas observacoes do exercicio:
+
+**A fonte do contrato importou.** O `openapi.yaml` escrito a mao na Application Design estava
+desatualizado: D-57 separou os totais da listagem e D-67 inverteu a entrada do parcelamento, e o
+arquivo nao acompanhou. O contrato vivo era o do springdoc, gerado do codigo (D-06). Construir o
+cliente sobre o arquivo teria produzido um front que nao funciona, com erros que so apareceriam em
+tempo de execucao.
+
+**As decisoes do backend reapareceram como decisoes de interface.** Valores monetarios chegam como
+string, e nao numero, porque `Dinheiro` e um `BigDecimal` de escala 2 — serializa-lo como numero o
+passaria por um `double` no JavaScript, o tipo que todo o backend evita. O total pessoal e o do
+grupo aparecem lado a lado e nunca somados, porque D-28 diz que somar nao tem significado. O campo
+de e-mail nao usa `type="email"`, porque a validacao do navegador rodaria antes da normalizacao que
+RN-U01 exige — o mesmo defeito que o CI encontrara no backend, na mesma posicao relativa.
+
+> **O-52 — Um contrato bem especificado transfere decisoes, nao apenas dados.** As tres escolhas
+> acima nao estao no OpenAPI: nenhum esquema diz por que o valor e string, nem que dois totais nao
+> se somam. Elas foram deduzidas do **registro das decisoes**, nao do contrato — e sem esse registro
+> o front teria feito as tres ao contrario, todas plausiveis, todas erradas.
+
+---
+
 ## 4. Dados quantitativos do processo
 
 ### 4.1 Esclarecimento
@@ -2003,9 +2063,14 @@ J-02, fechou na Functional Design de U4.
 **U2 — Lançamentos encerrada** em 2026-08-01: as 3 stages aprovadas, 82 testes verdes no CI.
 **U1 — Fundação encerrada** em 2026-08-01: as 4 stages aprovadas e a suíte de 69 testes verde no CI
 (run `30713102231`, commit `cd310cb`).
-**Pendências operacionais reais** (não do placeholder): passo 5b do runbook, `domain_name` sem TLS,
-R-05 (`AdministratorAccess` na role do CI), R-01 (retenção de backup em `prod`) e a dívida da trust
-policy do OIDC. Ordem sugerida em `aidlc-docs/operations/operations.md`.
+**Pendências operacionais reais** (não do placeholder), em ordem: `domain_name` sem TLS — agora o
+mais urgente, porque com uma tela de login a senha trafega em claro; R-05 (`AdministratorAccess` na
+role do CI); R-01 (retenção de backup em `prod`); e o passo 5b, que deixou de ser bloqueante. A
+**dívida da trust policy do OIDC foi resolvida** em 2026-08-05 (3.52). Detalhe em
+`aidlc-docs/operations/operations.md`.
+
+**Depois do ciclo**: o front-end foi construído em 2026-08-05, em repositório próprio
+(`financial-control-web`), consumindo a API sem exigir alteração de contrato (3.53).
 
 **U5 — Infraestrutura encerrada** em 2026-07-31: Infrastructure Design e Code Generation aprovadas,
 e o ambiente `dev` efetivamente provisionado na AWS — `api_url=http://52.73.89.203`,
